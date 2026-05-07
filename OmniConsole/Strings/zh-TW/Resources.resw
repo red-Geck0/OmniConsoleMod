@@ -177,6 +177,76 @@
   <data name="Platform_PlayniteFullscreen" xml:space="preserve">
     <value>Playnite Fullscreen</value>
   </data>
+  <data name="Platform_OneGameLauncher" xml:space="preserve">
+    <value>One Game Launcher</value>
+  </data>
+  <data name="Platform_MsiCenterM" xml:space="preserve">
+    <value>MSI Center M</value>
+  </data>
+  <!-- ── Mouse Mode 頁 ──────────────────────────────────────────── -->
+  <data name="Nav_MouseMode.Content" xml:space="preserve">
+    <value>滑鼠模式</value>
+  </data>
+  <data name="MouseModeTitle.Text" xml:space="preserve">
+    <value>滑鼠模式</value>
+  </data>
+  <data name="MouseModeDescription.Text" xml:space="preserve">
+    <value>設定手把模擬滑鼠的功能與按鍵配置。</value>
+  </data>
+  <data name="MouseModeSection_General.Text" xml:space="preserve">
+    <value>一般</value>
+  </data>
+  <data name="MouseModeSection_InputMapping.Text" xml:space="preserve">
+    <value>按鍵對應</value>
+  </data>
+  <data name="MouseModeSection_InputMappingDesc.Text" xml:space="preserve">
+    <value>自訂每個手把按鍵對應的鍵盤快速鍵。搖桿與方向鍵的類比行為將依所選的控制器版面配置而定。</value>
+  </data>
+  <data name="MappingLayout_OmniNav.Text" xml:space="preserve">
+    <value>OmniNav</value>
+  </data>
+  <data name="MappingLayout_Classic.Text" xml:space="preserve">
+    <value>Classic</value>
+  </data>
+  <data name="LayeredModeSetting_Title.Text" xml:space="preserve">
+    <value>分層模式</value>
+  </data>
+  <data name="LayeredModeSetting_Description.Text" xml:space="preserve">
+    <value>僅當下方觸發鍵被按住時,自訂對應才會生效;放開即停用。</value>
+  </data>
+  <data name="LayeredModeButton_Title.Text" xml:space="preserve">
+    <value>分層模式觸發鍵</value>
+  </data>
+  <data name="LayeredModeButton_Description.Text" xml:space="preserve">
+    <value>用以啟動分層的按鍵。</value>
+  </data>
+  <data name="Mapping_LayerTrigger" xml:space="preserve">
+    <value>(分層觸發鍵)</value>
+  </data>
+  <data name="ResetMappingsButton.Content" xml:space="preserve">
+    <value>還原為預設值</value>
+  </data>
+  <data name="MappingDialog_Title" xml:space="preserve">
+    <value>按鍵對應</value>
+  </data>
+  <data name="MappingDialog_Instruction" xml:space="preserve">
+    <value>請於下方選取按鍵組合:</value>
+  </data>
+  <data name="MappingDialog_Modifiers" xml:space="preserve">
+    <value>輔助鍵</value>
+  </data>
+  <data name="MappingDialog_Key" xml:space="preserve">
+    <value>按鍵</value>
+  </data>
+  <data name="MappingDialog_MockupNote" xml:space="preserve">
+    <value>此為模型介面 — 變更不會被儲存。</value>
+  </data>
+  <data name="MappingDialog_Mode" xml:space="preserve">
+    <value>動作類型</value>
+  </data>
+  <data name="MappingDialog_Special" xml:space="preserve">
+    <value>動作</value>
+  </data>
   <data name="AppDisplayName" xml:space="preserve">
     <value>OmniConsole</value>
   </data>
@@ -263,19 +333,43 @@
     <value>手把滑鼠模式</value>
   </data>
   <data name="MouseModeSetting_Description.Text" xml:space="preserve">
-    <value>關閉：停用。自動：見下方支援清單。強制開啟：所有應用程式。</value>
+    <value>關閉：停用。白名單：僅對清單中的應用程式啟用。黑名單：除清單外的所有應用程式。</value>
   </data>
   <data name="MouseModeItem_Off.Content" xml:space="preserve">
     <value>關閉</value>
   </data>
-  <data name="MouseModeItem_Auto.Content" xml:space="preserve">
-    <value>自動</value>
+  <data name="MouseModeItem_Whitelist.Content" xml:space="preserve">
+    <value>白名單</value>
   </data>
-  <data name="MouseModeItem_ForceOn.Content" xml:space="preserve">
-    <value>強制開啟</value>
+  <data name="MouseModeItem_Blacklist.Content" xml:space="preserve">
+    <value>黑名單</value>
   </data>
   <data name="MouseModeSetting_Note.Text" xml:space="preserve">
-    <value>設為自動時，支援 Edge、Chrome、Firefox、Opera、Brave、Epic Games Store、檔案總管和 Steam。</value>
+    <value>白名單模式：僅對清單中的應用程式啟用滑鼠模式。</value>
+  </data>
+  <data name="MouseModeWhitelistPanel_Title.Text" xml:space="preserve">
+    <value>白名單應用程式</value>
+  </data>
+  <data name="MouseModeWhitelistPanel_Desc.Text" xml:space="preserve">
+    <value>滑鼠模式僅對此清單中的應用程式啟用。</value>
+  </data>
+  <data name="MouseModeBlacklistPanel_Title.Text" xml:space="preserve">
+    <value>黑名單應用程式</value>
+  </data>
+  <data name="MouseModeBlacklistPanel_Desc.Text" xml:space="preserve">
+    <value>滑鼠模式對所有應用程式啟用，但以下除外。</value>
+  </data>
+  <data name="MouseModeAutoDetect_Note.Text" xml:space="preserve">
+    <value>檔案總管和 Steam 由系統自動管理。</value>
+  </data>
+  <data name="MouseModeAddApp_Browse.Content" xml:space="preserve">
+    <value>瀏覽 .exe...</value>
+  </data>
+  <data name="MouseModeAddApp_Placeholder" xml:space="preserve">
+    <value>處理程序名稱</value>
+  </data>
+  <data name="MouseModeAddApp_Button.Content" xml:space="preserve">
+    <value>新增</value>
   </data>
   <data name="MouseModeSetting_BuiltInMappingNote.Text" xml:space="preserve">
     <value>已停用 — 裝置具備內建手把映射。</value>

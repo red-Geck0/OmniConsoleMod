@@ -162,13 +162,13 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             WriteSteamInGameOverlayShortcut(steamCfg.overlayShortcut);
         }
 
-        // Mouse Mode 啟用條件：模式非 Off、無內建廠商映射；Auto 需前景符合白名單，ForceOn 除排除清單外皆生效
+        // Mouse Mode: Whitelist = aktif jika app di daftar, Blacklist = aktif kecuali app di daftar
         bool mouseModeActive = false;
         if (!config.hasBuiltInGamepadMapping) {
             switch (config.mouseMode) {
-                case MouseModeState::Off:     break;
-                case MouseModeState::Auto:    mouseModeActive = IsMouseModeTarget(currentFg); break;
-                case MouseModeState::ForceOn: mouseModeActive = !IsMouseModeForceExcluded(currentFg); break;
+                case MouseModeState::Off:       break;
+                case MouseModeState::Whitelist: mouseModeActive = IsMouseModeTarget(currentFg, config); break;
+                case MouseModeState::Blacklist: mouseModeActive = !IsMouseModeForceExcluded(currentFg, config); break;
             }
         }
 

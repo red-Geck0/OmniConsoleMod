@@ -136,22 +136,81 @@ static bool DetectBuiltInGamepadMappingImpl() {
 }
 
 static MouseModeState ParseMouseMode(const std::wstring& s) {
-    if (_wcsicmp(s.c_str(), L"Off") == 0)     return MouseModeState::Off;
-    if (_wcsicmp(s.c_str(), L"ForceOn") == 0) return MouseModeState::ForceOn;
-    return MouseModeState::Auto;
+    if (_wcsicmp(s.c_str(), L"Off")       == 0) return MouseModeState::Off;
+    if (_wcsicmp(s.c_str(), L"Blacklist") == 0) return MouseModeState::Blacklist;
+    if (_wcsicmp(s.c_str(), L"Whitelist") == 0) return MouseModeState::Whitelist;
+    // Migration: nilai lama dari versi sebelumnya
+    if (_wcsicmp(s.c_str(), L"ForceOn")   == 0) return MouseModeState::Blacklist;
+    if (_wcsicmp(s.c_str(), L"Auto")      == 0) return MouseModeState::Whitelist;
+    return MouseModeState::Whitelist; // default
 }
 
 static const wchar_t* MouseModeToStr(MouseModeState m) {
     switch (m) {
-        case MouseModeState::Off:     return L"Off";
-        case MouseModeState::ForceOn: return L"ForceOn";
-        default:                      return L"Auto";
+        case MouseModeState::Off:       return L"Off";
+        case MouseModeState::Blacklist: return L"Blacklist";
+        default:                        return L"Whitelist";
     }
+}
+
+// Parse CSV string menjadi vector<wstring>, trim spasi setiap token
+static std::vector<std::wstring> ParseCsv(const std::wstring& s) {
+    std::vector<std::wstring> result;
+    std::wstring token;
+    for (size_t i = 0; i <= s.size(); ++i) {
+        if (i == s.size() || s[i] == L',') {
+            // trim leading/trailing spaces
+            size_t start = token.find_first_not_of(L' ');
+            size_t end   = token.find_last_not_of(L' ');
+            if (start != std::wstring::npos)
+                result.push_back(token.substr(start, end - start + 1));
+            token.clear();
+        } else {
+            token += s[i];
+        }
+    }
+    return result;
 }
 
 // ============================================================================
 // 公開介面
 // ============================================================================
+
+// ── Button name table (sinkron dengan ButtonIdx di Config.h) ──────────────
+
+const wchar_t* const kButtonNames[BTN_COUNT] = {
+    L"A", L"B", L"X", L"Y",
+    L"LB", L"RB", L"LT", L"RT",
+    L"LSPress", L"RSPress",
+    L"DPadUp", L"DPadDown", L"DPadLeft", L"DPadRight"
+};
+
+int ButtonNameToIdx(const std::wstring& name) {
+    for (int i = 0; i < BTN_COUNT; i++)
+        if (_wcsicmp(name.c_str(), kButtonNames[i]) == 0) return i;
+    return -1;
+}
+
+// Default mapping (sinkron dengan SettingsService.cs::GetDefaultButtonMapping).
+// Dipakai sebagai fallback saat INI belum punya entry.
+static const wchar_t* DefaultMapping(int btnIdx, bool classic) {
+    if (classic) {
+        static const wchar_t* defs[BTN_COUNT] = {
+            L"enter", L"esc", L"pgdn", L"pgup",
+            L"tab", L"lclick", L"shift+tab", L"rclick",
+            L"", L"",
+            L"up", L"down", L"left", L"right"
+        };
+        return defs[btnIdx];
+    }
+    static const wchar_t* defs[BTN_COUNT] = {
+        L"lclick", L"rclick", L"pgdn", L"pgup",
+        L"ctrl+shift+tab", L"ctrl+tab", L"esc", L"enter",
+        L"shift+tab", L"tab",
+        L"up", L"down", L"left", L"right"
+    };
+    return defs[btnIdx];
+}
 
 AppConfig ReadConfig() {
     AppConfig cfg = {};
@@ -160,7 +219,7 @@ AppConfig ReadConfig() {
 
     cfg.steamOverlayEnabled = ReadInt(L"PhantomKey", L"SteamInGameOverlayEnabled", 1) != 0;
 
-    cfg.mouseMode = ParseMouseMode(ReadString(L"PhantomKey", L"MouseMode", L"Auto"));
+    cfg.mouseMode = ParseMouseMode(ReadString(L"PhantomKey", L"MouseMode", L"Whitelist"));
 
     std::wstring layout = ReadString(L"PhantomKey", L"MouseModeLayout", L"OmniNav");
     if (_wcsicmp(layout.c_str(), L"Classic") != 0) layout = L"OmniNav";
@@ -173,9 +232,36 @@ AppConfig ReadConfig() {
 
     cfg.hasBuiltInGamepadMapping = DetectBuiltInGamepadMapping();
 
-    Log(L"[Config] DefaultPlatform=%s, SteamOverlay=%d, MouseMode=%s, Layout=%s, CursorSpeed=%d%%, BuiltInMapping=%d",
+    // ── App lists untuk Whitelist / Blacklist ────────────────────────────────
+    // Default whitelist: browser + EpicGamesLauncher (explorer & steamwebhelper via special detection)
+    // Default blacklist: OmniConsole + Playnite (hardcoded special detection tetap jalan di atas list ini)
+    cfg.mouseModeWhitelist = ParseCsv(ReadString(L"MouseMode.Whitelist", L"Apps",
+        L"msedge,chrome,firefox,opera,brave,EpicGamesLauncher"));
+    cfg.mouseModeBlacklist = ParseCsv(ReadString(L"MouseMode.Blacklist", L"Apps",
+        L"OmniConsole,Playnite.FullscreenApp"));
+
+    // ── Button mappings per layout ───────────────────────────────────────────
+    for (int i = 0; i < BTN_COUNT; i++) {
+        cfg.mapOmniNav[i] = ReadString(L"Mapping.OmniNav", kButtonNames[i], DefaultMapping(i, false));
+        cfg.mapClassic[i] = ReadString(L"Mapping.Classic", kButtonNames[i], DefaultMapping(i, true));
+    }
+
+    // ── Layered Mode per layout ──────────────────────────────────────────────
+    cfg.layeredEnabledOmniNav = ReadInt(L"LayeredMode.OmniNav", L"Enabled", 0) != 0;
+    std::wstring trigOmni = ReadString(L"LayeredMode.OmniNav", L"TriggerButton", L"RSPress");
+    int idxOmni = ButtonNameToIdx(trigOmni);
+    cfg.layeredButtonOmniNav = (idxOmni >= 0) ? idxOmni : BTN_RSPress;
+
+    cfg.layeredEnabledClassic = ReadInt(L"LayeredMode.Classic", L"Enabled", 0) != 0;
+    std::wstring trigCls = ReadString(L"LayeredMode.Classic", L"TriggerButton", L"RSPress");
+    int idxCls = ButtonNameToIdx(trigCls);
+    cfg.layeredButtonClassic = (idxCls >= 0) ? idxCls : BTN_RSPress;
+
+    Log(L"[Config] DefaultPlatform=%s, SteamOverlay=%d, MouseMode=%s, Layout=%s, CursorSpeed=%d%%, BuiltInMapping=%d, LayeredOmni=%d/%s, LayeredClassic=%d/%s",
         cfg.defaultPlatform.c_str(), (int)cfg.steamOverlayEnabled,
         MouseModeToStr(cfg.mouseMode), cfg.mouseModeLayout.c_str(),
-        cfg.cursorSpeedPercent, (int)cfg.hasBuiltInGamepadMapping);
+        cfg.cursorSpeedPercent, (int)cfg.hasBuiltInGamepadMapping,
+        (int)cfg.layeredEnabledOmniNav, kButtonNames[cfg.layeredButtonOmniNav],
+        (int)cfg.layeredEnabledClassic, kButtonNames[cfg.layeredButtonClassic]);
     return cfg;
 }

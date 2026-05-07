@@ -245,6 +245,25 @@ namespace OmniConsole.Pages
                 {
                     LoadAboutPageContent();
                 }
+
+                // 切到 Mouse Mode 頁時, sinkron UI dengan SettingsService.
+                if (tag == "MouseMode")
+                {
+                    InitMouseModePage();
+                }
+
+                // Aktifkan/non-aktifkan right-stick scroll sesuai halaman aktif.
+                // Halaman panjang (Mouse Mode, Advanced, About): right-stick = scroll vertikal.
+                if (_gamepadNavigationService != null)
+                {
+                    _gamepadNavigationService.ActiveScrollViewer = tag switch
+                    {
+                        "MouseMode" => MouseModePage,
+                        "Advanced"  => AdvancedPage,
+                        "About"     => AboutPage,
+                        _ => null,
+                    };
+                }
             }
         }
 
@@ -683,14 +702,15 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// Mouse Mode 下拉選單（Off/Auto/ForceOn）變更時立即儲存，並更新子控制項反灰狀態。
+        /// Mouse Mode 下拉選單（Off/Whitelist/Blacklist）變更時立即儲存，並更新子控制項反灰狀態。
         /// </summary>
         private void MouseModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (MouseModeCombo.SelectedItem is not ComboBoxItem item) return;
-            string mode = item.Tag as string ?? SettingsService.MouseModeAuto;
+            string mode = item.Tag as string ?? SettingsService.MouseModeWhitelist;
             SettingsService.SetMouseMode(mode);
             ApplyMouseModeEnabledState();
+            UpdateAppListPanelVisibility(mode);
         }
 
         /// <summary>
@@ -724,7 +744,7 @@ namespace OmniConsole.Pages
             //bool phantomOn = UsePhantomKeySwitch.IsOn;
             bool phantomOn = true;
             bool mouseModeAvailable = phantomOn && !builtIn;
-            string mode = (MouseModeCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? SettingsService.MouseModeAuto;
+            string mode = (MouseModeCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? SettingsService.MouseModeWhitelist;
             bool mouseModeOn = mouseModeAvailable && mode != SettingsService.MouseModeOff;
 
             MouseModeCombo.IsEnabled = mouseModeAvailable;
@@ -732,6 +752,102 @@ namespace OmniConsole.Pages
 
             MouseModeLayoutSwitch.IsEnabled = mouseModeOn;
             CursorSpeedCombo.IsEnabled = mouseModeOn;
+        }
+
+        // ─── Mouse Mode App List Management ─────────────────────────────────
+
+        /// <summary>Tampilkan/sembunyikan panel Whitelist/Blacklist sesuai mode aktif.</summary>
+        private void UpdateAppListPanelVisibility(string? mode = null)
+        {
+            mode ??= (MouseModeCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? SettingsService.MouseModeWhitelist;
+            WhitelistPanel.Visibility = mode == SettingsService.MouseModeWhitelist ? Visibility.Visible : Visibility.Collapsed;
+            BlacklistPanel.Visibility = mode == SettingsService.MouseModeBlacklist ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>Load current app lists dari SettingsService ke ListView.</summary>
+        private void InitMouseModeAppLists()
+        {
+            WhitelistView.ItemsSource = new System.Collections.ObjectModel.ObservableCollection<string>(SettingsService.GetMouseModeWhitelist());
+            BlacklistView.ItemsSource = new System.Collections.ObjectModel.ObservableCollection<string>(SettingsService.GetMouseModeBlacklist());
+            UpdateAppListPanelVisibility();
+        }
+
+        private System.Collections.ObjectModel.ObservableCollection<string> GetWhitelistCollection()
+            => WhitelistView.ItemsSource as System.Collections.ObjectModel.ObservableCollection<string>
+               ?? new System.Collections.ObjectModel.ObservableCollection<string>();
+
+        private System.Collections.ObjectModel.ObservableCollection<string> GetBlacklistCollection()
+            => BlacklistView.ItemsSource as System.Collections.ObjectModel.ObservableCollection<string>
+               ?? new System.Collections.ObjectModel.ObservableCollection<string>();
+
+        private async void BrowseWhitelistExe_Click(object sender, RoutedEventArgs e)
+        {
+            var picker = new FileOpenPicker();
+            picker.FileTypeFilter.Add(".exe");
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, Hwnd);
+            var file = await picker.PickSingleFileAsync();
+            if (file == null) return;
+            string name = System.IO.Path.GetFileNameWithoutExtension(file.Name);
+            AddToWhitelist(name);
+        }
+
+        private async void BrowseBlacklistExe_Click(object sender, RoutedEventArgs e)
+        {
+            var picker = new FileOpenPicker();
+            picker.FileTypeFilter.Add(".exe");
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, Hwnd);
+            var file = await picker.PickSingleFileAsync();
+            if (file == null) return;
+            string name = System.IO.Path.GetFileNameWithoutExtension(file.Name);
+            AddToBlacklist(name);
+        }
+
+        private void AddWhitelistApp_Click(object sender, RoutedEventArgs e)
+        {
+            string name = WhitelistProcessNameInput.Text.Trim();
+            if (string.IsNullOrEmpty(name)) return;
+            AddToWhitelist(name);
+            WhitelistProcessNameInput.Text = "";
+        }
+
+        private void AddBlacklistApp_Click(object sender, RoutedEventArgs e)
+        {
+            string name = BlacklistProcessNameInput.Text.Trim();
+            if (string.IsNullOrEmpty(name)) return;
+            AddToBlacklist(name);
+            BlacklistProcessNameInput.Text = "";
+        }
+
+        private void AddToWhitelist(string name)
+        {
+            var col = GetWhitelistCollection();
+            if (col.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase))) return;
+            col.Add(name);
+            SettingsService.SetMouseModeWhitelist([.. col]);
+        }
+
+        private void AddToBlacklist(string name)
+        {
+            var col = GetBlacklistCollection();
+            if (col.Any(x => string.Equals(x, name, StringComparison.OrdinalIgnoreCase))) return;
+            col.Add(name);
+            SettingsService.SetMouseModeBlacklist([.. col]);
+        }
+
+        private void RemoveWhitelistApp_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement el || el.Tag is not string name) return;
+            var col = GetWhitelistCollection();
+            col.Remove(name);
+            SettingsService.SetMouseModeWhitelist([.. col]);
+        }
+
+        private void RemoveBlacklistApp_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement el || el.Tag is not string name) return;
+            var col = GetBlacklistCollection();
+            col.Remove(name);
+            SettingsService.SetMouseModeBlacklist([.. col]);
         }
 
         // Game Bar 媒體櫃 / Passthrough 開關 UI 暫時隱藏（見 SettingsPage.xaml 註解），Toggled handler 一併停用。
@@ -1083,7 +1199,8 @@ namespace OmniConsole.Pages
                     OnGamepadRBPressed,
                     OnGamepadXButtonPressed,
                     OnGamepadYButtonPressed,
-                    OnGamepadMenuButtonPressed
+                    OnGamepadMenuButtonPressed,
+                    OnGamepadViewButtonPressed
                 );
             }
             _gamepadNavigationService.Start();
@@ -1104,6 +1221,13 @@ namespace OmniConsole.Pages
         /// </summary>
         private void OnGamepadAButtonPressed()
         {
+            // Saat ContentDialog terbuka, A = invoke elemen yang sedang fokus di dalam dialog
+            if (_isDialogOpen)
+            {
+                GamepadNavigationService.ActivateFocusedElement(this.XamlRoot);
+                return;
+            }
+
             var focused = FocusManager.GetFocusedElement(this.XamlRoot);
 
             switch (focused)
@@ -1208,15 +1332,40 @@ namespace OmniConsole.Pages
                 case Button btn when ReferenceEquals(btn, RefreshAboutButton):
                     RefreshAboutButton_Click(this, new RoutedEventArgs());
                     break;
+
+                // Mouse Mode > Input Mapping: Layered Mode ToggleSwitch
+                case ToggleSwitch sw when ReferenceEquals(sw, LayeredModeSwitch):
+                    if (sw.IsEnabled) LayeredModeSwitch.IsOn = !sw.IsOn;
+                    break;
+
+                // SelectorBar (OmniNav/Classic layout switcher): select focused item
+                case SelectorBarItem sbi when MappingLayoutSelector != null
+                                           && MappingLayoutSelector.Items.Contains(sbi):
+                    MappingLayoutSelector.SelectedItem = sbi;
+                    break;
+
+                // 所有其他可互動控制項（含 Edit mapping buttons、Reset 等）:
+                // 透過 AutomationPeer 觸發 Invoke / Toggle / ExpandCollapse 動作
+                default:
+                    GamepadNavigationService.ActivateFocusedElement(this.XamlRoot);
+                    break;
             }
         }
 
         /// <summary>
         /// 處理手把 'B' 鍵被按下的回呼函式。
+        /// ContentDialog 開啟時：注入 Escape 關閉對話方塊（而非退出應用程式）。
         /// 導覽選單展開時先收合，否則觸發全域退出。
         /// </summary>
         private void OnGamepadBButtonPressed()
         {
+            // ContentDialog 開啟中：B = 關閉 dialog，不退出應用程式
+            if (_isDialogOpen)
+            {
+                _gamepadNavigationService?.InjectKey(Windows.System.VirtualKey.Escape);
+                return;
+            }
+
             if (SettingsNav.IsPaneOpen)
             {
                 SettingsNav.IsPaneOpen = false;
@@ -1305,6 +1454,14 @@ namespace OmniConsole.Pages
             if (string.IsNullOrEmpty(_selectedPlatformId)) return;
 
             LaunchPlatformDirectlyRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// 手把 View（⧉ / Select）鍵：切換 NavigationView 側邊欄的展開狀態。
+        /// </summary>
+        private void OnGamepadViewButtonPressed()
+        {
+            SettingsNav.IsPaneOpen = !SettingsNav.IsPaneOpen;
         }
 
         // ── 更新檢查 ───────────────────────────────────────────────────────────
@@ -1540,6 +1697,182 @@ namespace OmniConsole.Pages
         private async void DeveloperModeOpenSettings_Click(object sender, RoutedEventArgs e)
         {
             await Windows.System.Launcher.LaunchUriAsync(new Uri("ms-settings:developers"));
+        }
+
+        // ── Mouse Mode > Input Mapping ─────────────────────────────────────────
+
+        // Layout yang sedang aktif di SelectorBar.
+        private string _currentMappingLayout = SettingsService.LayoutOmniNav;
+
+        // Suppress event saat populate UI (mencegah handler menulis ulang ke SettingsService).
+        private bool _suppressMappingEvents = false;
+
+        /// <summary>
+        /// Inisialisasi awal halaman Mouse Mode — dipanggil dari ShowSettings().
+        /// </summary>
+        private void InitMouseModePage()
+        {
+            // Sinkron currentMappingLayout dengan setting Controller Layout
+            _currentMappingLayout = SettingsService.GetMouseModeLayout();
+
+            // Init app lists dan visibility panel
+            InitMouseModeAppLists();
+
+            _suppressMappingEvents = true;
+            try
+            {
+                // Set SelectorBar ke layout aktif
+                if (MappingLayoutSelector != null)
+                {
+                    foreach (var item in MappingLayoutSelector.Items.OfType<SelectorBarItem>())
+                    {
+                        if ((item.Tag as string) == _currentMappingLayout)
+                        {
+                            MappingLayoutSelector.SelectedItem = item; break;
+                        }
+                    }
+                }
+
+                LoadLayeredStateForLayout(_currentMappingLayout);
+                RefreshMappingTable();
+            }
+            finally { _suppressMappingEvents = false; }
+        }
+
+        /// <summary>
+        /// SelectorBar OmniNav/Classic berubah — load state layout baru dari SettingsService,
+        /// refresh UI.
+        /// </summary>
+        private void MappingLayoutSelector_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+        {
+            if (_suppressMappingEvents) return;
+            if (sender.SelectedItem?.Tag is not string newLayout) return;
+            if (newLayout != SettingsService.LayoutOmniNav && newLayout != SettingsService.LayoutClassic) return;
+
+            _currentMappingLayout = newLayout;
+
+            _suppressMappingEvents = true;
+            try
+            {
+                LoadLayeredStateForLayout(newLayout);
+                RefreshMappingTable();
+            }
+            finally { _suppressMappingEvents = false; }
+        }
+
+        /// <summary>Toggle Layered Mode ON/OFF — simpan ke SettingsService.</summary>
+        private void LayeredModeSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_suppressMappingEvents) return;
+            if (LayeredModeButtonCombo == null || LayeredModeSwitch == null) return;
+            bool isOn = LayeredModeSwitch.IsOn;
+            LayeredModeButtonCombo.IsEnabled = isOn;
+            SettingsService.SetLayeredModeEnabled(_currentMappingLayout, isOn);
+            RefreshMappingTable();
+        }
+
+        /// <summary>User pilih trigger button baru — simpan ke SettingsService.</summary>
+        private void LayeredModeButtonCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_suppressMappingEvents) return;
+            string trigger = (LayeredModeButtonCombo?.SelectedItem as ComboBoxItem)?.Tag as string ?? "RSPress";
+            SettingsService.SetLayeredModeButton(_currentMappingLayout, trigger);
+            RefreshMappingTable();
+        }
+
+        /// <summary>Klik Edit pada salah satu row — tampilkan dialog & simpan hasilnya.</summary>
+        private async void EditMappingButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not string buttonId) return;
+            if (_isDialogOpen) return;
+
+            string current = SettingsService.GetButtonMapping(_currentMappingLayout, buttonId);
+            var dialog = new ButtonMappingDialog(buttonId, _currentMappingLayout, current)
+            {
+                XamlRoot = this.XamlRoot,
+            };
+
+            // Saat dialog terbuka: cegah GNS mencuri fokus & ubah perilaku A/B
+            _isDialogOpen = true;
+            if (_gamepadNavigationService != null)
+                _gamepadNavigationService.SuppressFocusEnforcement = true;
+            try
+            {
+                var result = await dialog.ShowAsync();
+                if (result == ContentDialogResult.Primary && dialog.ResultMapping != null)
+                {
+                    SettingsService.SetButtonMapping(_currentMappingLayout, buttonId, dialog.ResultMapping);
+                    RefreshMappingTable();
+                }
+            }
+            finally
+            {
+                _isDialogOpen = false;
+                if (_gamepadNavigationService != null)
+                    _gamepadNavigationService.SuppressFocusEnforcement = false;
+            }
+        }
+
+        /// <summary>Reset to Defaults — kembalikan semua mapping di layout aktif ke default bawaan.</summary>
+        private void ResetMappingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsService.ResetAllButtonMappings(_currentMappingLayout);
+            RefreshMappingTable();
+        }
+
+        // ── Helper ─────────────────────────────────────────────────────────
+
+        private void LoadLayeredStateForLayout(string layout)
+        {
+            bool isOn = SettingsService.GetLayeredModeEnabled(layout);
+            string trigger = SettingsService.GetLayeredModeButton(layout);
+
+            if (LayeredModeSwitch != null) LayeredModeSwitch.IsOn = isOn;
+            if (LayeredModeButtonCombo != null)
+            {
+                LayeredModeButtonCombo.IsEnabled = isOn;
+                foreach (var item in LayeredModeButtonCombo.Items.OfType<ComboBoxItem>())
+                {
+                    if ((item.Tag as string) == trigger) { LayeredModeButtonCombo.SelectedItem = item; break; }
+                }
+            }
+        }
+
+        /// <summary>Update label tiap row sesuai mapping di SettingsService, grey-out trigger row.</summary>
+        private void RefreshMappingTable()
+        {
+            bool layeredOn = SettingsService.GetLayeredModeEnabled(_currentMappingLayout);
+            string trigger = SettingsService.GetLayeredModeButton(_currentMappingLayout);
+            string layerTriggerLabel = SafeGetString("Mapping_LayerTrigger") ?? "(Layer Trigger)";
+
+            foreach (string id in SettingsService.AllMappableButtons)
+            {
+                var row = FindName($"Row_{id}") as Grid;
+                var label = FindName($"RowLabel_{id}") as TextBlock;
+                var editBtn = FindName($"EditBtn_{id}") as Button;
+                if (row == null || label == null || editBtn == null) continue;
+
+                bool isTriggerRow = layeredOn && id == trigger;
+                if (isTriggerRow)
+                {
+                    label.Text = layerTriggerLabel;
+                    editBtn.IsEnabled = false;
+                    row.Opacity = 0.45;
+                }
+                else
+                {
+                    string mapping = SettingsService.GetButtonMapping(_currentMappingLayout, id);
+                    label.Text = MappingFormatter.ToDisplay(mapping);
+                    editBtn.IsEnabled = true;
+                    row.Opacity = 1.0;
+                }
+            }
+        }
+
+        private string? SafeGetString(string key)
+        {
+            try { return _resourceLoader.GetString(key); }
+            catch { return null; }
         }
     }
 }

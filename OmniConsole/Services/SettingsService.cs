@@ -90,6 +90,17 @@ namespace OmniConsole.Services
             WriteShared("PhantomKey", "MouseMode", GetMouseMode());
             WriteShared("PhantomKey", "MouseModeLayout", GetMouseModeLayout());
             WriteShared("PhantomKey", "CursorSpeedPercent", GetCursorSpeedPercent().ToString());
+            WriteShared("MouseMode.Whitelist", "Apps", string.Join(",", GetMouseModeWhitelist()));
+            WriteShared("MouseMode.Blacklist", "Apps", string.Join(",", GetMouseModeBlacklist()));
+
+            // Sync semua mapping & Layered Mode untuk kedua layout
+            foreach (var layout in new[] { LayoutOmniNav, LayoutClassic })
+            {
+                WriteShared($"LayeredMode.{layout}", "Enabled", GetLayeredModeEnabled(layout) ? "1" : "0");
+                WriteShared($"LayeredMode.{layout}", "TriggerButton", GetLayeredModeButton(layout));
+                foreach (var btn in AllMappableButtons)
+                    WriteShared($"Mapping.{layout}", btn, GetButtonMapping(layout, btn));
+            }
         }
 
         /// <summary>
@@ -109,9 +120,17 @@ namespace OmniConsole.Services
                 if (!string.IsNullOrEmpty(defaultPlatform))
                     settings.Values[DefaultPlatformKey] = defaultPlatform;
 
-                string mouseMode = ReadShared("PhantomKey", "MouseMode", MouseModeAuto);
-                if (mouseMode == MouseModeOff || mouseMode == MouseModeAuto || mouseMode == MouseModeForceOn)
+                string mouseMode = MigrateMouseMode(ReadShared("PhantomKey", "MouseMode", MouseModeWhitelist));
+                if (mouseMode == MouseModeOff || mouseMode == MouseModeWhitelist || mouseMode == MouseModeBlacklist)
                     settings.Values["MouseMode"] = mouseMode;
+
+                // Reload app lists
+                string wlApps = ReadShared("MouseMode.Whitelist", "Apps", DefaultWhitelistApps);
+                if (!string.IsNullOrWhiteSpace(wlApps))
+                    settings.Values["MouseModeWhitelistApps"] = wlApps;
+                string blApps = ReadShared("MouseMode.Blacklist", "Apps", DefaultBlacklistApps);
+                if (!string.IsNullOrWhiteSpace(blApps))
+                    settings.Values["MouseModeBlacklistApps"] = blApps;
 
                 string layout = ReadShared("PhantomKey", "MouseModeLayout", LayoutOmniNav);
                 if (layout == LayoutOmniNav || layout == LayoutClassic)
@@ -126,6 +145,24 @@ namespace OmniConsole.Services
 
                 string steamOverlay = ReadShared("PhantomKey", "SteamInGameOverlayEnabled", "1");
                 settings.Values["UsePhantomKeySteamInGameOverlay"] = steamOverlay != "0";
+
+                // Reload mapping & Layered Mode untuk kedua layout
+                foreach (var lyt in new[] { LayoutOmniNav, LayoutClassic })
+                {
+                    string en = ReadShared($"LayeredMode.{lyt}", "Enabled", "0");
+                    settings.Values[$"LayeredEnabled_{lyt}"] = en != "0";
+
+                    string trig = ReadShared($"LayeredMode.{lyt}", "TriggerButton", "RSPress");
+                    if (Array.IndexOf(AllMappableButtons, trig) >= 0)
+                        settings.Values[$"LayeredBtn_{lyt}"] = trig;
+
+                    foreach (var btn in AllMappableButtons)
+                    {
+                        string defVal = GetDefaultButtonMapping(lyt, btn);
+                        string m = ReadShared($"Mapping.{lyt}", btn, defVal);
+                        settings.Values[$"BtnMap_{lyt}_{btn}"] = m;
+                    }
+                }
             }
             catch { }
         }
@@ -320,14 +357,14 @@ namespace OmniConsole.Services
 
         /// <summary>
         /// 取得是否啟用自動檢查更新。
-        /// 預設為 true。
+        /// 預設為 false。
         /// </summary>
         public static bool GetAutoUpdateCheckEnabled()
         {
             var settings = ApplicationData.Current.LocalSettings;
             if (settings.Values.TryGetValue("AutoUpdateCheckEnabled", out object? value) && value is bool enabled)
                 return enabled;
-            return true;
+            return false;
         }
 
         /// <summary>
@@ -528,39 +565,88 @@ namespace OmniConsole.Services
             WriteShared("PhantomKey", "SteamInGameOverlayEnabled", enabled ? "1" : "0");
         }
 
-        // ─── Gamepad Mouse Mode（3-way: Off/Auto/ForceOn） ─────────────────
+        // ─── Gamepad Mouse Mode（3-way: Off/Whitelist/Blacklist） ───────────
 
         public const string MouseModeOff = "Off";
-        public const string MouseModeAuto = "Auto";
-        public const string MouseModeForceOn = "ForceOn";
+        public const string MouseModeWhitelist = "Whitelist";   // dulu "Auto"
+        public const string MouseModeBlacklist = "Blacklist";   // dulu "ForceOn"
+
+        // Default app list CSV values (sinkron dengan C++ Config.cpp default)
+        private const string DefaultWhitelistApps = "msedge,chrome,firefox,opera,brave,EpicGamesLauncher";
+        private const string DefaultBlacklistApps = "OmniConsole,Playnite.FullscreenApp";
+
+        /// <summary>Konversi nilai mode lama (Auto/ForceOn) ke nilai baru (Whitelist/Blacklist).</summary>
+        private static string MigrateMouseMode(string mode) => mode switch
+        {
+            "Auto"    => MouseModeWhitelist,
+            "ForceOn" => MouseModeBlacklist,
+            _         => mode
+        };
 
         /// <summary>
-        /// 取得 Mouse Mode（"Off" / "Auto" / "ForceOn"）。
-        /// 無效或缺失值回 "Auto"。
+        /// 取得 Mouse Mode（"Off" / "Whitelist" / "Blacklist"）。
+        /// 無效或缺失值回 "Whitelist"。Auto-migrate nilai lama "Auto"/"ForceOn".
         /// </summary>
         public static string GetMouseMode()
         {
             var settings = ApplicationData.Current.LocalSettings;
             if (settings.Values.TryGetValue("MouseMode", out object? value) && value is string str)
             {
-                if (str == MouseModeOff || str == MouseModeAuto || str == MouseModeForceOn)
+                str = MigrateMouseMode(str);
+                if (str == MouseModeOff || str == MouseModeWhitelist || str == MouseModeBlacklist)
                     return str;
             }
-            return MouseModeAuto;
+            return MouseModeWhitelist;
         }
 
         /// <summary>
-        /// 儲存 Mouse Mode，未知值回退至 "Auto"，同步寫入 INI；值未變動時直接略過避免多餘寫入。
+        /// 儲存 Mouse Mode，未知值回退至 "Whitelist"，同步寫入 INI；值未變動時直接略過避免多餘寫入。
         /// </summary>
         public static void SetMouseMode(string mode)
         {
-            if (mode != MouseModeOff && mode != MouseModeAuto && mode != MouseModeForceOn)
-                mode = MouseModeAuto;
+            if (mode != MouseModeOff && mode != MouseModeWhitelist && mode != MouseModeBlacklist)
+                mode = MouseModeWhitelist;
             var settings = ApplicationData.Current.LocalSettings;
             if (settings.Values.TryGetValue("MouseMode", out object? prev) && prev is string pv && pv == mode)
                 return;
             settings.Values["MouseMode"] = mode;
             WriteShared("PhantomKey", "MouseMode", mode);
+        }
+
+        // ─── Mouse Mode App Lists (Whitelist / Blacklist) ────────────────────
+
+        /// <summary>Baca whitelist apps dari LocalSettings. Default: browser + EpicGamesLauncher.</summary>
+        public static List<string> GetMouseModeWhitelist()
+        {
+            var settings = ApplicationData.Current.LocalSettings;
+            string csv = (settings.Values.TryGetValue("MouseModeWhitelistApps", out object? v) && v is string s && s.Length > 0)
+                ? s : DefaultWhitelistApps;
+            return [.. csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+        }
+
+        /// <summary>Simpan whitelist apps dan sync ke Shared.ini [MouseMode.Whitelist] Apps=</summary>
+        public static void SetMouseModeWhitelist(List<string> apps)
+        {
+            string csv = string.Join(",", apps.Select(a => a.Trim()).Where(a => a.Length > 0));
+            ApplicationData.Current.LocalSettings.Values["MouseModeWhitelistApps"] = csv;
+            WriteShared("MouseMode.Whitelist", "Apps", csv.Length > 0 ? csv : DefaultWhitelistApps);
+        }
+
+        /// <summary>Baca blacklist apps dari LocalSettings. Default: OmniConsole + Playnite.</summary>
+        public static List<string> GetMouseModeBlacklist()
+        {
+            var settings = ApplicationData.Current.LocalSettings;
+            string csv = (settings.Values.TryGetValue("MouseModeBlacklistApps", out object? v) && v is string s && s.Length > 0)
+                ? s : DefaultBlacklistApps;
+            return [.. csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+        }
+
+        /// <summary>Simpan blacklist apps dan sync ke Shared.ini [MouseMode.Blacklist] Apps=</summary>
+        public static void SetMouseModeBlacklist(List<string> apps)
+        {
+            string csv = string.Join(",", apps.Select(a => a.Trim()).Where(a => a.Length > 0));
+            ApplicationData.Current.LocalSettings.Values["MouseModeBlacklistApps"] = csv;
+            WriteShared("MouseMode.Blacklist", "Apps", csv.Length > 0 ? csv : DefaultBlacklistApps);
         }
 
         /// <summary>OmniNav 預設版面配置。</summary>
@@ -622,6 +708,149 @@ namespace OmniConsole.Services
                 return;
             settings.Values["CursorSpeedPercent"] = valid;
             WriteShared("PhantomKey", "CursorSpeedPercent", valid.ToString());
+        }
+
+        // ─── Button Mapping & Layered Mode (per-layout) ─────────────────────
+
+        /// <summary>14 ID tombol controller yang konfigurable.</summary>
+        public static readonly string[] AllMappableButtons =
+        [
+            "A", "B", "X", "Y",
+            "LB", "RB", "LT", "RT",
+            "LSPress", "RSPress",
+            "DPadUp", "DPadDown", "DPadLeft", "DPadRight",
+        ];
+
+        /// <summary>
+        /// Default mapping bawaan untuk layout tertentu (sumber: MouseMode.cpp hardcoded).
+        /// Format: "modifier+modifier+key" atau token khusus (lclick/rclick/wheelup/dll).
+        /// </summary>
+        public static string GetDefaultButtonMapping(string layout, string button)
+        {
+            if (layout == LayoutClassic)
+            {
+                return button switch
+                {
+                    "A" => "enter",
+                    "B" => "esc",
+                    "X" => "pgdn",
+                    "Y" => "pgup",
+                    "LB" => "tab",
+                    "RB" => "lclick",
+                    "LT" => "shift+tab",
+                    "RT" => "rclick",
+                    "LSPress" => "",
+                    "RSPress" => "",
+                    "DPadUp" => "up",
+                    "DPadDown" => "down",
+                    "DPadLeft" => "left",
+                    "DPadRight" => "right",
+                    _ => "",
+                };
+            }
+            // OmniNav (default)
+            return button switch
+            {
+                "A" => "lclick",
+                "B" => "rclick",
+                "X" => "pgdn",
+                "Y" => "pgup",
+                "LB" => "ctrl+shift+tab",
+                "RB" => "ctrl+tab",
+                "LT" => "esc",
+                "RT" => "enter",
+                "LSPress" => "shift+tab",
+                "RSPress" => "tab",
+                "DPadUp" => "up",
+                "DPadDown" => "down",
+                "DPadLeft" => "left",
+                "DPadRight" => "right",
+                _ => "",
+            };
+        }
+
+        /// <summary>
+        /// Ambil mapping tombol untuk layout tertentu. Jika belum di-set, kembalikan default bawaan.
+        /// </summary>
+        public static string GetButtonMapping(string layout, string button)
+        {
+            if (layout != LayoutOmniNav && layout != LayoutClassic) return "";
+            if (string.IsNullOrEmpty(button)) return "";
+
+            var settings = ApplicationData.Current.LocalSettings;
+            string key = $"BtnMap_{layout}_{button}";
+            if (settings.Values.TryGetValue(key, out object? value) && value is string str)
+                return str;
+            return GetDefaultButtonMapping(layout, button);
+        }
+
+        /// <summary>Simpan mapping tombol; sync ke INI section [Mapping.&lt;layout&gt;].</summary>
+        public static void SetButtonMapping(string layout, string button, string mapping)
+        {
+            if (layout != LayoutOmniNav && layout != LayoutClassic) return;
+            if (string.IsNullOrEmpty(button)) return;
+            mapping ??= "";
+
+            var settings = ApplicationData.Current.LocalSettings;
+            string key = $"BtnMap_{layout}_{button}";
+            if (settings.Values.TryGetValue(key, out object? prev) && prev is string pv && pv == mapping)
+                return;
+            settings.Values[key] = mapping;
+            WriteShared($"Mapping.{layout}", button, mapping);
+        }
+
+        /// <summary>Reset semua 14 mapping di layout ke default bawaan.</summary>
+        public static void ResetAllButtonMappings(string layout)
+        {
+            if (layout != LayoutOmniNav && layout != LayoutClassic) return;
+            foreach (var btn in AllMappableButtons)
+                SetButtonMapping(layout, btn, GetDefaultButtonMapping(layout, btn));
+        }
+
+        /// <summary>Apakah Layered Mode aktif untuk layout ini? Default false.</summary>
+        public static bool GetLayeredModeEnabled(string layout)
+        {
+            if (layout != LayoutOmniNav && layout != LayoutClassic) return false;
+            var settings = ApplicationData.Current.LocalSettings;
+            string key = $"LayeredEnabled_{layout}";
+            if (settings.Values.TryGetValue(key, out object? value) && value is bool b) return b;
+            return false;
+        }
+
+        /// <summary>Set Layered Mode aktif/tidak untuk layout, sync ke INI.</summary>
+        public static void SetLayeredModeEnabled(string layout, bool enabled)
+        {
+            if (layout != LayoutOmniNav && layout != LayoutClassic) return;
+            var settings = ApplicationData.Current.LocalSettings;
+            string key = $"LayeredEnabled_{layout}";
+            if (settings.Values.TryGetValue(key, out object? prev) && prev is bool pv && pv == enabled)
+                return;
+            settings.Values[key] = enabled;
+            WriteShared($"LayeredMode.{layout}", "Enabled", enabled ? "1" : "0");
+        }
+
+        /// <summary>Tombol trigger untuk Layered Mode (default "RSPress").</summary>
+        public static string GetLayeredModeButton(string layout)
+        {
+            if (layout != LayoutOmniNav && layout != LayoutClassic) return "RSPress";
+            var settings = ApplicationData.Current.LocalSettings;
+            string key = $"LayeredBtn_{layout}";
+            if (settings.Values.TryGetValue(key, out object? value) && value is string s
+                && Array.IndexOf(AllMappableButtons, s) >= 0) return s;
+            return "RSPress";
+        }
+
+        /// <summary>Set tombol trigger Layered Mode, sync ke INI.</summary>
+        public static void SetLayeredModeButton(string layout, string button)
+        {
+            if (layout != LayoutOmniNav && layout != LayoutClassic) return;
+            if (Array.IndexOf(AllMappableButtons, button) < 0) return;
+            var settings = ApplicationData.Current.LocalSettings;
+            string key = $"LayeredBtn_{layout}";
+            if (settings.Values.TryGetValue(key, out object? prev) && prev is string pv && pv == button)
+                return;
+            settings.Values[key] = button;
+            WriteShared($"LayeredMode.{layout}", "TriggerButton", button);
         }
 
         /// <summary>

@@ -1,20 +1,57 @@
 #pragma once
 #include <string>
+#include <vector>
 
 // ============================================================================
 // 共用設定讀取（PublisherCacheFolder\OmniConsoleShared\Shared.ini）
 // ============================================================================
 
-enum class MouseModeState { Off, Auto, ForceOn };
+// Whitelist = aktif hanya untuk app di daftar [MouseMode.Whitelist] (dulu Auto)
+// Blacklist  = aktif untuk semua app KECUALI daftar [MouseMode.Blacklist] (dulu ForceOn)
+enum class MouseModeState { Off, Whitelist, Blacklist };
+
+// Index ke array mapping (sinkron dengan kButtonNames di Config.cpp).
+enum ButtonIdx {
+    BTN_A = 0, BTN_B, BTN_X, BTN_Y,
+    BTN_LB, BTN_RB, BTN_LT, BTN_RT,
+    BTN_LSPress, BTN_RSPress,
+    BTN_DPadUp, BTN_DPadDown, BTN_DPadLeft, BTN_DPadRight,
+    BTN_COUNT
+};
 
 struct AppConfig {
     std::wstring   defaultPlatform;           // [General] DefaultPlatform
     bool           steamOverlayEnabled;       // [PhantomKey] SteamInGameOverlayEnabled
-    MouseModeState mouseMode;                 // [PhantomKey] MouseMode，預設 Auto
+    MouseModeState mouseMode;                 // [PhantomKey] MouseMode，預設 Whitelist
     std::wstring   mouseModeLayout;           // [PhantomKey] MouseModeLayout，"OmniNav"|"Classic"，預設 "OmniNav"
     int            cursorSpeedPercent;        // [PhantomKey] CursorSpeedPercent，25/50/75/100/125/150/175/200，預設 100
     bool           hasBuiltInGamepadMapping;  // 讀取時獨立偵測 BIOS SystemProductName（ROG Ally 家族等）
+
+    // ── App lists untuk Whitelist / Blacklist mode ────────────────────────────
+    // Dibaca dari [MouseMode.Whitelist] Apps= dan [MouseMode.Blacklist] Apps= (CSV)
+    // explorer & steamwebhelper TIDAK di sini — keduanya pakai special window detection di C++
+    std::vector<std::wstring> mouseModeWhitelist;  // [MouseMode.Whitelist] Apps=
+    std::vector<std::wstring> mouseModeBlacklist;  // [MouseMode.Blacklist] Apps=
+
+    // ── Button Mapping per layout ────────────────────────────────────────────
+    // 14 string mapping per layout, dibaca dari [Mapping.OmniNav] / [Mapping.Classic].
+    // Format: "modifier+modifier+key" atau token khusus (lclick/rclick/wheelup/dll).
+    std::wstring mapOmniNav[BTN_COUNT];
+    std::wstring mapClassic[BTN_COUNT];
+
+    // ── Layered Mode per layout ───────────────────────────────────────────────
+    // [LayeredMode.OmniNav] / [LayeredMode.Classic]
+    bool         layeredEnabledOmniNav;
+    int          layeredButtonOmniNav;        // ButtonIdx
+    bool         layeredEnabledClassic;
+    int          layeredButtonClassic;        // ButtonIdx
 };
+
+// String "A".."DPadRight" untuk diakses Config / MouseMode.
+extern const wchar_t* const kButtonNames[BTN_COUNT];
+
+// Konversi nama → index. Return -1 jika tidak dikenali.
+int ButtonNameToIdx(const std::wstring& name);
 
 AppConfig ReadConfig();
 

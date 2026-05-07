@@ -23,6 +23,12 @@
                         <Setter Target="AdvancedPage.Visibility" Value="Visible"/>
                     </VisualState.Setters>
                 </VisualState>
+                <VisualState x:Name="MouseMode">
+                    <VisualState.Setters>
+                        <Setter Target="GeneralPage.Visibility" Value="Collapsed"/>
+                        <Setter Target="MouseModePage.Visibility" Value="Visible"/>
+                    </VisualState.Setters>
+                </VisualState>
                 <VisualState x:Name="Troubleshoot">
                     <VisualState.Setters>
                         <Setter Target="GeneralPage.Visibility" Value="Collapsed"/>
@@ -193,6 +199,11 @@
                 <NavigationViewItem x:Uid="Nav_Advanced" Tag="Advanced" FontSize="24">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE713;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem x:Uid="Nav_MouseMode" Tag="MouseMode" FontSize="24">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE962;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem x:Uid="Nav_Troubleshoot" Tag="Troubleshoot" FontSize="24">
@@ -582,77 +593,6 @@
                                                   FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
-
-                                <!-- 分隔線 -->
-                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
-
-                                <!-- Gamepad Mouse Mode 主開關 -->
-                                <Grid Padding="16">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <FontIcon Glyph="&#xE962;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock x:Uid="MouseModeSetting_Title" FontWeight="SemiBold" FontSize="16" />
-                                        <TextBlock x:Uid="MouseModeSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
-                                        <TextBlock x:Uid="MouseModeSetting_Note" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                        <TextBlock x:Name="MouseModeBuiltInMappingNoteText" x:Uid="MouseModeSetting_BuiltInMappingNote" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Visibility="Collapsed"/>
-                                    </StackPanel>
-
-                                    <ComboBox x:Name="MouseModeCombo" Grid.Column="2"
-                                              SelectionChanged="MouseModeCombo_SelectionChanged"
-                                              MinWidth="120" VerticalAlignment="Center">
-                                        <ComboBoxItem x:Uid="MouseModeItem_Off"     Tag="Off"/>
-                                        <ComboBoxItem x:Uid="MouseModeItem_Auto"    Tag="Auto"/>
-                                        <ComboBoxItem x:Uid="MouseModeItem_ForceOn" Tag="ForceOn"/>
-                                    </ComboBox>
-                                </Grid>
-
-                                <!-- Mouse Mode 版面配置切換 (OmniNav / Classic) -->
-                                <Grid Padding="16">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <FontIcon Glyph="&#xE8AB;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock x:Uid="MouseModeLayoutSetting_Title" FontWeight="SemiBold" FontSize="16" />
-                                        <TextBlock x:Uid="MouseModeLayoutSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
-                                    </StackPanel>
-
-                                    <ToggleSwitch x:Name="MouseModeLayoutSwitch"
-                                                  x:Uid="MouseModeLayoutSwitch"
-                                                  Toggled="MouseModeLayoutSwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
-                                                  Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
-                                </Grid>
-
-                                <!-- Cursor Speed 下拉選單 -->
-                                <Grid Padding="16">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <FontIcon Glyph="&#xE7C9;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock x:Uid="CursorSpeedSetting_Title" FontWeight="SemiBold" FontSize="16" />
-                                        <TextBlock x:Uid="CursorSpeedSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
-                                    </StackPanel>
-
-                                    <ComboBox x:Name="CursorSpeedCombo" Grid.Column="2"
-                                              SelectionChanged="CursorSpeedCombo_SelectionChanged"
-                                              MinWidth="120" VerticalAlignment="Center" />
-                                </Grid>
                             </StackPanel>
                         </Border>
 
@@ -723,6 +663,539 @@
                         </Border>
                         -->
 
+                    </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Mouse Mode 頁面 -->
+                    <ScrollViewer x:Name="MouseModePage" Grid.Row="1" Visibility="Collapsed"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                  Padding="0"
+                                  XYFocusKeyboardNavigation="Enabled">
+                    <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="700"
+                                XYFocusKeyboardNavigation="Enabled">
+                        <TextBlock x:Uid="MouseModeTitle" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                        <TextBlock x:Uid="MouseModeDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="18" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                        <!-- General 分類標題 -->
+                        <TextBlock x:Uid="MouseModeSection_General" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Margin="2,0,0,0"/>
+
+                        <!-- General 群組卡片 -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                HorizontalAlignment="Stretch"
+                                MinWidth="700">
+                            <StackPanel>
+                                <!-- Gamepad Mouse Mode 主開關 -->
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE962;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="MouseModeSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="MouseModeSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                        <TextBlock x:Uid="MouseModeSetting_Note" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        <TextBlock x:Name="MouseModeBuiltInMappingNoteText" x:Uid="MouseModeSetting_BuiltInMappingNote" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Visibility="Collapsed"/>
+                                    </StackPanel>
+
+                                    <ComboBox x:Name="MouseModeCombo" Grid.Column="2"
+                                              SelectionChanged="MouseModeCombo_SelectionChanged"
+                                              MinWidth="130" VerticalAlignment="Center">
+                                        <ComboBoxItem x:Uid="MouseModeItem_Off"       Tag="Off"/>
+                                        <ComboBoxItem x:Uid="MouseModeItem_Whitelist" Tag="Whitelist"/>
+                                        <ComboBoxItem x:Uid="MouseModeItem_Blacklist" Tag="Blacklist"/>
+                                    </ComboBox>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Whitelist Panel: muncul saat mode = Whitelist -->
+                        <Border x:Name="WhitelistPanel"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1" CornerRadius="8"
+                                HorizontalAlignment="Stretch" MinWidth="700"
+                                Visibility="Collapsed">
+                            <StackPanel>
+                                <Grid Padding="16,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE762;" FontSize="20" Margin="0,0,12,0" VerticalAlignment="Top" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock x:Uid="MouseModeWhitelistPanel_Title" FontWeight="SemiBold" FontSize="15"/>
+                                        <TextBlock x:Uid="MouseModeWhitelistPanel_Desc" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" TextWrapping="Wrap"/>
+                                        <TextBlock x:Uid="MouseModeAutoDetect_Note" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Add row -->
+                                <Grid Padding="16,10" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button x:Name="BrowseWhitelistExeButton" x:Uid="MouseModeAddApp_Browse"
+                                            Click="BrowseWhitelistExe_Click" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="WhitelistProcessNameInput" Grid.Column="1"
+                                             PlaceholderText="Process name (e.g. notepad)"
+                                             VerticalAlignment="Center"/>
+                                    <Button x:Name="AddWhitelistAppButton" x:Uid="MouseModeAddApp_Button"
+                                            Grid.Column="2" Click="AddWhitelistApp_Click"
+                                            Style="{StaticResource AccentButtonStyle}"
+                                            VerticalAlignment="Center"/>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- List -->
+                                <ListView x:Name="WhitelistView" SelectionMode="None" Padding="8,4">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Padding="4,6" ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <FontIcon Glyph="&#xE7F4;" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding}" VerticalAlignment="Center" FontSize="14"/>
+                                                <Button Grid.Column="2" Tag="{Binding}" Click="RemoveWhitelistApp_Click"
+                                                        Background="Transparent" Padding="6,4" VerticalAlignment="Center"
+                                                        ToolTipService.ToolTip="Remove">
+                                                    <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="{ThemeResource SystemFillColorCriticalBrush}"/>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Blacklist Panel: muncul saat mode = Blacklist -->
+                        <Border x:Name="BlacklistPanel"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1" CornerRadius="8"
+                                HorizontalAlignment="Stretch" MinWidth="700"
+                                Visibility="Collapsed">
+                            <StackPanel>
+                                <Grid Padding="16,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xF140;" FontSize="20" Margin="0,0,12,0" VerticalAlignment="Top" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock x:Uid="MouseModeBlacklistPanel_Title" FontWeight="SemiBold" FontSize="15"/>
+                                        <TextBlock x:Uid="MouseModeBlacklistPanel_Desc" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" TextWrapping="Wrap"/>
+                                        <TextBlock x:Uid="MouseModeAutoDetect_Note" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Add row -->
+                                <Grid Padding="16,10" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button x:Name="BrowseBlacklistExeButton" x:Uid="MouseModeAddApp_Browse"
+                                            Click="BrowseBlacklistExe_Click" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="BlacklistProcessNameInput" Grid.Column="1"
+                                             PlaceholderText="Process name (e.g. notepad)"
+                                             VerticalAlignment="Center"/>
+                                    <Button x:Name="AddBlacklistAppButton" x:Uid="MouseModeAddApp_Button"
+                                            Grid.Column="2" Click="AddBlacklistApp_Click"
+                                            Style="{StaticResource AccentButtonStyle}"
+                                            VerticalAlignment="Center"/>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- List -->
+                                <ListView x:Name="BlacklistView" SelectionMode="None" Padding="8,4">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Padding="4,6" ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <FontIcon Glyph="&#xE7F4;" FontSize="16" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding}" VerticalAlignment="Center" FontSize="14"/>
+                                                <Button Grid.Column="2" Tag="{Binding}" Click="RemoveBlacklistApp_Click"
+                                                        Background="Transparent" Padding="6,4" VerticalAlignment="Center"
+                                                        ToolTipService.ToolTip="Remove">
+                                                    <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="{ThemeResource SystemFillColorCriticalBrush}"/>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- General card lanjutan: Layout & Cursor Speed -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1" CornerRadius="8"
+                                HorizontalAlignment="Stretch" MinWidth="700">
+                            <StackPanel>
+
+                                <!-- Mouse Mode 版面配置切換 (OmniNav / Classic) -->
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE8AB;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="MouseModeLayoutSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="MouseModeLayoutSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                    </StackPanel>
+
+                                    <ToggleSwitch x:Name="MouseModeLayoutSwitch"
+                                                  x:Uid="MouseModeLayoutSwitch"
+                                                  Toggled="MouseModeLayoutSwitch_Toggled"
+                                                  FlowDirection="RightToLeft"
+                                                  Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
+                                </Grid>
+
+                                <!-- 分隔線 -->
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+
+                                <!-- Cursor Speed 下拉選單 -->
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE7C9;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="CursorSpeedSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="CursorSpeedSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                    </StackPanel>
+
+                                    <ComboBox x:Name="CursorSpeedCombo" Grid.Column="2"
+                                              SelectionChanged="CursorSpeedCombo_SelectionChanged"
+                                              XYFocusDown="{x:Bind OmniNavSelectorBarItem, Mode=OneTime}"
+                                              MinWidth="120" VerticalAlignment="Center" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Input Mapping 分類標題 -->
+                        <TextBlock x:Uid="MouseModeSection_InputMapping" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Margin="2,8,0,0"/>
+                        <TextBlock x:Uid="MouseModeSection_InputMappingDesc" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   FontSize="13" TextWrapping="Wrap" Margin="2,-8,0,0"/>
+
+                        <!-- Layout 切換 (OmniNav / Classic) -->
+                        <SelectorBar x:Name="MappingLayoutSelector"
+                                     SelectionChanged="MappingLayoutSelector_SelectionChanged"
+                                     HorizontalAlignment="Center">
+                            <SelectorBarItem x:Name="OmniNavSelectorBarItem" x:Uid="MappingLayout_OmniNav" Tag="OmniNav" IsSelected="True" IsTabStop="True"/>
+                            <SelectorBarItem x:Name="ClassicSelectorBarItem" x:Uid="MappingLayout_Classic" Tag="Classic" IsTabStop="True"/>
+                        </SelectorBar>
+
+                        <!-- Layered Mode 卡片 -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                HorizontalAlignment="Stretch"
+                                MinWidth="700">
+                            <StackPanel>
+                                <!-- Layered Mode 開關 -->
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE8AB;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="LayeredModeSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="LayeredModeSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                    </StackPanel>
+
+                                    <ToggleSwitch x:Name="LayeredModeSwitch"
+                                                  Toggled="LayeredModeSwitch_Toggled"
+                                                  FlowDirection="RightToLeft"
+                                                  XYFocusUp="{x:Bind ClassicSelectorBarItem, Mode=OneTime}"
+                                                  Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
+                                </Grid>
+
+                                <!-- 分隔線 -->
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+
+                                <!-- Layered Mode Button (Trigger) -->
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE7C1;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="LayeredModeButton_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="LayeredModeButton_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                    </StackPanel>
+
+                                    <ComboBox x:Name="LayeredModeButtonCombo" Grid.Column="2"
+                                              SelectionChanged="LayeredModeButtonCombo_SelectionChanged"
+                                              IsEnabled="False"
+                                              MinWidth="140" VerticalAlignment="Center">
+                                        <ComboBoxItem Tag="A" Content="A"/>
+                                        <ComboBoxItem Tag="B" Content="B"/>
+                                        <ComboBoxItem Tag="X" Content="X"/>
+                                        <ComboBoxItem Tag="Y" Content="Y"/>
+                                        <ComboBoxItem Tag="LB" Content="LB"/>
+                                        <ComboBoxItem Tag="RB" Content="RB"/>
+                                        <ComboBoxItem Tag="LT" Content="LT"/>
+                                        <ComboBoxItem Tag="RT" Content="RT"/>
+                                        <ComboBoxItem Tag="LSPress" Content="LS Press"/>
+                                        <ComboBoxItem Tag="RSPress" Content="RS Press" IsSelected="True"/>
+                                        <ComboBoxItem Tag="DPadUp" Content="D-Pad ↑"/>
+                                        <ComboBoxItem Tag="DPadDown" Content="D-Pad ↓"/>
+                                        <ComboBoxItem Tag="DPadLeft" Content="D-Pad ←"/>
+                                        <ComboBoxItem Tag="DPadRight" Content="D-Pad →"/>
+                                    </ComboBox>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Mapping 表格卡片 (14 baris) -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                HorizontalAlignment="Stretch"
+                                MinWidth="700">
+                            <StackPanel x:Name="MappingTableStack">
+                                <!-- Row: A -->
+                                <Grid x:Name="Row_A" Padding="16,12" Tag="A">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="A" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_A" Grid.Column="1" Text="Left Click" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_A" Grid.Column="2" Click="EditMappingButton_Click" Tag="A" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: B -->
+                                <Grid x:Name="Row_B" Padding="16,12" Tag="B">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="B" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_B" Grid.Column="1" Text="Right Click" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_B" Grid.Column="2" Click="EditMappingButton_Click" Tag="B" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: X -->
+                                <Grid x:Name="Row_X" Padding="16,12" Tag="X">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="X" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_X" Grid.Column="1" Text="Page Down" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_X" Grid.Column="2" Click="EditMappingButton_Click" Tag="X" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: Y -->
+                                <Grid x:Name="Row_Y" Padding="16,12" Tag="Y">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Y" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_Y" Grid.Column="1" Text="Page Up" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_Y" Grid.Column="2" Click="EditMappingButton_Click" Tag="Y" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: LB -->
+                                <Grid x:Name="Row_LB" Padding="16,12" Tag="LB">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="LB" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_LB" Grid.Column="1" Text="Ctrl + Shift + Tab" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_LB" Grid.Column="2" Click="EditMappingButton_Click" Tag="LB" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: RB -->
+                                <Grid x:Name="Row_RB" Padding="16,12" Tag="RB">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="RB" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_RB" Grid.Column="1" Text="Ctrl + Tab" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_RB" Grid.Column="2" Click="EditMappingButton_Click" Tag="RB" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: LT -->
+                                <Grid x:Name="Row_LT" Padding="16,12" Tag="LT">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="LT" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_LT" Grid.Column="1" Text="Escape" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_LT" Grid.Column="2" Click="EditMappingButton_Click" Tag="LT" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: RT -->
+                                <Grid x:Name="Row_RT" Padding="16,12" Tag="RT">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="RT" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_RT" Grid.Column="1" Text="Enter" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_RT" Grid.Column="2" Click="EditMappingButton_Click" Tag="RT" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: LSPress -->
+                                <Grid x:Name="Row_LSPress" Padding="16,12" Tag="LSPress">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="LS Press" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_LSPress" Grid.Column="1" Text="Shift + Tab" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_LSPress" Grid.Column="2" Click="EditMappingButton_Click" Tag="LSPress" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: RSPress -->
+                                <Grid x:Name="Row_RSPress" Padding="16,12" Tag="RSPress">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="RS Press" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_RSPress" Grid.Column="1" Text="Tab" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_RSPress" Grid.Column="2" Click="EditMappingButton_Click" Tag="RSPress" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: DPadUp -->
+                                <Grid x:Name="Row_DPadUp" Padding="16,12" Tag="DPadUp">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="D-Pad ↑" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_DPadUp" Grid.Column="1" Text="Up Arrow" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_DPadUp" Grid.Column="2" Click="EditMappingButton_Click" Tag="DPadUp" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: DPadDown -->
+                                <Grid x:Name="Row_DPadDown" Padding="16,12" Tag="DPadDown">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="D-Pad ↓" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_DPadDown" Grid.Column="1" Text="Down Arrow" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_DPadDown" Grid.Column="2" Click="EditMappingButton_Click" Tag="DPadDown" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: DPadLeft -->
+                                <Grid x:Name="Row_DPadLeft" Padding="16,12" Tag="DPadLeft">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="D-Pad ←" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_DPadLeft" Grid.Column="1" Text="Left Arrow" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_DPadLeft" Grid.Column="2" Click="EditMappingButton_Click" Tag="DPadLeft" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+                                <!-- Row: DPadRight -->
+                                <Grid x:Name="Row_DPadRight" Padding="16,12" Tag="DPadRight">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="D-Pad →" FontWeight="SemiBold" FontSize="16" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="RowLabel_DPadRight" Grid.Column="1" Text="Right Arrow" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" VerticalAlignment="Center"/>
+                                    <Button x:Name="EditBtn_DPadRight" Grid.Column="2" Click="EditMappingButton_Click" Tag="DPadRight" Padding="8" MinWidth="36">
+                                        <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Reset to Defaults -->
+                        <Button x:Uid="ResetMappingsButton"
+                                Click="ResetMappingsButton_Click"
+                                HorizontalAlignment="Center"
+                                FontSize="14" Padding="24,8" Margin="0,8,0,0"/>
                     </StackPanel>
                     </ScrollViewer>
 

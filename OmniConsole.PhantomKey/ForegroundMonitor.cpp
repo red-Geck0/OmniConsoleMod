@@ -68,34 +68,19 @@ const InputRule* FindRuleForForeground() {
 
 static bool IsExplorerTaskView();
 
-static const wchar_t* g_mouseModeTargets[] = {
-    L"msedge", L"chrome", L"firefox", L"opera", L"brave",
-    L"EpicGamesLauncher"
-};
-
-bool IsMouseModeTarget(const std::wstring& processName) {
+bool IsMouseModeTarget(const std::wstring& processName, const AppConfig& cfg) {
     if (processName.empty()) return false;
-    for (auto t : g_mouseModeTargets)
-        if (_wcsicmp(processName.c_str(), t) == 0) return true;
-    // 檔案總管納入 Auto，但 FSE Task View 同行程需排除
+    // Cek user-editable whitelist dari INI [MouseMode.Whitelist]
+    for (const auto& entry : cfg.mouseModeWhitelist)
+        if (_wcsicmp(processName.c_str(), entry.c_str()) == 0) return true;
+    // Special detection: explorer file browser (bukan FSE Task View)
     if (_wcsicmp(processName.c_str(), L"explorer") == 0 && !IsExplorerTaskView())
         return true;
-    // Steam 桌面模式（steamwebhelper, title=="Steam"）納入 Auto；Big Picture 不介入
+    // Special detection: steamwebhelper desktop mode (bukan Big Picture)
     if (_wcsicmp(processName.c_str(), L"steamwebhelper") == 0 && !IsSteamBigPicture())
         return true;
     return false;
 }
-
-// ForceOn 模式排除清單：即使強制也不該介入（本身用手把操作或會撞到 Shell）
-// explorer 由 IsExplorerTaskView() 動態判斷：FSE Task View 才排除，一般檔案總管不排除
-// UWP app（Xbox App / Armoury Crate SE）實際 proc 為 ApplicationFrameHost，
-// 靠視窗 title 判斷，見 IsExcludedAppFrame()
-static const wchar_t* g_mouseModeForceExclusions[] = {
-    L"OmniConsole",              // 主程式本身用手把導航
-    L"Playnite.FullscreenApp",   // Playnite Fullscreen 內建手把導覽
-    // steamwebhelper 由 IsSteamBigPicture() 動態判斷：Big Picture 排除，桌面 Steam 不排除
-    // ApplicationFrameHost 由 IsExcludedAppFrame() 動態判斷（Xbox / Armoury Crate SE）
-};
 
 // UWP app 由 ApplicationFrameHost 宿主，靠視窗 title 識別
 // Xbox App title="Xbox"（不隨語系變動），Armoury Crate SE title="Armoury Crate SE"
@@ -175,16 +160,18 @@ void LogForegroundWindowDiagnostics() {
         procName.c_str(), cls, title, coversMonitor ? 1 : 0, cloaked);
 }
 
-bool IsMouseModeForceExcluded(const std::wstring& processName) {
+bool IsMouseModeForceExcluded(const std::wstring& processName, const AppConfig& cfg) {
     if (processName.empty()) return false;
-    for (auto t : g_mouseModeForceExclusions)
-        if (_wcsicmp(processName.c_str(), t) == 0) return true;
+    // Cek user-editable blacklist dari INI [MouseMode.Blacklist]
+    for (const auto& entry : cfg.mouseModeBlacklist)
+        if (_wcsicmp(processName.c_str(), entry.c_str()) == 0) return true;
+    // Special detection: FSE Task View (explorer.exe dengan window class khusus)
     if (_wcsicmp(processName.c_str(), L"explorer") == 0 && IsExplorerTaskView())
         return true;
-    // Steam Big Picture 內建手把導覽，ForceOn 也不該介入
+    // Special detection: Steam Big Picture (steamwebhelper tanpa WS_CAPTION + ukuran besar)
     if (_wcsicmp(processName.c_str(), L"steamwebhelper") == 0 && IsSteamBigPicture())
         return true;
-    // Xbox App / Armoury Crate SE 由 ApplicationFrameHost 宿主，靠視窗 title 辨識
+    // Special detection: UWP apps (Xbox App / Armoury Crate SE via ApplicationFrameHost)
     if (_wcsicmp(processName.c_str(), L"ApplicationFrameHost") == 0 && IsExcludedAppFrame())
         return true;
     return false;

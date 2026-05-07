@@ -2,6 +2,7 @@ using OmniConsole.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Windows.Storage;
 

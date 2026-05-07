@@ -160,7 +160,7 @@ namespace OmniConsole.Pages
             MouseModeCombo.SelectedIndex = currentMode switch
             {
                 SettingsService.MouseModeOff => 0,
-                SettingsService.MouseModeForceOn => 2,
+                SettingsService.MouseModeBlacklist => 2,
                 _ => 1,
             };
             MouseModeLayoutSwitch.IsOn = SettingsService.GetMouseModeLayout() == SettingsService.LayoutClassic;

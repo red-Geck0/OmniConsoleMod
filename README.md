@@ -21,6 +21,24 @@ A custom **WinUI 3 gaming platform launcher** designed to replace the default Wi
 
 ---
 
+## 🔀 Fork Information
+
+> 📌 **This is an enhanced fork** of the original [OmniConsole](https://github.com/8bit2qubit/OmniConsole) by [8bit2qubit](https://github.com/8bit2qubit).
+
+**Maintained by**: [red-Geck0](https://github.com/red-Geck0)  
+**Enhancement Focus**: Improved gamepad controller navigation, virtual keyboard integration, and settings UI refinement.
+
+### Recent Enhancements (May 2024 – May 2026)
+- ✅ **Gamepad Navigation Fixes**: SelectorBar positioning, RadioButtons D-Pad control, ComboBox scroll visibility
+- ✅ **Right-Stick Scrolling**: Smooth scrolling in dropdowns and settings panels at 30 FPS
+- ✅ **Virtual Keyboard Support**: Windows 11 Touch Keyboard (COM) and On-Screen Keyboard (osk.exe) as special actions
+- ✅ **Layered Mode Feature**: Per-button custom mappings with hold-to-activate triggers and audio feedback
+- ✅ **Mouse Mode Settings Page**: Dedicated UI for gamepad-to-mouse configuration with dual layout support
+
+For a complete list of contributions, see [**CONTRIBUTORS.md**](CONTRIBUTORS.md).
+
+---
+
 ## 💡 What is OmniConsole?
 
 OmniConsole serves as the Windows 11 Full Screen Experience (FSE) Home shell on your PC or handheld device (ROG Xbox Ally X, etc.), launching your chosen gaming platform automatically whenever FSE is activated. The default FSE Home only supports the Xbox App — OmniConsole removes this limitation, letting you choose from:
@@ -155,6 +173,13 @@ If you experience an issue where the Windows Full Screen Experience (FSE) entry 
 
 1.  **Clone the Repository**
 
+    Clone the **fork** (this enhanced version):
+    ```bash
+    git clone https://github.com/red-Geck0/OmniConsoleMod.git
+    cd OmniConsoleMod
+    ```
+
+    Or clone the **original** project:
     ```bash
     git clone https://github.com/8bit2qubit/OmniConsole.git
     cd OmniConsole

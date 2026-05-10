@@ -706,7 +706,6 @@
                         <TabView x:Name="MouseModeTabView"
                                  IsAddTabButtonVisible="False"
                                  TabWidthMode="Equal"
-                                 SelectionChanged="MouseModeTabView_SelectionChanged"
                                  XYFocusKeyboardNavigation="Enabled">
 
                             <TabView.TabStripHeader>
@@ -716,7 +715,7 @@
                             </TabView.TabStripHeader>
 
                             <!-- Tab 1: General -->
-                            <TabViewItem x:Uid="MouseModeSection_General" IsClosable="False">
+                            <TabViewItem x:Uid="MouseModeSection_General" Header="General" IsClosable="False">
                                 <ScrollViewer x:Name="MouseModeGeneralScrollViewer" VerticalScrollBarVisibility="Auto" Padding="16">
                                     <StackPanel Spacing="16" HorizontalAlignment="Center" MaxWidth="700"
                                                 XYFocusKeyboardNavigation="Enabled">
@@ -961,7 +960,7 @@
                             </TabViewItem>
 
                             <!-- Tab 2: Input Mapping -->
-                            <TabViewItem x:Uid="MouseModeSection_InputMapping" IsClosable="False">
+                            <TabViewItem x:Uid="MouseModeSection_InputMapping" Header="Input Mapping" IsClosable="False">
                                 <ScrollViewer x:Name="MouseModeInputMappingScrollViewer" VerticalScrollBarVisibility="Auto" Padding="16">
                                     <StackPanel Spacing="16" HorizontalAlignment="Center" MaxWidth="700"
                                                 XYFocusKeyboardNavigation="Enabled">

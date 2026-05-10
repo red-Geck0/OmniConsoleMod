@@ -1504,7 +1504,11 @@ namespace OmniConsole.Pages
             if (_currentNavTag == "MouseMode")
             {
                 if (MouseModeTabView.SelectedIndex > 0)
+                {
                     MouseModeTabView.SelectedIndex--;
+                    if (_gamepadNavigationService != null)
+                        _gamepadNavigationService.ActiveScrollViewer = GetActiveMouseModeScrollViewer();
+                }
                 return;
             }
             if (_currentNavTag != "General") return;
@@ -1520,7 +1524,11 @@ namespace OmniConsole.Pages
             if (_currentNavTag == "MouseMode")
             {
                 if (MouseModeTabView.SelectedIndex < MouseModeTabView.TabItems.Count - 1)
+                {
                     MouseModeTabView.SelectedIndex++;
+                    if (_gamepadNavigationService != null)
+                        _gamepadNavigationService.ActiveScrollViewer = GetActiveMouseModeScrollViewer();
+                }
                 return;
             }
             if (_currentNavTag != "General") return;
@@ -1862,13 +1870,6 @@ namespace OmniConsole.Pages
             MouseModeTabView.SelectedIndex == 1
                 ? MouseModeInputMappingScrollViewer
                 : MouseModeGeneralScrollViewer;
-
-        /// <summary>Updates ActiveScrollViewer when the user switches MouseMode tabs.</summary>
-        private void MouseModeTabView_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_gamepadNavigationService != null && _currentNavTag == "MouseMode")
-                _gamepadNavigationService.ActiveScrollViewer = GetActiveMouseModeScrollViewer();
-        }
 
         private void InitMouseModePage()
         {

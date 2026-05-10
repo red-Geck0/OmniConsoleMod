@@ -649,7 +649,7 @@ namespace OmniConsole.Services
 
         // Default app list CSV values (sinkron dengan C++ Config.cpp default)
         private const string DefaultWhitelistApps = "msedge,chrome,firefox,opera,brave,EpicGamesLauncher";
-        private const string DefaultBlacklistApps = "OmniConsole,Playnite.FullscreenApp";
+        private const string DefaultBlacklistApps = "OmniConsole,Playnite.FullscreenApp,OneGameLauncher";
 
         /// <summary>Konversi nilai mode lama (Auto/ForceOn) ke nilai baru (Whitelist/Blacklist).</summary>
         private static string MigrateMouseMode(string mode) => mode switch
@@ -952,6 +952,53 @@ namespace OmniConsole.Services
                 return false;
             }
             catch { return false; }
+        }
+
+        /// <summary>Export all button mappings + layered mode settings for both layouts to JSON.</summary>
+        public static string ExportMappingJson()
+        {
+            var obj = new System.Text.Json.Nodes.JsonObject();
+            foreach (var layout in new[] { LayoutOmniNav, LayoutClassic })
+            {
+                var layoutObj = new System.Text.Json.Nodes.JsonObject();
+                layoutObj["layeredEnabled"] = GetLayeredModeEnabled(layout);
+                layoutObj["layeredButton"] = GetLayeredModeButton(layout);
+                var mappings = new System.Text.Json.Nodes.JsonObject();
+                foreach (var btn in AllMappableButtons)
+                    mappings[btn] = GetButtonMapping(layout, btn);
+                layoutObj["mappings"] = mappings;
+                obj[layout] = layoutObj;
+            }
+            return obj.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+
+        /// <summary>Import button mappings + layered mode settings from JSON and persist.</summary>
+        public static void ImportMappingJson(string json)
+        {
+            var obj = System.Text.Json.Nodes.JsonNode.Parse(json)?.AsObject()
+                ?? throw new System.Text.Json.JsonException("Invalid mapping JSON");
+            foreach (var layout in new[] { LayoutOmniNav, LayoutClassic })
+            {
+                if (!obj.TryGetPropertyValue(layout, out var layoutNode) || layoutNode == null) continue;
+                var layoutObj = layoutNode.AsObject();
+                if (layoutObj.TryGetPropertyValue("layeredEnabled", out var le) && le != null)
+                    SetLayeredModeEnabled(layout, le.GetValue<bool>());
+                if (layoutObj.TryGetPropertyValue("layeredButton", out var lb) && lb != null)
+                {
+                    string btn = lb.GetValue<string>();
+                    if (Array.IndexOf(AllMappableButtons, btn) >= 0)
+                        SetLayeredModeButton(layout, btn);
+                }
+                if (layoutObj.TryGetPropertyValue("mappings", out var mNode) && mNode != null)
+                {
+                    var mappings = mNode.AsObject();
+                    foreach (var btn in AllMappableButtons)
+                    {
+                        if (mappings.TryGetPropertyValue(btn, out var mv) && mv != null)
+                            SetButtonMapping(layout, btn, mv.GetValue<string>());
+                    }
+                }
+            }
         }
     }
 }

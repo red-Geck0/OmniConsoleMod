@@ -782,24 +782,138 @@ namespace OmniConsole.Pages
 
         private async void BrowseWhitelistExe_Click(object sender, RoutedEventArgs e)
         {
-            var picker = new FileOpenPicker();
-            picker.FileTypeFilter.Add(".exe");
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, Hwnd);
-            var file = await picker.PickSingleFileAsync();
-            if (file == null) return;
-            string name = System.IO.Path.GetFileNameWithoutExtension(file.Name);
-            AddToWhitelist(name);
+            var options = new FilePickerOptions
+            {
+                FileTypeFilters = [".exe"],
+                FilterDisplayName = _resourceLoader.GetString("FilePickerDialog_FilterExe")
+            };
+            var dialog = new FilePickerDialog(this.XamlRoot, _resourceLoader, options);
+            StopGamepadPolling();
+            var result = await dialog.ShowAsync();
+            StartGamepadPolling();
+            if (result == ContentDialogResult.Primary && dialog.SelectedFilePath is string path)
+            {
+                string name = System.IO.Path.GetFileNameWithoutExtension(path);
+                AddToWhitelist(name);
+            }
+            else if (dialog.RequestLegacyPicker)
+            {
+                var legacyPath = await ShowLegacyFilePickerAsync(options);
+                if (legacyPath != null)
+                    AddToWhitelist(System.IO.Path.GetFileNameWithoutExtension(legacyPath));
+            }
         }
 
         private async void BrowseBlacklistExe_Click(object sender, RoutedEventArgs e)
         {
-            var picker = new FileOpenPicker();
-            picker.FileTypeFilter.Add(".exe");
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, Hwnd);
-            var file = await picker.PickSingleFileAsync();
-            if (file == null) return;
-            string name = System.IO.Path.GetFileNameWithoutExtension(file.Name);
-            AddToBlacklist(name);
+            var options = new FilePickerOptions
+            {
+                FileTypeFilters = [".exe"],
+                FilterDisplayName = _resourceLoader.GetString("FilePickerDialog_FilterExe")
+            };
+            var dialog = new FilePickerDialog(this.XamlRoot, _resourceLoader, options);
+            StopGamepadPolling();
+            var result = await dialog.ShowAsync();
+            StartGamepadPolling();
+            if (result == ContentDialogResult.Primary && dialog.SelectedFilePath is string path)
+            {
+                string name = System.IO.Path.GetFileNameWithoutExtension(path);
+                AddToBlacklist(name);
+            }
+            else if (dialog.RequestLegacyPicker)
+            {
+                var legacyPath = await ShowLegacyFilePickerAsync(options);
+                if (legacyPath != null)
+                    AddToBlacklist(System.IO.Path.GetFileNameWithoutExtension(legacyPath));
+            }
+        }
+
+        private async void SaveMappingConfig_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Save Mapping Config",
+                Content = new TextBox { PlaceholderText = "Config name (e.g. MyLayout)", Width = 300 },
+                PrimaryButtonText = "Save",
+                CloseButtonText = "Cancel",
+                XamlRoot = this.XamlRoot,
+                DefaultButton = ContentDialogButton.Primary
+            };
+            StopGamepadPolling();
+            var result = await dialog.ShowAsync();
+            StartGamepadPolling();
+            if (result != ContentDialogResult.Primary) return;
+
+            string configName = ((TextBox)dialog.Content).Text.Trim();
+            if (string.IsNullOrEmpty(configName)) return;
+
+            foreach (char c in System.IO.Path.GetInvalidFileNameChars())
+                configName = configName.Replace(c, '_');
+
+            string dir = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "OmniConsole", "MappingConfigs");
+            System.IO.Directory.CreateDirectory(dir);
+            string filePath = System.IO.Path.Combine(dir, configName + ".json");
+
+            string json = SettingsService.ExportMappingJson();
+            System.IO.File.WriteAllText(filePath, json, System.Text.Encoding.UTF8);
+
+            var confirm = new ContentDialog
+            {
+                Title = "Saved",
+                Content = $"Config saved to:\n{filePath}",
+                CloseButtonText = "OK",
+                XamlRoot = this.XamlRoot
+            };
+            StopGamepadPolling();
+            await confirm.ShowAsync();
+            StartGamepadPolling();
+        }
+
+        private async void LoadMappingConfig_Click(object sender, RoutedEventArgs e)
+        {
+            string defaultDir = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "OmniConsole", "MappingConfigs");
+            System.IO.Directory.CreateDirectory(defaultDir);
+
+            var options = new FilePickerOptions
+            {
+                FileTypeFilters = [".json"],
+                FilterDisplayName = "Mapping Config (*.json)",
+                InitialDirectory = defaultDir
+            };
+            var pickerDialog = new FilePickerDialog(this.XamlRoot, _resourceLoader, options);
+            StopGamepadPolling();
+            var result = await pickerDialog.ShowAsync();
+            StartGamepadPolling();
+
+            string? filePath = null;
+            if (result == ContentDialogResult.Primary)
+                filePath = pickerDialog.SelectedFilePath;
+            else if (pickerDialog.RequestLegacyPicker)
+                filePath = await ShowLegacyFilePickerAsync(options);
+
+            if (filePath == null || !System.IO.File.Exists(filePath)) return;
+
+            try
+            {
+                string json = System.IO.File.ReadAllText(filePath, System.Text.Encoding.UTF8);
+                SettingsService.ImportMappingJson(json);
+                InitMouseModePage();
+            }
+            catch (Exception ex)
+            {
+                var errDialog = new ContentDialog
+                {
+                    Title = "Load Failed",
+                    Content = ex.Message,
+                    CloseButtonText = "OK",
+                    XamlRoot = this.XamlRoot
+                };
+                StopGamepadPolling();
+                await errDialog.ShowAsync();
+                StartGamepadPolling();
+            }
         }
 
         private void AddWhitelistApp_Click(object sender, RoutedEventArgs e)

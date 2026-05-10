@@ -130,8 +130,9 @@ namespace winrt::PhantomBridge::implementation
 
     // ── 內部：偵測前景是否為 Steam Big Picture ───────────────────────────────
     //
-    // 前景行程為 steamwebhelper.exe，且視窗 title 非 "Steam"。
-    // 桌面 Steam 客戶端主畫面 title = "Steam"，SteamBigPicture 視窗則顯示其他內容；
+    // 前提：前景行程為 steamwebhelper.exe（Big Picture 與桌面 Steam 共用此 exe，class 同為 SDL_app）。
+    // 區分條件採視窗 style + 相對尺寸（與 PhantomKey/ForegroundMonitor.cpp 的 IsSteamBigPicture 行為相同）：
+    //   Big Picture：無 WS_CAPTION（無標題列）+ 視窗寬高皆 ≥ 所在 monitor 的 50%
     // 用於 TriggerSteamInGameOverlay 分流：SteamBigPicture → Ctrl+1（Steam Menu）；其他 → INI 快捷鍵。
     static bool IsForegroundSteamBigPicture() noexcept
     {
@@ -155,9 +156,20 @@ namespace winrt::PhantomBridge::implementation
         basename = basename ? basename + 1 : path;
         if (_wcsicmp(basename, L"steamwebhelper.exe") != 0) return false;
 
-        WCHAR title[256] = {};
-        ::GetWindowTextW(fg, title, ARRAYSIZE(title));
-        return _wcsicmp(title, L"Steam") != 0;
+        // ── 視窗 style：Big Picture 無 WS_CAPTION ──
+        LONG style = ::GetWindowLongW(fg, GWL_STYLE);
+        if ((style & WS_CAPTION) != 0) return false;
+
+        // ── 相對尺寸：寬高皆 ≥ 所在 monitor 的 50% ──
+        RECT wr = {};
+        if (!::GetWindowRect(fg, &wr)) return false;
+        HMONITOR hMon = ::MonitorFromWindow(fg, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO mi = { sizeof(mi) };
+        if (!::GetMonitorInfoW(hMon, &mi)) return false;
+        LONG winW = wr.right - wr.left, winH = wr.bottom - wr.top;
+        LONG monW = mi.rcMonitor.right - mi.rcMonitor.left;
+        LONG monH = mi.rcMonitor.bottom - mi.rcMonitor.top;
+        return winW * 2 >= monW && winH * 2 >= monH;
     }
 
     // ── 內部：偵測是否處於 FSE（全螢幕體驗）模式 ─────────────────────────────
@@ -252,7 +264,7 @@ namespace winrt::PhantomBridge::implementation
     // ── 公開方法：TriggerSteamInGameOverlay ──────────────────────────────────
     //
     // 觸發 Steam In-Game Overlay（雙路徑）：
-    //   - 前景判定為 Steam Big Picture（steamwebhelper + 非 "Steam" title）→ Ctrl+1（Steam Menu）
+    //   - 前景判定為 Steam Big Picture（steamwebhelper + 無 WS_CAPTION + 視窗 ≥ monitor 50%）→ Ctrl+1（Steam Menu）
     //   - 其他（推定為遊戲中）→ 送 INI 中的 SteamInGameOverlayShortcut（典型 "Shift+Tab"）
     //
     // 先送 Win+G 收合 Game Bar 再送鍵盤事件（否則 Steam 收不到）。
@@ -293,12 +305,25 @@ namespace winrt::PhantomBridge::implementation
         if (fseActive)
         {
             // ── FSE 路徑 ──
+            // 前景已是 Xbox App 時略過最小化，否則會出現「縮小再放大」的回彈動畫。
             HWND fg = ::GetForegroundWindow();
             if (fg != nullptr)
             {
                 WCHAR className[256] = {};
                 ::GetClassNameW(fg, className, ARRAYSIZE(className));
-                if (_wcsicmp(className, L"Progman") != 0 &&
+
+                // Xbox App 為 UWP，視窗由 ApplicationFrameHost 代管，class=ApplicationFrameWindow + title="Xbox"。
+                // 前景已是 Xbox App 時略過最小化，否則會出現「縮小再放大」的回彈動畫。
+                bool fgIsXboxApp = false;
+                if (_wcsicmp(className, L"ApplicationFrameWindow") == 0)
+                {
+                    WCHAR title[256] = {};
+                    ::GetWindowTextW(fg, title, ARRAYSIZE(title));
+                    fgIsXboxApp = (_wcsicmp(title, L"Xbox") == 0);
+                }
+
+                if (!fgIsXboxApp &&
+                    _wcsicmp(className, L"Progman") != 0 &&
                     _wcsicmp(className, L"WorkerW") != 0)
                 {
                     ::ShowWindow(fg, SW_MINIMIZE);

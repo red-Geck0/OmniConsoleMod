@@ -1,0 +1,85 @@
+<ContentDialog
+    x:Class="OmniConsole.Dialogs.ButtonMappingDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Style="{StaticResource DefaultContentDialogStyle}"
+    DefaultButton="Primary"
+    RequestedTheme="Dark">
+
+    <ContentDialog.Resources>
+        <SolidColorBrush x:Key="ContentDialogBackground" Color="#25282C"/>
+        <SolidColorBrush x:Key="ContentDialogTopOverlay" Color="#1A1B1E"/>
+        <SolidColorBrush x:Key="ContentDialogBorderBrush" Color="Transparent"/>
+        <SolidColorBrush x:Key="ContentDialogSeparatorBorderBrush" Color="Transparent"/>
+        <Thickness x:Key="ContentDialogSeparatorThickness">0</Thickness>
+    </ContentDialog.Resources>
+
+    <StackPanel Width="420" Spacing="12" XYFocusKeyboardNavigation="Enabled">
+
+        <!-- Instruction -->
+        <TextBlock x:Name="InstructionText"
+                   FontSize="13"
+                   TextWrapping="Wrap"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+        <!-- Preview kombinasi key -->
+        <Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="12,10">
+            <TextBlock x:Name="PreviewText"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center"
+                       Text="—"/>
+        </Border>
+
+        <!-- Action mode selector -->
+        <TextBlock x:Name="ModeLabel"
+                   FontSize="12"
+                   FontWeight="SemiBold"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+        <RadioButtons x:Name="ModeRadios"
+                      MaxColumns="3"
+                      SelectionChanged="ModeRadios_SelectionChanged">
+            <x:String>None</x:String>
+            <x:String>Keyboard</x:String>
+            <x:String>Special</x:String>
+        </RadioButtons>
+
+        <!-- ── Keyboard mode panel ───────────────────────────────────── -->
+        <StackPanel x:Name="KeyboardPanel" Spacing="8" Visibility="Visible">
+            <TextBlock x:Name="ModifiersLabel"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <CheckBox x:Name="CtrlCheck"  Content="Ctrl"  Checked="ModifierChanged" Unchecked="ModifierChanged"/>
+                <CheckBox x:Name="ShiftCheck" Content="Shift" Checked="ModifierChanged" Unchecked="ModifierChanged"/>
+                <CheckBox x:Name="AltCheck"   Content="Alt"   Checked="ModifierChanged" Unchecked="ModifierChanged"/>
+            </StackPanel>
+
+            <TextBlock x:Name="KeyLabel"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            <ComboBox x:Name="KeyCombo"
+                      HorizontalAlignment="Stretch"
+                      SelectionChanged="KeyCombo_SelectionChanged"/>
+        </StackPanel>
+
+        <!-- ── Special action panel ─────────────────────────────────── -->
+        <StackPanel x:Name="SpecialPanel" Spacing="8" Visibility="Collapsed">
+            <TextBlock x:Name="SpecialLabel"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            <ComboBox x:Name="SpecialCombo"
+                      HorizontalAlignment="Stretch"
+                      SelectionChanged="SpecialCombo_SelectionChanged"/>
+        </StackPanel>
+
+    </StackPanel>
+
+</ContentDialog>

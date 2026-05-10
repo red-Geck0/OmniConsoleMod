@@ -193,10 +193,10 @@
   <data name="MouseModeDescription.Text" xml:space="preserve">
     <value>設定手把模擬滑鼠的功能與按鍵配置。</value>
   </data>
-  <data name="MouseModeSection_General.Text" xml:space="preserve">
+  <data name="MouseModeSection_General.Header" xml:space="preserve">
     <value>一般</value>
   </data>
-  <data name="MouseModeSection_InputMapping.Text" xml:space="preserve">
+  <data name="MouseModeSection_InputMapping.Header" xml:space="preserve">
     <value>按鍵對應</value>
   </data>
   <data name="MouseModeSection_InputMappingDesc.Text" xml:space="preserve">
@@ -365,9 +365,7 @@
   <data name="MouseModeAddApp_Browse.Content" xml:space="preserve">
     <value>瀏覽 .exe...</value>
   </data>
-  <data name="MouseModeAddApp_Placeholder" xml:space="preserve">
-    <value>處理程序名稱</value>
-  </data>
+
   <data name="MouseModeAddApp_Button.Content" xml:space="preserve">
     <value>新增</value>
   </data>

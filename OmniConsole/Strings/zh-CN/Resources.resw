@@ -193,10 +193,10 @@
   <data name="MouseModeDescription.Text" xml:space="preserve">
     <value>设置手柄模拟鼠标的功能与按键布局。</value>
   </data>
-  <data name="MouseModeSection_General.Text" xml:space="preserve">
+  <data name="MouseModeSection_General.Header" xml:space="preserve">
     <value>常规</value>
   </data>
-  <data name="MouseModeSection_InputMapping.Text" xml:space="preserve">
+  <data name="MouseModeSection_InputMapping.Header" xml:space="preserve">
     <value>按键映射</value>
   </data>
   <data name="MouseModeSection_InputMappingDesc.Text" xml:space="preserve">

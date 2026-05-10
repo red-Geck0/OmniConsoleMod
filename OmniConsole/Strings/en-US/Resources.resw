@@ -193,10 +193,10 @@
   <data name="MouseModeDescription.Text" xml:space="preserve">
     <value>Configure gamepad-to-mouse emulation and button layout.</value>
   </data>
-  <data name="MouseModeSection_General.Text" xml:space="preserve">
+  <data name="MouseModeSection_General.Header" xml:space="preserve">
     <value>General</value>
   </data>
-  <data name="MouseModeSection_InputMapping.Text" xml:space="preserve">
+  <data name="MouseModeSection_InputMapping.Header" xml:space="preserve">
     <value>Input Mapping</value>
   </data>
   <data name="MouseModeSection_InputMappingDesc.Text" xml:space="preserve">

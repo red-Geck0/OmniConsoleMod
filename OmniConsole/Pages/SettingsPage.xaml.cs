@@ -206,6 +206,13 @@ namespace OmniConsole.Pages
         /// </summary>
         private void UpdateGamepadHints()
         {
+            if (_currentNavTag == "MouseMode")
+            {
+                // Show LB/RB hint for tab switching in Mouse Mode page
+                VisualStateManager.GoToState(this, "SystemTab", false); // reuses SystemTab state which shows GamepadHintLBRB
+                GamepadHintMenu.Visibility = Visibility.Collapsed;
+                return;
+            }
             if (_currentNavTag != "General")
             {
                 VisualStateManager.GoToState(this, "NonGeneralPage", false);
@@ -258,7 +265,7 @@ namespace OmniConsole.Pages
                 {
                     _gamepadNavigationService.ActiveScrollViewer = tag switch
                     {
-                        "MouseMode" => MouseModePage,
+                        "MouseMode" => GetActiveMouseModeScrollViewer(),
                         "Advanced"  => AdvancedPage,
                         "About"     => AboutPage,
                         _ => null,
@@ -1494,6 +1501,12 @@ namespace OmniConsole.Pages
         /// </summary>
         private void OnGamepadLBPressed()
         {
+            if (_currentNavTag == "MouseMode")
+            {
+                if (MouseModeTabView.SelectedIndex > 0)
+                    MouseModeTabView.SelectedIndex--;
+                return;
+            }
             if (_currentNavTag != "General") return;
             if (_currentCategoryTag == "User")
                 SwitchCategoryTab("System");
@@ -1504,6 +1517,12 @@ namespace OmniConsole.Pages
         /// </summary>
         private void OnGamepadRBPressed()
         {
+            if (_currentNavTag == "MouseMode")
+            {
+                if (MouseModeTabView.SelectedIndex < MouseModeTabView.TabItems.Count - 1)
+                    MouseModeTabView.SelectedIndex++;
+                return;
+            }
             if (_currentNavTag != "General") return;
             if (_currentCategoryTag == "System")
                 SwitchCategoryTab("User");
@@ -1838,6 +1857,19 @@ namespace OmniConsole.Pages
         /// <summary>
         /// Inisialisasi awal halaman Mouse Mode — dipanggil dari ShowSettings().
         /// </summary>
+        /// <summary>Returns the ScrollViewer for the currently active MouseMode tab.</summary>
+        private ScrollViewer? GetActiveMouseModeScrollViewer() =>
+            MouseModeTabView.SelectedIndex == 1
+                ? MouseModeInputMappingScrollViewer
+                : MouseModeGeneralScrollViewer;
+
+        /// <summary>Updates ActiveScrollViewer when the user switches MouseMode tabs.</summary>
+        private void MouseModeTabView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_gamepadNavigationService != null && _currentNavTag == "MouseMode")
+                _gamepadNavigationService.ActiveScrollViewer = GetActiveMouseModeScrollViewer();
+        }
+
         private void InitMouseModePage()
         {
             // Sinkron currentMappingLayout dengan setting Controller Layout

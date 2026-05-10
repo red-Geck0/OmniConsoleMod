@@ -703,8 +703,10 @@
 
                     <!-- Mouse Mode 頁面 -->
                     <Grid x:Name="MouseModePage" Grid.Row="1" Visibility="Collapsed">
-                        <TabView IsAddTabButtonVisible="False"
+                        <TabView x:Name="MouseModeTabView"
+                                 IsAddTabButtonVisible="False"
                                  TabWidthMode="Equal"
+                                 SelectionChanged="MouseModeTabView_SelectionChanged"
                                  XYFocusKeyboardNavigation="Enabled">
 
                             <TabView.TabStripHeader>
@@ -715,7 +717,7 @@
 
                             <!-- Tab 1: General -->
                             <TabViewItem x:Uid="MouseModeSection_General" IsClosable="False">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                                <ScrollViewer x:Name="MouseModeGeneralScrollViewer" VerticalScrollBarVisibility="Auto" Padding="16">
                                     <StackPanel Spacing="16" HorizontalAlignment="Center" MaxWidth="700"
                                                 XYFocusKeyboardNavigation="Enabled">
 
@@ -960,7 +962,7 @@
 
                             <!-- Tab 2: Input Mapping -->
                             <TabViewItem x:Uid="MouseModeSection_InputMapping" IsClosable="False">
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                                <ScrollViewer x:Name="MouseModeInputMappingScrollViewer" VerticalScrollBarVisibility="Auto" Padding="16">
                                     <StackPanel Spacing="16" HorizontalAlignment="Center" MaxWidth="700"
                                                 XYFocusKeyboardNavigation="Enabled">
 

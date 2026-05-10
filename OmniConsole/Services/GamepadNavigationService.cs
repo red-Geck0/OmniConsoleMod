@@ -292,7 +292,7 @@ namespace OmniConsole.Services
 
         // ── D-pad / 搖桿長按連續移動（Key Repeat） ────────────────────────────
         private const int RepeatInitialDelayMs = 400;  // 長按後開始重複前的等待時間
-        private const int RepeatIntervalMs = 80;       // 重複移動的間隔
+        private const int RepeatIntervalMs = 50;       // 重複移動的間隔 (was 80 — faster nav)
 
         /// <summary>各手把獨立的長按重複狀態，避免多手把間互相覆蓋。</summary>
         private readonly Dictionary<Gamepad, HeldState> _heldStates = new();
@@ -311,6 +311,23 @@ namespace OmniConsole.Services
         private readonly Action? _onXButtonPressed;
         private readonly Action? _onYButtonPressed;
         private readonly Action? _onMenuButtonPressed;
+        private readonly Action? _onViewButtonPressed;
+
+        // ── Right-stick scroll ──────────────────────────────────────────────────
+        // ScrollViewer aktif untuk right-stick Y → vertical scroll. Set oleh page
+        // saat user navigate ke halaman panjang (mis. MouseModePage). null = matikan.
+        /// <summary>ScrollViewer aktif untuk right-stick Y → vertical scroll.</summary>
+        public ScrollViewer? ActiveScrollViewer { get; set; }
+
+        /// <summary>
+        /// Saat true, EnsureFocus tidak paksa reset fokus ke _searchRoot.
+        /// Set ke true saat ContentDialog sedang terbuka agar fokus dialog tidak dicuri.
+        /// </summary>
+        public bool SuppressFocusEnforcement { get; set; }
+
+        // Konstanta scrolling: 33ms tick × 32 px/tick ≈ 970 px/sec @ full push (was 360)
+        private const double RightStickScrollPixelsPerTick = 32.0;
+        private const double RightStickScrollDeadzone = 0.18;
 
         /// <summary>
         /// 初始化 <see cref="GamepadNavigationService"/> 類別的新執行個體。
@@ -324,7 +341,7 @@ namespace OmniConsole.Services
         /// <param name="onXButtonPressed">當按下手把 'X' 鍵時觸發的委派動作（可選）。</param>
         /// <param name="onYButtonPressed">當按下手把 'Y' 鍵時觸發的委派動作（可選）。</param>
         /// <param name="onMenuButtonPressed">當按下手把 'Menu（☰）' 鍵時觸發的委派動作（可選）。</param>
-        public GamepadNavigationService(UIElement searchRoot, DispatcherQueue dispatcherQueue, Action onAButtonPressed, Action? onBButtonPressed = null, Action? onLBPressed = null, Action? onRBPressed = null, Action? onXButtonPressed = null, Action? onYButtonPressed = null, Action? onMenuButtonPressed = null)
+        public GamepadNavigationService(UIElement searchRoot, DispatcherQueue dispatcherQueue, Action onAButtonPressed, Action? onBButtonPressed = null, Action? onLBPressed = null, Action? onRBPressed = null, Action? onXButtonPressed = null, Action? onYButtonPressed = null, Action? onMenuButtonPressed = null, Action? onViewButtonPressed = null)
         {
             _searchRoot = searchRoot;
             _onAButtonPressed = onAButtonPressed;
@@ -334,9 +351,10 @@ namespace OmniConsole.Services
             _onXButtonPressed = onXButtonPressed;
             _onYButtonPressed = onYButtonPressed;
             _onMenuButtonPressed = onMenuButtonPressed;
+            _onViewButtonPressed = onViewButtonPressed;
 
             _gamepadTimer = dispatcherQueue.CreateTimer();
-            _gamepadTimer.Interval = TimeSpan.FromMilliseconds(50); // 20 FPS
+            _gamepadTimer.Interval = TimeSpan.FromMilliseconds(33); // ~30 FPS (was 50/20 FPS)
             _gamepadTimer.Tick += GamepadTimer_Tick;
 
             try { _inputInjector = InputInjector.TryCreate(); } catch { }
@@ -413,7 +431,10 @@ namespace OmniConsole.Services
                             int from = focusedIdx == -1 ? Math.Max(0, _activeComboBox.SelectedIndex) : focusedIdx;
                             if (from < _activeComboBox.Items.Count - 1
                                 && _activeComboBox.ContainerFromIndex(from + 1) is Control next)
+                            {
                                 next.Focus(FocusState.Keyboard);
+                                next.StartBringIntoView();
+                            }
                             inputHandled = true;
                         }
                         else if (IsButtonPressed(reading, prev, GamepadButtons.DPadUp))
@@ -421,7 +442,10 @@ namespace OmniConsole.Services
                             int from = focusedIdx == -1 ? Math.Max(0, _activeComboBox.SelectedIndex) : focusedIdx;
                             if (from > 0
                                 && _activeComboBox.ContainerFromIndex(from - 1) is Control prev2)
+                            {
                                 prev2.Focus(FocusState.Keyboard);
+                                prev2.StartBringIntoView();
+                            }
                             inputHandled = true;
                         }
                         else if (IsButtonPressed(reading, prev, GamepadButtons.DPadLeft)
@@ -488,6 +512,8 @@ namespace OmniConsole.Services
                             _onYButtonPressed?.Invoke();
                         else if (IsButtonPressed(reading, prev, GamepadButtons.Menu))
                             _onMenuButtonPressed?.Invoke();
+                        else if (IsButtonPressed(reading, prev, GamepadButtons.View))
+                            _onViewButtonPressed?.Invoke();
                     }
 
                     // 也將左搖桿映射到上下左右（支援橫向卡片網格導覽）
@@ -502,6 +528,58 @@ namespace OmniConsole.Services
                             TryMoveGamepadFocus(FocusNavigationDirection.Left);
                         else if (reading.LeftThumbstickX > 0.5 && prev.LeftThumbstickX <= 0.5)
                             TryMoveGamepadFocus(FocusNavigationDirection.Right);
+                    }
+
+                    // ── Right-stick Y → scroll ComboBox popup saat dropdown terbuka ──
+                    if (_activeComboBox != null)
+                    {
+                        double ry = reading.RightThumbstickY;
+                        if (Math.Abs(ry) > RightStickScrollDeadzone)
+                        {
+                            double sign  = Math.Sign(ry);
+                            double mag   = (Math.Abs(ry) - RightStickScrollDeadzone) / (1.0 - RightStickScrollDeadzone);
+                            if (mag > 1.0) mag = 1.0;
+                            double delta = -sign * mag * RightStickScrollPixelsPerTick;
+                            try
+                            {
+                                // Cari ScrollViewer di dalam Popup ComboBox
+                                var sv = FindComboBoxPopupScrollViewer(_activeComboBox);
+                                if (sv != null)
+                                {
+                                    double newOffset = sv.VerticalOffset + delta;
+                                    if (newOffset < 0) newOffset = 0;
+                                    if (newOffset > sv.ScrollableHeight) newOffset = sv.ScrollableHeight;
+                                    sv.ChangeView(null, newOffset, null, true);
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+
+                    // ── Right-stick Y → vertical scroll pada ActiveScrollViewer ─────
+                    // Independen dari left-stick / D-pad (boleh paralel).
+                    if (ActiveScrollViewer != null && _activeComboBox == null)
+                    {
+                        double ry = reading.RightThumbstickY;
+                        if (Math.Abs(ry) > RightStickScrollDeadzone)
+                        {
+                            // Re-scale dari deadzone (0.18) ke (1.0) → 0..1
+                            double sign = Math.Sign(ry);
+                            double mag = (Math.Abs(ry) - RightStickScrollDeadzone)
+                                       / (1.0 - RightStickScrollDeadzone);
+                            if (mag > 1.0) mag = 1.0;
+                            // Push down → scroll down (Y axis flipped relatif xinput convention)
+                            double delta = -sign * mag * RightStickScrollPixelsPerTick;
+                            try
+                            {
+                                double newOffset = ActiveScrollViewer.VerticalOffset + delta;
+                                if (newOffset < 0) newOffset = 0;
+                                if (newOffset > ActiveScrollViewer.ScrollableHeight)
+                                    newOffset = ActiveScrollViewer.ScrollableHeight;
+                                ActiveScrollViewer.ChangeView(null, newOffset, null, true);
+                            }
+                            catch { }
+                        }
                     }
 
                     // ── D-pad / 搖桿長按連續移動（每支手把獨立追蹤） ──────────────
@@ -568,6 +646,21 @@ namespace OmniConsole.Services
         }
 
         /// <summary>
+        /// 模擬按下並放開一個按鍵（KeyDown + KeyUp），供外部呼叫（如注入 Escape 關閉 ContentDialog）。
+        /// </summary>
+        public void InjectKey(Windows.System.VirtualKey key)
+        {
+            if (_inputInjector == null) return;
+            try
+            {
+                var down = new InjectedInputKeyboardInfo { VirtualKey = (ushort)key, KeyOptions = InjectedInputKeyOptions.None };
+                var up   = new InjectedInputKeyboardInfo { VirtualKey = (ushort)key, KeyOptions = InjectedInputKeyOptions.KeyUp };
+                _inputInjector.InjectKeyboardInput(new[] { down, up });
+            }
+            catch { }
+        }
+
+        /// <summary>
         /// 確保焦點目前落在 <see cref="_searchRoot"/> 內的有效控制項上。
         /// 若焦點遺失或位於非互動元件，則強制恢復。
         /// </summary>
@@ -575,6 +668,9 @@ namespace OmniConsole.Services
         {
             try
             {
+                // Dialog 開啟時不搶走焦點
+                if (SuppressFocusEnforcement) return;
+
                 var focusedElement = FocusManager.GetFocusedElement(_searchRoot.XamlRoot);
 
                 bool isDescendant = focusedElement is DependencyObject d && IsDescendantOf(_searchRoot, d);
@@ -620,14 +716,28 @@ namespace OmniConsole.Services
 
         /// <summary>
         /// 嘗試將焦點朝指定方向移動。
-        /// 若焦點在 SearchRoot 內，使用限定範圍的 <see cref="FocusManager.TryMoveFocusAsync"/> 以防止焦點飄移到視窗邊緣；
-        /// 若焦點在 SearchRoot 外（如下拉選單 Popup），改用無限制的 <see cref="FocusManager.TryMoveFocus"/> 讓 Popup 內項目可自由移動。
+        /// Dialog 模式（SuppressFocusEnforcement=true）：Up/Left → Shift+Tab，Down/Right → Tab，
+        ///   讓 ContentDialog 的焦點陷阱自然將 Tab 導覽限制在 dialog 範圍內。
+        /// 一般模式：搜尋 SearchRoot 內的下一個可互動控制項。
         /// </summary>
-        /// <param name="direction">焦點移動的方向 (上下左右)。</param>
         private void TryMoveGamepadFocus(FocusNavigationDirection direction)
         {
             try
             {
+                // ── Dialog 模式：Up/Down → Tab/Shift+Tab；Left/Right → Arrow Keys (RadioButtons) ──
+                if (SuppressFocusEnforcement && _activeComboBox == null)
+                {
+                    if (direction == FocusNavigationDirection.Down)
+                        InjectKey(Windows.System.VirtualKey.Tab);
+                    else if (direction == FocusNavigationDirection.Up)
+                        InjectShiftTab();
+                    else if (direction == FocusNavigationDirection.Right)
+                        InjectKey(Windows.System.VirtualKey.Right);
+                    else // Left
+                        InjectKey(Windows.System.VirtualKey.Left);
+                    return;
+                }
+
                 var focused = FocusManager.GetFocusedElement(_searchRoot.XamlRoot);
                 if (focused is DependencyObject dep && IsDescendantOf(_searchRoot, dep))
                 {
@@ -643,7 +753,7 @@ namespace OmniConsole.Services
                 }
                 else
                 {
-                    // 焦點在 SearchRoot 外（如下拉選單 Popup）→ 自由導航，讓 Popup 內項目可移動
+                    // 焦點在 SearchRoot 外（如下拉選單 Popup）→ 自由導航
                     FocusManager.TryMoveFocus(direction);
                 }
             }
@@ -651,6 +761,23 @@ namespace OmniConsole.Services
             {
                 try { FocusManager.TryMoveFocus(direction); } catch { }
             }
+        }
+
+        /// <summary>
+        /// 注入 Shift+Tab 複合鍵（ContentDialog 內向上導覽）。
+        /// </summary>
+        private void InjectShiftTab()
+        {
+            if (_inputInjector == null) return;
+            try
+            {
+                var shiftDn = new InjectedInputKeyboardInfo { VirtualKey = (ushort)Windows.System.VirtualKey.Shift };
+                var tabDn   = new InjectedInputKeyboardInfo { VirtualKey = (ushort)Windows.System.VirtualKey.Tab };
+                var tabUp   = new InjectedInputKeyboardInfo { VirtualKey = (ushort)Windows.System.VirtualKey.Tab,  KeyOptions = InjectedInputKeyOptions.KeyUp };
+                var shiftUp = new InjectedInputKeyboardInfo { VirtualKey = (ushort)Windows.System.VirtualKey.Shift, KeyOptions = InjectedInputKeyOptions.KeyUp };
+                _inputInjector.InjectKeyboardInput(new[] { shiftDn, tabDn, tabUp, shiftUp });
+            }
+            catch { }
         }
 
         /// <summary>
@@ -696,6 +823,19 @@ namespace OmniConsole.Services
                 if (descendant != null) return descendant;
             }
             return null;
+        }
+
+        /// <summary>
+        /// 找出 ComboBox Popup 中的 ScrollViewer，供右搖桿滾動使用。
+        /// ComboBox 開啟時，Popup 根元素通常是 Border → ScrollViewer → ItemsPresenter。
+        /// </summary>
+        private static ScrollViewer? FindComboBoxPopupScrollViewer(ComboBox comboBox)
+        {
+            // ContainerFromIndex(0) 的祖先鏈：ComboBoxItem → … → ScrollViewer → Popup
+            if (comboBox.Items.Count == 0) return null;
+            var container = comboBox.ContainerFromIndex(0) as DependencyObject;
+            if (container == null) return null;
+            return FindParent<ScrollViewer>(container);
         }
 
         /// <summary>

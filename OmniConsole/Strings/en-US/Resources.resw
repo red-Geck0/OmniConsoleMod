@@ -185,28 +185,28 @@
   </data>
   <!-- ── Mouse Mode page ──────────────────────────────────────────── -->
   <data name="Nav_MouseMode.Content" xml:space="preserve">
-    <value>Mouse Mode</value>
+    <value>OmniNav</value>
   </data>
   <data name="MouseModeTitle.Text" xml:space="preserve">
-    <value>Mouse Mode</value>
+    <value>OmniNav</value>
   </data>
   <data name="MouseModeDescription.Text" xml:space="preserve">
     <value>Configure gamepad-to-mouse emulation and button layout.</value>
   </data>
-  <data name="MouseModeSection_General.Header" xml:space="preserve">
+  <data name="MouseModeSection_General.Content" xml:space="preserve">
     <value>General</value>
   </data>
-  <data name="MouseModeSection_InputMapping.Header" xml:space="preserve">
+  <data name="MouseModeSection_InputMapping.Content" xml:space="preserve">
     <value>Input Mapping</value>
   </data>
   <data name="MouseModeSection_InputMappingDesc.Text" xml:space="preserve">
     <value>Customize the keyboard shortcut for each gamepad button. Sticks and D-Pad analog behavior follow the selected Controller Layout.</value>
   </data>
   <data name="MappingLayout_OmniNav.Text" xml:space="preserve">
-    <value>OmniNav</value>
+    <value>Lefty</value>
   </data>
   <data name="MappingLayout_Classic.Text" xml:space="preserve">
-    <value>Classic</value>
+    <value>Righty</value>
   </data>
   <data name="LayeredModeSetting_Title.Text" xml:space="preserve">
     <value>Layered Mode</value>
@@ -375,13 +375,13 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
     <value>Controller Layout</value>
   </data>
   <data name="MouseModeLayoutSetting_Description.Text" xml:space="preserve">
-    <value>OmniNav: left stick moves the cursor. Classic: right stick moves the cursor.</value>
+    <value>Lefty: left stick moves the cursor. Righty: right stick moves the cursor.</value>
   </data>
   <data name="MouseModeLayoutSwitch.OffContent" xml:space="preserve">
-    <value>OmniNav</value>
+    <value>Lefty</value>
   </data>
   <data name="MouseModeLayoutSwitch.OnContent" xml:space="preserve">
-    <value>Classic</value>
+    <value>Righty</value>
   </data>
   <data name="CursorSpeedSetting_Title.Text" xml:space="preserve">
     <value>Cursor Speed</value>
@@ -439,6 +439,9 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   </data>
   <data name="GamepadHint_Launch.Text" xml:space="preserve">
     <value>Set &amp; Launch</value>
+  </data>
+  <data name="GamepadHint_OpenMenu.Text" xml:space="preserve">
+    <value>Open Menu</value>
   </data>
   <data name="PlatformDialog_AddTitle" xml:space="preserve">
     <value>Add Platform</value>

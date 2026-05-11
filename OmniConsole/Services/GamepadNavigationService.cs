@@ -426,26 +426,16 @@ namespace OmniConsole.Services
                             _activeComboBox = null;
                             inputHandled = true;
                         }
-                        else if (IsButtonPressed(reading, prev, GamepadButtons.DPadDown))
+                        else if (IsButtonPressed(reading, prev, GamepadButtons.DPadDown)
+                              || (reading.LeftThumbstickY < -0.5 && prev.LeftThumbstickY >= -0.5))
                         {
-                            int from = focusedIdx == -1 ? Math.Max(0, _activeComboBox.SelectedIndex) : focusedIdx;
-                            if (from < _activeComboBox.Items.Count - 1
-                                && _activeComboBox.ContainerFromIndex(from + 1) is Control next)
-                            {
-                                next.Focus(FocusState.Keyboard);
-                                next.StartBringIntoView();
-                            }
+                            NavigateComboBoxItem(_activeComboBox, down: true);
                             inputHandled = true;
                         }
-                        else if (IsButtonPressed(reading, prev, GamepadButtons.DPadUp))
+                        else if (IsButtonPressed(reading, prev, GamepadButtons.DPadUp)
+                              || (reading.LeftThumbstickY > 0.5 && prev.LeftThumbstickY <= 0.5))
                         {
-                            int from = focusedIdx == -1 ? Math.Max(0, _activeComboBox.SelectedIndex) : focusedIdx;
-                            if (from > 0
-                                && _activeComboBox.ContainerFromIndex(from - 1) is Control prev2)
-                            {
-                                prev2.Focus(FocusState.Keyboard);
-                                prev2.StartBringIntoView();
-                            }
+                            NavigateComboBoxItem(_activeComboBox, down: false);
                             inputHandled = true;
                         }
                         else if (IsButtonPressed(reading, prev, GamepadButtons.DPadLeft)
@@ -584,7 +574,6 @@ namespace OmniConsole.Services
 
                     // ── D-pad / 搖桿長按連續移動（每支手把獨立追蹤） ──────────────
                     _heldStates.TryGetValue(gamepad, out var held);
-                    if (!inputHandled)
                     {
                         var currentDir = GetHeldDirection(reading);
                         long now = Environment.TickCount64;
@@ -607,13 +596,19 @@ namespace OmniConsole.Services
                             if (now - held.LastRepeatTick >= RepeatIntervalMs)
                             {
                                 held.LastRepeatTick = now;
-                                TryMoveGamepadFocus(currentDir.Value);
+                                if (_activeComboBox != null)
+                                {
+                                    // ComboBox 開啟中：在清單內上下移動，不移動外部焦點
+                                    if (currentDir == FocusNavigationDirection.Down || currentDir == FocusNavigationDirection.Up)
+                                        NavigateComboBoxItem(_activeComboBox, currentDir == FocusNavigationDirection.Down);
+                                    // 左右方向在 ComboBox 中封鎖（不做任何事）
+                                }
+                                else if (!inputHandled)
+                                {
+                                    TryMoveGamepadFocus(currentDir.Value);
+                                }
                             }
                         }
-                    }
-                    else
-                    {
-                        held.Direction = null;
                     }
                     _heldStates[gamepad] = held;
 
@@ -821,6 +816,23 @@ namespace OmniConsole.Services
                 if (descendant != null) return descendant;
             }
             return null;
+        }
+
+        /// <summary>
+        /// 將 ComboBox 下拉清單的焦點向下或向上移動一項，並捲入可視範圍。
+        /// 由邊緣觸發（IsButtonPressed）及長按重複（_heldStates）共用。
+        /// </summary>
+        private void NavigateComboBoxItem(ComboBox comboBox, bool down)
+        {
+            int focusedIdx = GetFocusedComboBoxItemIndex(comboBox);
+            int from = focusedIdx == -1 ? Math.Max(0, comboBox.SelectedIndex) : focusedIdx;
+            int target = down ? from + 1 : from - 1;
+            if (target >= 0 && target < comboBox.Items.Count
+                && comboBox.ContainerFromIndex(target) is Control item)
+            {
+                item.Focus(FocusState.Keyboard);
+                item.StartBringIntoView();
+            }
         }
 
         /// <summary>

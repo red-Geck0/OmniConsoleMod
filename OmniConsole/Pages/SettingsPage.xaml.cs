@@ -51,6 +51,9 @@ namespace OmniConsole.Pages
         // 目前顯示的設定導覽頁面（General / Advanced / Troubleshoot）
         private string _currentNavTag = "General";
 
+        // 目前顯示的 Mouse Mode 子頁面（General / InputMapping）
+        private string _currentMouseModeSection = "General";
+
         // 匯出成功提示的自動關閉計時器（2 秒後關閉 TeachingTip）
         private readonly DispatcherTimer _exportTipTimer = new() { Interval = TimeSpan.FromSeconds(2) };
 
@@ -234,6 +237,35 @@ namespace OmniConsole.Pages
         // ── NavigationView 事件 ───────────────────────────────────────────────
 
         /// <summary>
+        /// 側邊選單展開時：讓所有選單項目可由控制器 D-pad 焦點選取，並顯示作者文字。
+        /// </summary>
+        private void SettingsNav_PaneOpened(NavigationView sender, object args)
+        {
+            UpdateNavItemFocusability(true);
+        }
+
+        /// <summary>
+        /// 側邊選單收合時：讓所有選單項目不可由控制器 D-pad 焦點選取，並隱藏作者文字。
+        /// </summary>
+        private void SettingsNav_PaneClosed(NavigationView sender, object args)
+        {
+            UpdateNavItemFocusability(false);
+        }
+
+        /// <summary>
+        /// 依 <paramref name="paneOpen"/> 切換導覽項目的控制器可聚焦性，並顯示/隱藏作者文字。
+        /// </summary>
+        private void UpdateNavItemFocusability(bool paneOpen)
+        {
+            foreach (var item in SettingsNav.MenuItems.OfType<NavigationViewItem>())
+                item.IsTabStop = paneOpen;
+            foreach (var item in SettingsNav.FooterMenuItems.OfType<NavigationViewItem>())
+                item.IsTabStop = paneOpen;
+            if (AuthorText != null)
+                AuthorText.Visibility = paneOpen ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
         /// 處理 NavigationView 選項變更，切換內容頁面。
         /// </summary>
         private void SettingsNav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -271,6 +303,13 @@ namespace OmniConsole.Pages
                         _ => null,
                     };
                 }
+
+                // 切換頁面後將焦點移到新頁面第一個可聚焦元素
+                DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+                {
+                    var firstFocusable = FocusManager.FindFirstFocusableElement(this) as UIElement;
+                    firstFocusable?.Focus(FocusState.Programmatic);
+                });
             }
         }
 
@@ -837,6 +876,13 @@ namespace OmniConsole.Pages
 
         private async void SaveMappingConfig_Click(object sender, RoutedEventArgs e)
         {
+            if (_isDialogOpen) return;
+
+            // 開啟虛擬鍵盤，方便觸控/手把使用者輸入設定檔名稱
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                { FileName = "tabtip.exe", UseShellExecute = true }); }
+            catch { /* 非平板環境無虛擬鍵盤，忽略 */ }
+
             var dialog = new ContentDialog
             {
                 Title = "Save Mapping Config",
@@ -846,9 +892,18 @@ namespace OmniConsole.Pages
                 XamlRoot = this.XamlRoot,
                 DefaultButton = ContentDialogButton.Primary
             };
-            StopGamepadPolling();
-            var result = await dialog.ShowAsync();
-            StartGamepadPolling();
+
+            _isDialogOpen = true;
+            if (_gamepadNavigationService != null)
+                _gamepadNavigationService.SuppressFocusEnforcement = true;
+            ContentDialogResult result;
+            try { result = await dialog.ShowAsync(); }
+            finally
+            {
+                _isDialogOpen = false;
+                if (_gamepadNavigationService != null)
+                    _gamepadNavigationService.SuppressFocusEnforcement = false;
+            }
             if (result != ContentDialogResult.Primary) return;
 
             string configName = ((TextBox)dialog.Content).Text.Trim();
@@ -872,9 +927,17 @@ namespace OmniConsole.Pages
                 CloseButtonText = "OK",
                 XamlRoot = this.XamlRoot
             };
-            StopGamepadPolling();
-            await confirm.ShowAsync();
-            StartGamepadPolling();
+
+            _isDialogOpen = true;
+            if (_gamepadNavigationService != null)
+                _gamepadNavigationService.SuppressFocusEnforcement = true;
+            try { await confirm.ShowAsync(); }
+            finally
+            {
+                _isDialogOpen = false;
+                if (_gamepadNavigationService != null)
+                    _gamepadNavigationService.SuppressFocusEnforcement = false;
+            }
         }
 
         private async void LoadMappingConfig_Click(object sender, RoutedEventArgs e)
@@ -1503,12 +1566,8 @@ namespace OmniConsole.Pages
         {
             if (_currentNavTag == "MouseMode")
             {
-                if (MouseModeTabView.SelectedIndex > 0)
-                {
-                    MouseModeTabView.SelectedIndex--;
-                    if (_gamepadNavigationService != null)
-                        _gamepadNavigationService.ActiveScrollViewer = GetActiveMouseModeScrollViewer();
-                }
+                if (_currentMouseModeSection == "InputMapping")
+                    SwitchMouseModeSection("General");
                 return;
             }
             if (_currentNavTag != "General") return;
@@ -1523,12 +1582,8 @@ namespace OmniConsole.Pages
         {
             if (_currentNavTag == "MouseMode")
             {
-                if (MouseModeTabView.SelectedIndex < MouseModeTabView.TabItems.Count - 1)
-                {
-                    MouseModeTabView.SelectedIndex++;
-                    if (_gamepadNavigationService != null)
-                        _gamepadNavigationService.ActiveScrollViewer = GetActiveMouseModeScrollViewer();
-                }
+                if (_currentMouseModeSection == "General")
+                    SwitchMouseModeSection("InputMapping");
                 return;
             }
             if (_currentNavTag != "General") return;
@@ -1603,6 +1658,14 @@ namespace OmniConsole.Pages
         private void OnGamepadViewButtonPressed()
         {
             SettingsNav.IsPaneOpen = !SettingsNav.IsPaneOpen;
+        }
+
+        /// <summary>
+        /// 底部提示列 View 按鈕點選：開啟側邊選單（供滑鼠使用者點擊）。
+        /// </summary>
+        private void ViewButtonHintButton_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsNav.IsPaneOpen = true;
         }
 
         // ── 更新檢查 ───────────────────────────────────────────────────────────
@@ -1865,14 +1928,62 @@ namespace OmniConsole.Pages
         /// <summary>
         /// Inisialisasi awal halaman Mouse Mode — dipanggil dari ShowSettings().
         /// </summary>
-        /// <summary>Returns the ScrollViewer for the currently active MouseMode tab.</summary>
+        /// <summary>Returns the ScrollViewer for the currently active MouseMode section.</summary>
         private ScrollViewer? GetActiveMouseModeScrollViewer() =>
-            MouseModeTabView.SelectedIndex == 1
+            _currentMouseModeSection == "InputMapping"
                 ? MouseModeInputMappingScrollViewer
                 : MouseModeGeneralScrollViewer;
 
+        /// <summary>
+        /// 切換 Mouse Mode 子頁面（General / InputMapping），更新 NavigationView 選取、ScrollViewer 可見性及 ActiveScrollViewer。
+        /// </summary>
+        private void SwitchMouseModeSection(string section)
+        {
+            if (_currentMouseModeSection == section) return;
+            _currentMouseModeSection = section;
+
+            // ScrollViewer visibility
+            MouseModeGeneralScrollViewer.Visibility = section == "General" ? Visibility.Visible : Visibility.Collapsed;
+            MouseModeInputMappingScrollViewer.Visibility = section == "InputMapping" ? Visibility.Visible : Visibility.Collapsed;
+
+            // Sync NavigationView selection without re-triggering handler
+            foreach (var item in MouseModeSectionNav.MenuItems.OfType<NavigationViewItem>())
+            {
+                if ((item.Tag as string) == section)
+                {
+                    MouseModeSectionNav.SelectedItem = item;
+                    break;
+                }
+            }
+
+            // Update active scroll viewer
+            if (_gamepadNavigationService != null)
+                _gamepadNavigationService.ActiveScrollViewer = GetActiveMouseModeScrollViewer();
+        }
+
+        /// <summary>
+        /// Mouse Mode 子頁面 NavigationView 選取變更（僅鼠標/觸控點擊時觸發；LB/RB 走 SwitchMouseModeSection）。
+        /// </summary>
+        private void MouseModeSectionNav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+        {
+            if (args.SelectedItemContainer is NavigationViewItem item &&
+                item.Tag?.ToString() is string tag &&
+                tag != _currentMouseModeSection)
+            {
+                SwitchMouseModeSection(tag);
+            }
+        }
+
         private void InitMouseModePage()
         {
+            // 每次進入 Mouse Mode 頁都回到 General 子頁
+            _currentMouseModeSection = "General";
+            MouseModeGeneralScrollViewer.Visibility = Visibility.Visible;
+            MouseModeInputMappingScrollViewer.Visibility = Visibility.Collapsed;
+            // 同步 NavigationView 選取到 General
+            if (MouseModeSectionNav.MenuItems.Count > 0)
+                MouseModeSectionNav.SelectedItem = MouseModeSectionNav.MenuItems[0];
+
             // Sinkron currentMappingLayout dengan setting Controller Layout
             _currentMappingLayout = SettingsService.GetMouseModeLayout();
 
@@ -1948,7 +2059,9 @@ namespace OmniConsole.Pages
             if (_isDialogOpen) return;
 
             string current = SettingsService.GetButtonMapping(_currentMappingLayout, buttonId);
-            var dialog = new ButtonMappingDialog(buttonId, _currentMappingLayout, current)
+            // 顯示使用者可見的版面名稱（Lefty / Righty），而非內部識別名稱（OmniNav / Classic）
+            string displayLayout = _currentMappingLayout == SettingsService.LayoutOmniNav ? "Lefty" : "Righty";
+            var dialog = new ButtonMappingDialog(buttonId, displayLayout, current)
             {
                 XamlRoot = this.XamlRoot,
             };

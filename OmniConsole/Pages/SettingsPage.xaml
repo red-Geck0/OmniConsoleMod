@@ -711,7 +711,19 @@
 
                     <!-- Mouse Mode 頁面 -->
                     <Grid x:Name="MouseModePage" Grid.Row="1" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- 頁面標題 (Row 0) -->
+                        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Spacing="8" Margin="0,0,0,8">
+                            <TextBlock x:Uid="MouseModeTitle" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            <TextBlock x:Uid="MouseModeSubtitle" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="18" TextAlignment="Center"/>
+                        </StackPanel>
+
                         <NavigationView x:Name="MouseModeSectionNav"
+                                        Grid.Row="1"
                                         PaneDisplayMode="Top"
                                         Background="Transparent"
                                         IsBackButtonVisible="Collapsed"
@@ -726,12 +738,6 @@
                                 <x:Double x:Key="NavigationViewSelectionIndicatorWidth">1000</x:Double>
                                 <x:Double x:Key="NavigationViewSelectionIndicatorHeight">2</x:Double>
                             </NavigationView.Resources>
-
-                            <NavigationView.PaneHeader>
-                                <StackPanel Orientation="Vertical" Margin="16,0,24,0" VerticalAlignment="Center">
-                                    <TextBlock x:Uid="MouseModeTitle" FontSize="22" FontWeight="Bold"/>
-                                </StackPanel>
-                            </NavigationView.PaneHeader>
 
                             <NavigationView.MenuItems>
                                 <!-- IsTabStop=False：控制器無法直接 D-pad 焦點至索引標籤，僅可滑鼠/觸控點擊；LB/RB 由 code 切換 -->
@@ -798,7 +804,6 @@
                                                     <StackPanel Grid.Column="1" Spacing="2">
                                                         <TextBlock x:Uid="MouseModeWhitelistPanel_Title" FontWeight="SemiBold" FontSize="15"/>
                                                         <TextBlock x:Uid="MouseModeWhitelistPanel_Desc" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" TextWrapping="Wrap"/>
-                                                        <TextBlock x:Uid="MouseModeAutoDetect_Note" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                                     </StackPanel>
                                                 </Grid>
                                                 <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
@@ -870,7 +875,6 @@
                                                     <StackPanel Grid.Column="1" Spacing="2">
                                                         <TextBlock x:Uid="MouseModeBlacklistPanel_Title" FontWeight="SemiBold" FontSize="15"/>
                                                         <TextBlock x:Uid="MouseModeBlacklistPanel_Desc" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" TextWrapping="Wrap"/>
-                                                        <TextBlock x:Uid="MouseModeAutoDetect_Note" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                                     </StackPanel>
                                                 </Grid>
                                                 <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
@@ -950,7 +954,6 @@
                                                     <ToggleSwitch x:Name="MouseModeLayoutSwitch"
                                                                   x:Uid="MouseModeLayoutSwitch"
                                                                   Toggled="MouseModeLayoutSwitch_Toggled"
-                                                                  FlowDirection="RightToLeft"
                                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                                 </Grid>
 
@@ -1038,7 +1041,6 @@
 
                                                     <ToggleSwitch x:Name="LayeredModeSwitch"
                                                                   Toggled="LayeredModeSwitch_Toggled"
-                                                                  FlowDirection="RightToLeft"
                                                                   XYFocusUp="{x:Bind ClassicSelectorBarItem, Mode=OneTime}"
                                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                                 </Grid>
@@ -1617,7 +1619,7 @@
                     Padding="0" MinWidth="0" MinHeight="0"
                     IsTabStop="False">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xECCA;" FontSize="22"
+                    <FontIcon Glyph="&#xE700;" FontSize="22"
                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                               VerticalAlignment="Center"/>
                     <TextBlock x:Uid="GamepadHint_OpenMenu" FontSize="14"

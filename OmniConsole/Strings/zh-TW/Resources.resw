@@ -190,6 +190,9 @@
   <data name="MouseModeTitle.Text" xml:space="preserve">
     <value>OmniNav</value>
   </data>
+  <data name="MouseModeSubtitle.Text" xml:space="preserve">
+    <value>將手把按鍵對應為鍵盤或滑鼠操作</value>
+  </data>
   <data name="MouseModeDescription.Text" xml:space="preserve">
     <value>設定手把模擬滑鼠的功能與按鍵配置。</value>
   </data>
@@ -351,13 +354,13 @@
     <value>白名單應用程式</value>
   </data>
   <data name="MouseModeWhitelistPanel_Desc.Text" xml:space="preserve">
-    <value>滑鼠模式僅對此清單中的應用程式啟用。</value>
+    <value>OmniNav 僅對此清單中的應用程式啟用。</value>
   </data>
   <data name="MouseModeBlacklistPanel_Title.Text" xml:space="preserve">
     <value>黑名單應用程式</value>
   </data>
   <data name="MouseModeBlacklistPanel_Desc.Text" xml:space="preserve">
-    <value>滑鼠模式對所有應用程式啟用，但以下除外。</value>
+    <value>OmniNav 對所有應用程式啟用，但以下除外。</value>
   </data>
   <data name="MouseModeAutoDetect_Note.Text" xml:space="preserve">
     <value>檔案總管和 Steam 由系統自動管理。</value>

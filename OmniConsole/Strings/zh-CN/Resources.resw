@@ -190,6 +190,9 @@
   <data name="MouseModeTitle.Text" xml:space="preserve">
     <value>OmniNav</value>
   </data>
+  <data name="MouseModeSubtitle.Text" xml:space="preserve">
+    <value>将手柄按键映射为键盘或鼠标操作</value>
+  </data>
   <data name="MouseModeDescription.Text" xml:space="preserve">
     <value>设置手柄模拟鼠标的功能与按键布局。</value>
   </data>
@@ -351,13 +354,13 @@
     <value>白名单应用</value>
   </data>
   <data name="MouseModeWhitelistPanel_Desc.Text" xml:space="preserve">
-    <value>鼠标模式仅对此列表中的应用程序激活。</value>
+    <value>OmniNav 仅对此列表中的应用程序激活。</value>
   </data>
   <data name="MouseModeBlacklistPanel_Title.Text" xml:space="preserve">
     <value>黑名单应用</value>
   </data>
   <data name="MouseModeBlacklistPanel_Desc.Text" xml:space="preserve">
-    <value>鼠标模式对所有应用程序激活，但以下除外。</value>
+    <value>OmniNav 对所有应用程序激活，但以下除外。</value>
   </data>
   <data name="MouseModeAutoDetect_Note.Text" xml:space="preserve">
     <value>文件资源管理器和 Steam 由系统自动管理，不受此列表影响。</value>

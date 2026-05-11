@@ -242,6 +242,11 @@ namespace OmniConsole.Pages
         private void SettingsNav_PaneOpened(NavigationView sender, object args)
         {
             UpdateNavItemFocusability(true);
+            // 選單展開後將焦點移到目前選取的導覽項目
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                (SettingsNav.SelectedItem as NavigationViewItem)?.Focus(FocusState.Programmatic);
+            });
         }
 
         /// <summary>
@@ -304,12 +309,45 @@ namespace OmniConsole.Pages
                     };
                 }
 
-                // 切換頁面後將焦點移到新頁面第一個可聚焦元素
+                // 切換頁面後將焦點移到指定的首個控制項
                 DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
                 {
-                    var firstFocusable = FocusManager.FindFirstFocusableElement(this) as UIElement;
-                    firstFocusable?.Focus(FocusState.Programmatic);
+                    FocusFirstElementForPage(tag);
                 });
+            }
+        }
+
+        /// <summary>
+        /// 依目前頁面將焦點移到最適合的首個控制項。
+        /// General → 第一個平台卡片；MouseMode → MouseModeCombo；
+        /// Advanced → DownloadInstallButton（若可見）否則 CheckForUpdatesButton；
+        /// Troubleshoot → ResetGameBarButton；About → CopyAboutButton。
+        /// </summary>
+        private void FocusFirstElementForPage(string tag)
+        {
+            switch (tag)
+            {
+                case "General":
+                    (PlatformGridView.ContainerFromIndex(0) as UIElement)?.Focus(FocusState.Programmatic);
+                    break;
+                case "MouseMode":
+                    MouseModeCombo.Focus(FocusState.Programmatic);
+                    break;
+                case "Advanced":
+                    if (DownloadInstallButton.Visibility == Visibility.Visible && DownloadInstallButton.IsEnabled)
+                        DownloadInstallButton.Focus(FocusState.Programmatic);
+                    else
+                        CheckForUpdatesButton.Focus(FocusState.Programmatic);
+                    break;
+                case "Troubleshoot":
+                    ResetGameBarButton.Focus(FocusState.Programmatic);
+                    break;
+                case "About":
+                    CopyAboutButton.Focus(FocusState.Programmatic);
+                    break;
+                default:
+                    (FocusManager.FindFirstFocusableElement(this) as UIElement)?.Focus(FocusState.Programmatic);
+                    break;
             }
         }
 
@@ -878,11 +916,6 @@ namespace OmniConsole.Pages
         {
             if (_isDialogOpen) return;
 
-            // 開啟虛擬鍵盤，方便觸控/手把使用者輸入設定檔名稱
-            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                { FileName = "tabtip.exe", UseShellExecute = true }); }
-            catch { /* 非平板環境無虛擬鍵盤，忽略 */ }
-
             var dialog = new ContentDialog
             {
                 Title = "Save Mapping Config",
@@ -1408,6 +1441,14 @@ namespace OmniConsole.Pages
             // Saat ContentDialog terbuka, A = invoke elemen yang sedang fokus di dalam dialog
             if (_isDialogOpen)
             {
+                // Jika fokus berada di TextBox (mis. input nama file di SaveMapping dialog),
+                // buka virtual keyboard tabtip.exe sebelum invoke agar user bisa mengetik dengan gamepad
+                if (FocusManager.GetFocusedElement(this.XamlRoot) is TextBox)
+                {
+                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        { FileName = "tabtip.exe", UseShellExecute = true }); }
+                    catch { /* non-tablet environment — no virtual keyboard, ignore */ }
+                }
                 GamepadNavigationService.ActivateFocusedElement(this.XamlRoot);
                 return;
             }

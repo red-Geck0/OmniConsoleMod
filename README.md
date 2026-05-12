@@ -21,38 +21,21 @@
 
 This fork focuses on **gamepad UX improvements**, **OmniNav (mouse mode) refinements**, and **settings UI polish** on top of the original OmniConsole.
 
-### Enhancements (May 2024 – May 2026)
+### Enhancements (May 2026)
 
-**OmniNav (Gamepad Mouse Mode)**
+**OmniNav (a.k.a Gamepad Mouse Mode)**
 - Dedicated OmniNav settings page with General / Input Mapping tabs (LB/RB switching)
 - Whitelist/Blacklist mode — user-editable app lists for fine-grained control
 - Dual layout support: **Lefty** (left stick = cursor) / **Righty** (right stick = cursor)
 - Per-layout custom button mappings with save/load config (layout-agnostic JSON)
 - Layered Mode — hold-to-activate custom mappings with audio feedback
 - Virtual Keyboard as special action (Windows 11 Touch Keyboard via COM + osk.exe fallback)
-- "(active)" indicator on the currently active layout in Input Mapping
-
-**Gamepad Navigation**
-- Fixed D-Pad focus flow across SelectorBar, RadioButtons, ComboBox, and dialogs
-- Right-stick scrolling in dropdowns and settings panels (30 FPS)
-- Optimized polling: 33ms tick, 32px/tick scroll, 50ms repeat interval
-- Cross-section D-Pad navigation with proper focus isolation during dialogs
-
-**Settings UI**
-- Centered SelectorBar tabs for platform categories (System/Custom) and OmniNav sections
-- Compact nav rail with proper spacing
-- Import button repositioned below card area
-- About page with environment snapshot and PhantomKey health check
-- Gamepad button glyphs rendered with Segoe Fluent Icons
-
-**OmniCharm Widget**
-- Updated labels: OmniNav Mode, Off/Whitelisted/Blacklisted, Lefty/Righty
-- Synced with OmniNav settings page values
 
 **Other**
 - Renamed "Gamepad Mouse Mode" → "OmniNav Mode" across all UI (EN/zh-TW/zh-CN)
-- Steam Big Picture detection via window-style + monitor-size heuristic
-- File Explorer D-Pad skip to avoid double-jump with native gamepad navigation
+- Fixed D-Pad focus flow across SelectorBar, RadioButtons, ComboBox, and dialogs
+- Misc UI polish.
+- Updated labels on OmniCharm Widget: OmniNav Mode, Off/Whitelisted/Blacklisted, Lefty/Righty
 - Custom platform support: One Game Launcher, MSI Center M
 
 ---

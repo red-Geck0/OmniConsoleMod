@@ -71,3 +71,6 @@ desktop.ini
 
 ## Build-time generated sources
 OmniConsole.PhantomLink/Generated/
+
+## Claude Code worktrees
+.claude/

@@ -17,8 +17,8 @@
 	<mp:PhoneIdentity PhoneProductId="b5fbce6b-2d7d-4da0-b419-4beb30e2b808" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
 	<Properties>
-		<DisplayName>OmniConsole</DisplayName>
-		<PublisherDisplayName>8bit2qubit</PublisherDisplayName>
+		<DisplayName>OmniConsoleMod</DisplayName>
+		<PublisherDisplayName>red-Geck0</PublisherDisplayName>
 		<Logo>Assets\StoreLogo.png</Logo>
 	</Properties>
 

@@ -23,17 +23,16 @@ This fork focuses on **gamepad UX improvements**, **OmniNav (mouse mode) refinem
 
 ### Enhancements (May 2026)
 
-**OmniNav (a.k.a Gamepad Mouse Mode)**
-- Dedicated OmniNav settings page with General / Input Mapping tabs (LB/RB switching)
+**OmniNav (formerly know as Gamepad Mouse Mode)**
+- Dedicated OmniNav settings page
 - Whitelist/Blacklist mode — user-editable app lists for fine-grained control
-- Dual layout support: **Lefty** (left stick = cursor) / **Righty** (right stick = cursor)
+- Dual layout support: **Lefty** (left stick = cursor, formerly know as OmniNav layout) / **Righty** (right stick = cursor, formerly known as Classic layout)
 - Per-layout custom button mappings with save/load config (layout-agnostic JSON)
 - Layered Mode — hold-to-activate custom mappings with audio feedback
 - Virtual Keyboard as special action (Windows 11 Touch Keyboard via COM + osk.exe fallback)
 
 **Other**
-- Renamed "Gamepad Mouse Mode" → "OmniNav Mode" across all UI (EN/zh-TW/zh-CN)
-- Fixed D-Pad focus flow across SelectorBar, RadioButtons, ComboBox, and dialogs
+- Fixed D-Pad focus flow across settings pages
 - Misc UI polish.
 - Updated labels on OmniCharm Widget: OmniNav Mode, Off/Whitelisted/Blacklisted, Lefty/Righty
 - Custom platform support: One Game Launcher, MSI Center M

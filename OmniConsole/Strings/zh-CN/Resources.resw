@@ -251,7 +251,7 @@
     <value>动作</value>
   </data>
   <data name="AppDisplayName" xml:space="preserve">
-    <value>OmniConsole</value>
+    <value>OmniConsoleMod</value>
   </data>
   <data name="AppDescription" xml:space="preserve">
     <value>为游戏 PC 与掌机设计的自定义 Windows 11 Xbox 模式 (FSE) 主页 Shell。</value>
@@ -260,7 +260,7 @@
     <value>为 Windows Xbox 模式 (FSE) 设计的自定义主页 Shell。</value>
   </data>
   <data name="SettingsAppDisplayName" xml:space="preserve">
-    <value>OmniConsole 设置</value>
+    <value>OmniConsoleMod 设置</value>
   </data>
   <data name="SettingsAppDescription" xml:space="preserve">
     <value>设置默认游戏平台、Game Bar 行为与自定义启动目标。</value>

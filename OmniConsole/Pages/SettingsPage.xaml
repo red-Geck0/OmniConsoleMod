@@ -1568,7 +1568,7 @@
                     <NavigationViewItem.Content>
                         <StackPanel>
                             <TextBlock x:Name="VersionText" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="20"/>
-                            <TextBlock x:Name="AuthorText" Text="8bit2qubit (野理)" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="16"/>
+                            <TextBlock x:Name="AuthorText" Text="red-Geck0" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="16" Visibility="Collapsed"/>
                         </StackPanel>
                     </NavigationViewItem.Content>
                 </NavigationViewItem>

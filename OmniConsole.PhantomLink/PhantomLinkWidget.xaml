@@ -189,6 +189,16 @@
                            Foreground="{ThemeResource SystemControlErrorTextForegroundBrush}"
                            FontSize="12" TextWrapping="Wrap" Visibility="Collapsed"/>
 
+                <!-- OmniNav 白名單/黑名單快速操作按鈕 -->
+                <Button x:Name="AppListToggleBtn"
+                        Click="AppListToggleBtn_Click"
+                        HorizontalAlignment="Stretch"
+                        UseSystemFocusVisuals="True"
+                        Visibility="Collapsed"
+                        XYFocusUp="{x:Bind CursorSpeedSlider}">
+                    <TextBlock x:Name="AppListToggleBtnText" TextWrapping="Wrap" TextAlignment="Center"/>
+                </Button>
+
             </StackPanel>
         </ScrollViewer>
     </Grid>

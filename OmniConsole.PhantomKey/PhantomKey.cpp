@@ -125,6 +125,9 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             LogForegroundWindowDiagnostics();
             lastFgProcess = currentFg;
 
+            // 寫入 Shared.ini 供 Widget 讀取
+            WriteForegroundProcess(currentFg);
+
             // 不在 FSE 中 → 結束 PhantomKey
             if (pfnIsFseActive && !pfnIsFseActive()) {
                 Log(L"[PhantomKey] FSE no longer active, exiting.");

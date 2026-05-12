@@ -303,6 +303,83 @@ namespace OmniConsole.PhantomLink
             CursorSpeedSlider.IsEnabled = mouseOn;
 
             BuiltInMappingNote.Visibility = _builtInMapping ? Visibility.Visible : Visibility.Collapsed;
+
+            UpdateAppListToggleButton(mode);
+        }
+
+        // ── OmniNav 白名單/黑名單快速操作 ───────────────────────────────────
+
+        private string _currentForegroundApp = string.Empty;
+        private string _currentMode = PhantomKeyStore.MouseModeOff;
+
+        /// <summary>
+        /// 依目前 OmniNav 模式與前景程式，更新「加入/移除白名單/黑名單」按鈕的可見性與文字。
+        /// </summary>
+        private void UpdateAppListToggleButton(string mode)
+        {
+            _currentMode = mode;
+            _currentForegroundApp = PhantomKeyStore.GetForegroundProcess();
+
+            if (mode == PhantomKeyStore.MouseModeOff || _builtInMapping || string.IsNullOrEmpty(_currentForegroundApp))
+            {
+                AppListToggleBtn.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            AppListToggleBtn.Visibility = Visibility.Visible;
+
+            if (mode == PhantomKeyStore.MouseModeAuto) // Whitelist
+            {
+                var list = PhantomKeyStore.GetWhitelist();
+                bool isInList = Array.Exists(list, x => string.Equals(x, _currentForegroundApp, StringComparison.OrdinalIgnoreCase));
+                AppListToggleBtnText.Text = isInList
+                    ? $"Remove \"{_currentForegroundApp}\" from whitelist"
+                    : $"Add \"{_currentForegroundApp}\" to whitelist";
+            }
+            else if (mode == PhantomKeyStore.MouseModeForceOn) // Blacklist
+            {
+                var list = PhantomKeyStore.GetBlacklist();
+                bool isInList = Array.Exists(list, x => string.Equals(x, _currentForegroundApp, StringComparison.OrdinalIgnoreCase));
+                AppListToggleBtnText.Text = isInList
+                    ? $"Remove \"{_currentForegroundApp}\" from blacklist"
+                    : $"Add \"{_currentForegroundApp}\" to blacklist";
+            }
+            else
+            {
+                AppListToggleBtn.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        /// <summary>
+        /// 點擊「加入/移除」按鈕：切換前景程式在白名單/黑名單中的狀態。
+        /// </summary>
+        private void AppListToggleBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(_currentForegroundApp)) return;
+
+            if (_currentMode == PhantomKeyStore.MouseModeAuto) // Whitelist
+            {
+                var list = new System.Collections.Generic.List<string>(PhantomKeyStore.GetWhitelist());
+                int idx = list.FindIndex(x => string.Equals(x, _currentForegroundApp, StringComparison.OrdinalIgnoreCase));
+                if (idx >= 0)
+                    list.RemoveAt(idx);
+                else
+                    list.Add(_currentForegroundApp);
+                PhantomKeyStore.SetWhitelist(list.ToArray());
+            }
+            else if (_currentMode == PhantomKeyStore.MouseModeForceOn) // Blacklist
+            {
+                var list = new System.Collections.Generic.List<string>(PhantomKeyStore.GetBlacklist());
+                int idx = list.FindIndex(x => string.Equals(x, _currentForegroundApp, StringComparison.OrdinalIgnoreCase));
+                if (idx >= 0)
+                    list.RemoveAt(idx);
+                else
+                    list.Add(_currentForegroundApp);
+                PhantomKeyStore.SetBlacklist(list.ToArray());
+            }
+
+            // Refresh button text after toggle
+            UpdateAppListToggleButton(_currentMode);
         }
 
         // ── Quick Actions：一次性動作按鈕 ────────────────────────────────────

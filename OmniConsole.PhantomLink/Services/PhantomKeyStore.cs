@@ -223,5 +223,56 @@ namespace OmniConsole.PhantomLink.Services
             var s = Read("PhantomKey", "SteamInGameOverlayShortcut", DefaultSteamInGameOverlayShortcut);
             return string.IsNullOrEmpty(s) ? DefaultSteamInGameOverlayShortcut : s;
         }
+
+        // ── 公開 API：Foreground Process ─────────────────────────────────────
+
+        /// <summary>
+        /// 讀取 PhantomKey 寫入的目前前景程式名（不含 .exe）。
+        /// 若 PhantomKey 尚未執行或尚未寫入，回傳空字串。
+        /// </summary>
+        public static string GetForegroundProcess()
+        {
+            return Read("PhantomKey", "ForegroundProcess", string.Empty);
+        }
+
+        // ── 公開 API：Whitelist / Blacklist 操作 ─────────────────────────────
+
+        /// <summary>
+        /// 讀取白名單應用程式清單（CSV 格式，逗號分隔）。
+        /// </summary>
+        public static string[] GetWhitelist()
+        {
+            var csv = Read("MouseMode.Whitelist", "Apps", string.Empty);
+            if (string.IsNullOrWhiteSpace(csv)) return Array.Empty<string>();
+            return csv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        /// <summary>
+        /// 寫入白名單應用程式清單。
+        /// </summary>
+        public static void SetWhitelist(string[] apps)
+        {
+            var csv = string.Join(",", apps);
+            Write("MouseMode.Whitelist", "Apps", csv);
+        }
+
+        /// <summary>
+        /// 讀取黑名單應用程式清單（CSV 格式，逗號分隔）。
+        /// </summary>
+        public static string[] GetBlacklist()
+        {
+            var csv = Read("MouseMode.Blacklist", "Apps", string.Empty);
+            if (string.IsNullOrWhiteSpace(csv)) return Array.Empty<string>();
+            return csv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        /// <summary>
+        /// 寫入黑名單應用程式清單。
+        /// </summary>
+        public static void SetBlacklist(string[] apps)
+        {
+            var csv = string.Join(",", apps);
+            Write("MouseMode.Blacklist", "Apps", csv);
+        }
     }
 }

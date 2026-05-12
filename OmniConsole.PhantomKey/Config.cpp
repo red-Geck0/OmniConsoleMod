@@ -77,6 +77,20 @@ void WriteSteamInGameOverlayShortcut(const std::wstring& shortcut) {
     }
 }
 
+// ── 前景程式名寫入 ─────────────────────────────────────────────────────────
+//
+// 靜態快取比對：相同值不寫檔，避免每 tick 觸發 I/O。
+void WriteForegroundProcess(const std::wstring& processName) {
+    auto path = GetSharedIniPath();
+    if (path.empty()) return;
+    static std::wstring lastWritten;
+    if (processName == lastWritten) return;
+    if (WritePrivateProfileStringW(L"PhantomKey", L"ForegroundProcess",
+                                   processName.c_str(), path.c_str())) {
+        lastWritten = processName;
+    }
+}
+
 // ── 小工具：讀 INI 字串 / 整數 ────────────────────────────────────────────
 
 static std::wstring ReadString(const wchar_t* section, const wchar_t* key,

@@ -62,3 +62,8 @@ unsigned long long GetSharedIniLastWriteTime();
 // 內部以靜態快取比對，僅在值改變時實際寫檔，避免無謂 I/O 與 mtime 變動。
 // 用途：PhantomLink Widget 透過 PhantomKeyStore 讀取此鍵，傳給 PhantomBridge 觸發 overlay。
 void WriteSteamInGameOverlayShortcut(const std::wstring& shortcut);
+
+// 將目前前景程式名寫入 Shared.ini [PhantomKey] ForegroundProcess；
+// 內部以靜態快取比對，僅在值改變時實際寫檔。
+// 用途：PhantomLink Widget 讀取此鍵以顯示「加入/移除白名單/黑名單」按鈕。
+void WriteForegroundProcess(const std::wstring& processName);

@@ -199,7 +199,13 @@
   <data name="MouseModeSection_General.Content" xml:space="preserve">
     <value>一般</value>
   </data>
+  <data name="MouseModeSection_General.Text" xml:space="preserve">
+    <value>一般</value>
+  </data>
   <data name="MouseModeSection_InputMapping.Content" xml:space="preserve">
+    <value>按鍵對應</value>
+  </data>
+  <data name="MouseModeSection_InputMapping.Text" xml:space="preserve">
     <value>按鍵對應</value>
   </data>
   <data name="MouseModeSection_InputMappingDesc.Text" xml:space="preserve">

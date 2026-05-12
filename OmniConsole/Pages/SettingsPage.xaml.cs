@@ -1987,8 +1987,8 @@ namespace OmniConsole.Pages
             MouseModeGeneralScrollViewer.Visibility = section == "General" ? Visibility.Visible : Visibility.Collapsed;
             MouseModeInputMappingScrollViewer.Visibility = section == "InputMapping" ? Visibility.Visible : Visibility.Collapsed;
 
-            // Sync NavigationView selection without re-triggering handler
-            foreach (var item in MouseModeSectionNav.MenuItems.OfType<NavigationViewItem>())
+            // Sync SelectorBar selection without re-triggering handler
+            foreach (SelectorBarItem item in MouseModeSectionNav.Items)
             {
                 if ((item.Tag as string) == section)
                 {
@@ -2003,11 +2003,11 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// Mouse Mode 子頁面 NavigationView 選取變更（僅鼠標/觸控點擊時觸發；LB/RB 走 SwitchMouseModeSection）。
+        /// Mouse Mode 子頁面 SelectorBar 選取變更（滑鼠/觸控/鍵盤點擊時觸發；LB/RB 走 SwitchMouseModeSection）。
         /// </summary>
-        private void MouseModeSectionNav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+        private void MouseModeSectionNav_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
         {
-            if (args.SelectedItemContainer is NavigationViewItem item &&
+            if (sender.SelectedItem is SelectorBarItem item &&
                 item.Tag?.ToString() is string tag &&
                 tag != _currentMouseModeSection)
             {
@@ -2021,9 +2021,9 @@ namespace OmniConsole.Pages
             _currentMouseModeSection = "General";
             MouseModeGeneralScrollViewer.Visibility = Visibility.Visible;
             MouseModeInputMappingScrollViewer.Visibility = Visibility.Collapsed;
-            // 同步 NavigationView 選取到 General
-            if (MouseModeSectionNav.MenuItems.Count > 0)
-                MouseModeSectionNav.SelectedItem = MouseModeSectionNav.MenuItems[0];
+            // 同步 SelectorBar 選取到 General
+            if (MouseModeSectionNav.Items.Count > 0)
+                MouseModeSectionNav.SelectedItem = MouseModeSectionNav.Items[0] as SelectorBarItem;
 
             // Sinkron currentMappingLayout dengan setting Controller Layout
             _currentMappingLayout = SettingsService.GetMouseModeLayout();

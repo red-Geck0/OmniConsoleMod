@@ -199,7 +199,13 @@
   <data name="MouseModeSection_General.Content" xml:space="preserve">
     <value>General</value>
   </data>
+  <data name="MouseModeSection_General.Text" xml:space="preserve">
+    <value>General</value>
+  </data>
   <data name="MouseModeSection_InputMapping.Content" xml:space="preserve">
+    <value>Input Mapping</value>
+  </data>
+  <data name="MouseModeSection_InputMapping.Text" xml:space="preserve">
     <value>Input Mapping</value>
   </data>
   <data name="MouseModeSection_InputMappingDesc.Text" xml:space="preserve">

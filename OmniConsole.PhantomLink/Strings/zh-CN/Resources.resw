@@ -150,16 +150,16 @@
     <value>仅在默认平台设为 Steam Big Picture 时生效。</value>
   </data>
   <data name="Widget_MouseMode_Title.Text" xml:space="preserve">
-    <value>手柄鼠标模式</value>
+    <value>OmniNav 模式</value>
   </data>
   <data name="Widget_Mode_Off.Content" xml:space="preserve">
     <value>关闭</value>
   </data>
   <data name="Widget_Mode_Auto.Content" xml:space="preserve">
-    <value>自动</value>
+    <value>白名单</value>
   </data>
   <data name="Widget_Mode_ForceOn.Content" xml:space="preserve">
-    <value>强制开启</value>
+    <value>黑名单</value>
   </data>
   <data name="Widget_Layout_Title.Text" xml:space="preserve">
     <value>控制器布局</value>

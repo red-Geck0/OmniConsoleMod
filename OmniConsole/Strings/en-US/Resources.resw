@@ -196,14 +196,8 @@
   <data name="MouseModeDescription.Text" xml:space="preserve">
     <value>Configure gamepad-to-mouse emulation and button layout.</value>
   </data>
-  <data name="MouseModeSection_General.Content" xml:space="preserve">
-    <value>General</value>
-  </data>
   <data name="MouseModeSection_General.Text" xml:space="preserve">
     <value>General</value>
-  </data>
-  <data name="MouseModeSection_InputMapping.Content" xml:space="preserve">
-    <value>Input Mapping</value>
   </data>
   <data name="MouseModeSection_InputMapping.Text" xml:space="preserve">
     <value>Input Mapping</value>
@@ -339,7 +333,7 @@
 Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; In Game &gt; Overlay shortcut key(s).</value>
   </data>
   <data name="MouseModeSetting_Title.Text" xml:space="preserve">
-    <value>Gamepad Mouse Mode</value>
+    <value>OmniNav Mode</value>
   </data>
   <data name="MouseModeSetting_Description.Text" xml:space="preserve">
     <value>Off: disabled. Whitelisted: only apps in your list. Blacklisted: all apps except your list.</value>
@@ -354,7 +348,7 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
     <value>Blacklisted</value>
   </data>
   <data name="MouseModeSetting_Note.Text" xml:space="preserve">
-    <value>Customize which apps activate Mouse Mode using the lists below.</value>
+    <value>Customize which apps activate OmniNav Mode using the lists below.</value>
   </data>
   <data name="MouseModeWhitelistPanel_Title.Text" xml:space="preserve">
     <value>Whitelisted Apps</value>
@@ -428,10 +422,10 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   <data name="GamepadHint_Exit.Text" xml:space="preserve">
     <value>Exit</value>
   </data>
-  <data name="Nav_SystemPlatforms.Content" xml:space="preserve">
+  <data name="Nav_SystemPlatforms.Text" xml:space="preserve">
     <value>System</value>
   </data>
-  <data name="Nav_UserPlatforms.Content" xml:space="preserve">
+  <data name="Nav_UserPlatforms.Text" xml:space="preserve">
     <value>Custom</value>
   </data>
   <data name="AddPlatformText.Text" xml:space="preserve">

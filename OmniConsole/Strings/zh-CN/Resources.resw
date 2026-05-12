@@ -196,14 +196,8 @@
   <data name="MouseModeDescription.Text" xml:space="preserve">
     <value>设置手柄模拟鼠标的功能与按键布局。</value>
   </data>
-  <data name="MouseModeSection_General.Content" xml:space="preserve">
-    <value>常规</value>
-  </data>
   <data name="MouseModeSection_General.Text" xml:space="preserve">
     <value>常规</value>
-  </data>
-  <data name="MouseModeSection_InputMapping.Content" xml:space="preserve">
-    <value>按键映射</value>
   </data>
   <data name="MouseModeSection_InputMapping.Text" xml:space="preserve">
     <value>按键映射</value>
@@ -339,7 +333,7 @@
 或至 Steam 设置 &gt; 游戏中 &gt; 叠加界面快捷键，改为非修饰键。</value>
   </data>
   <data name="MouseModeSetting_Title.Text" xml:space="preserve">
-    <value>手柄鼠标模式</value>
+    <value>OmniNav 模式</value>
   </data>
   <data name="MouseModeSetting_Description.Text" xml:space="preserve">
     <value>关闭：禁用。白名单：仅限您列表中的应用。黑名单：除列表外的所有应用。</value>
@@ -354,7 +348,7 @@
     <value>黑名单</value>
   </data>
   <data name="MouseModeSetting_Note.Text" xml:space="preserve">
-    <value>使用下方列表自定义哪些应用激活鼠标模式。</value>
+    <value>使用下方列表自定义哪些应用激活 OmniNav 模式。</value>
   </data>
   <data name="MouseModeWhitelistPanel_Title.Text" xml:space="preserve">
     <value>白名单应用</value>
@@ -428,10 +422,10 @@
   <data name="GamepadHint_Exit.Text" xml:space="preserve">
     <value>退出</value>
   </data>
-  <data name="Nav_SystemPlatforms.Content" xml:space="preserve">
+  <data name="Nav_SystemPlatforms.Text" xml:space="preserve">
     <value>系统</value>
   </data>
-  <data name="Nav_UserPlatforms.Content" xml:space="preserve">
+  <data name="Nav_UserPlatforms.Text" xml:space="preserve">
     <value>自定义</value>
   </data>
   <data name="AddPlatformText.Text" xml:space="preserve">

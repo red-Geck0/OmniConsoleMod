@@ -196,14 +196,8 @@
   <data name="MouseModeDescription.Text" xml:space="preserve">
     <value>設定手把模擬滑鼠的功能與按鍵配置。</value>
   </data>
-  <data name="MouseModeSection_General.Content" xml:space="preserve">
-    <value>一般</value>
-  </data>
   <data name="MouseModeSection_General.Text" xml:space="preserve">
     <value>一般</value>
-  </data>
-  <data name="MouseModeSection_InputMapping.Content" xml:space="preserve">
-    <value>按鍵對應</value>
   </data>
   <data name="MouseModeSection_InputMapping.Text" xml:space="preserve">
     <value>按鍵對應</value>
@@ -339,7 +333,7 @@
 或至 Steam 設定 &gt; 遊戲中 &gt; 內嵌介面快捷鍵，改為非修飾鍵。</value>
   </data>
   <data name="MouseModeSetting_Title.Text" xml:space="preserve">
-    <value>手把滑鼠模式</value>
+    <value>OmniNav 模式</value>
   </data>
   <data name="MouseModeSetting_Description.Text" xml:space="preserve">
     <value>關閉：停用。白名單：僅對清單中的應用程式啟用。黑名單：除清單外的所有應用程式。</value>
@@ -354,7 +348,7 @@
     <value>黑名單</value>
   </data>
   <data name="MouseModeSetting_Note.Text" xml:space="preserve">
-    <value>白名單模式：僅對清單中的應用程式啟用滑鼠模式。</value>
+    <value>使用下方清單自訂哪些應用程式啟用 OmniNav 模式。</value>
   </data>
   <data name="MouseModeWhitelistPanel_Title.Text" xml:space="preserve">
     <value>白名單應用程式</value>
@@ -429,10 +423,10 @@
   <data name="GamepadHint_Exit.Text" xml:space="preserve">
     <value>退出</value>
   </data>
-  <data name="Nav_SystemPlatforms.Content" xml:space="preserve">
+  <data name="Nav_SystemPlatforms.Text" xml:space="preserve">
     <value>系統</value>
   </data>
-  <data name="Nav_UserPlatforms.Content" xml:space="preserve">
+  <data name="Nav_UserPlatforms.Text" xml:space="preserve">
     <value>自訂</value>
   </data>
   <data name="AddPlatformText.Text" xml:space="preserve">

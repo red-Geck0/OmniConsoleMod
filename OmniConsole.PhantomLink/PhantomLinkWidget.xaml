@@ -126,14 +126,14 @@
                                       XYFocusRight="{x:Bind ModeAutoBtn}"
                                       XYFocusDown="{x:Bind LayoutNavBtn}"/>
                         <ToggleButton x:Name="ModeAutoBtn" x:Uid="Widget_Mode_Auto"
-                                      Click="ModeBtn_Click" Tag="Auto"
+                                      Click="ModeBtn_Click" Tag="Whitelist"
                                       UseSystemFocusVisuals="True" MinWidth="72"
                                       XYFocusUp="{x:Bind SteamInGameOverlayOnBtn}"
                                       XYFocusLeft="{x:Bind ModeOffBtn}"
                                       XYFocusRight="{x:Bind ModeForceOnBtn}"
                                       XYFocusDown="{x:Bind LayoutNavBtn}"/>
                         <ToggleButton x:Name="ModeForceOnBtn" x:Uid="Widget_Mode_ForceOn"
-                                      Click="ModeBtn_Click" Tag="ForceOn"
+                                      Click="ModeBtn_Click" Tag="Blacklist"
                                       UseSystemFocusVisuals="True" MinWidth="88"
                                       XYFocusUp="{x:Bind SteamInGameOverlayOnBtn}"
                                       XYFocusLeft="{x:Bind ModeAutoBtn}"
@@ -146,14 +146,14 @@
                 <StackPanel Spacing="6">
                     <TextBlock x:Uid="Widget_Layout_Title" FontWeight="SemiBold"/>
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <ToggleButton x:Name="LayoutNavBtn" Content="OmniNav"
+                        <ToggleButton x:Name="LayoutNavBtn" Content="Lefty"
                                       Click="LayoutBtn_Click" Tag="OmniNav"
                                       UseSystemFocusVisuals="True" MinWidth="96"
                                       XYFocusUp="{x:Bind ModeOffBtn}"
                                       XYFocusLeft="{x:Bind LayoutNavBtn}"
                                       XYFocusRight="{x:Bind LayoutClassicBtn}"
                                       XYFocusDown="{x:Bind CursorSpeedSlider}"/>
-                        <ToggleButton x:Name="LayoutClassicBtn" Content="Classic"
+                        <ToggleButton x:Name="LayoutClassicBtn" Content="Righty"
                                       Click="LayoutBtn_Click" Tag="Classic"
                                       UseSystemFocusVisuals="True" MinWidth="96"
                                       XYFocusUp="{x:Bind ModeForceOnBtn}"

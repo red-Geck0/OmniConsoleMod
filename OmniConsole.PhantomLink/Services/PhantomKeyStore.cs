@@ -15,8 +15,8 @@ namespace OmniConsole.PhantomLink.Services
         // ── 常數與有效值 ─────────────────────────────────────────────────────
 
         public const string MouseModeOff = "Off";
-        public const string MouseModeAuto = "Auto";
-        public const string MouseModeForceOn = "ForceOn";
+        public const string MouseModeAuto = "Whitelist";
+        public const string MouseModeForceOn = "Blacklist";
 
         public const string LayoutOmniNav = "OmniNav";
         public const string LayoutClassic = "Classic";
@@ -101,7 +101,7 @@ namespace OmniConsole.PhantomLink.Services
         {
             var path = SharedIniPath;
             if (string.IsNullOrEmpty(path) || File.Exists(path)) return;
-            Write("PhantomKey", "MouseMode", MouseModeAuto);
+            Write("PhantomKey", "MouseMode", MouseModeAuto);  // "Whitelist"
             Write("PhantomKey", "MouseModeLayout", LayoutOmniNav);
             Write("PhantomKey", "CursorSpeedPercent", "100");
             Write("PhantomKey", "SteamInGameOverlayEnabled", "1");
@@ -111,17 +111,21 @@ namespace OmniConsole.PhantomLink.Services
         // ── 公開 API：Mouse Mode ─────────────────────────────────────────────
 
         /// <summary>
-        /// 讀取 Mouse Mode（Off / Auto / ForceOn）；無效或缺失值回 Auto。
+        /// 讀取 Mouse Mode（Off / Whitelist / Blacklist）；無效或缺失值回 Whitelist。
+        /// 相容舊版 "Auto" → "Whitelist"、"ForceOn" → "Blacklist"。
         /// </summary>
         public static string GetMouseMode()
         {
             var s = Read("PhantomKey", "MouseMode", MouseModeAuto);
             if (s == MouseModeOff || s == MouseModeAuto || s == MouseModeForceOn) return s;
+            // 相容舊版值
+            if (s == "Auto") return MouseModeAuto;
+            if (s == "ForceOn") return MouseModeForceOn;
             return MouseModeAuto;
         }
 
         /// <summary>
-        /// 寫入 Mouse Mode；非預期值會回退成 Auto，避免下次讀取再做一次回退。
+        /// 寫入 Mouse Mode；非預期值會回退成 Whitelist，避免下次讀取再做一次回退。
         /// </summary>
         public static void SetMouseMode(string mode)
         {

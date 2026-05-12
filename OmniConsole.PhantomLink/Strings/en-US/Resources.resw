@@ -150,16 +150,16 @@
     <value>Only available when the default platform is set to Steam Big Picture.</value>
   </data>
   <data name="Widget_MouseMode_Title.Text" xml:space="preserve">
-    <value>Gamepad Mouse Mode</value>
+    <value>OmniNav Mode</value>
   </data>
   <data name="Widget_Mode_Off.Content" xml:space="preserve">
     <value>Off</value>
   </data>
   <data name="Widget_Mode_Auto.Content" xml:space="preserve">
-    <value>Auto</value>
+    <value>Whitelisted</value>
   </data>
   <data name="Widget_Mode_ForceOn.Content" xml:space="preserve">
-    <value>Force On</value>
+    <value>Blacklisted</value>
   </data>
   <data name="Widget_Layout_Title.Text" xml:space="preserve">
     <value>Controller Layout</value>

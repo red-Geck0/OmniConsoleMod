@@ -206,7 +206,7 @@
                 </Style>
             </NavigationView.PaneToggleButtonStyle>
 
-            <!-- 佔位空間：解決漢堡按鈕與下方導覽項目重疊的問題 (維持 64px 高度一致性) -->
+            <!-- 佔位空間：解決漢堡按鈕與下方導覽項目重疊的問題 -->
             <NavigationView.PaneHeader>
                 <Grid Height="64"/>
             </NavigationView.PaneHeader>
@@ -228,7 +228,7 @@
 
             <!-- 主要導覽項目 -->
             <NavigationView.MenuItems>
-                <NavigationViewItem x:Uid="Nav_General" Tag="General" IsSelected="True" FontSize="24">
+                <NavigationViewItem x:Uid="Nav_General" Tag="General" IsSelected="True" FontSize="24" Margin="0,32,0,0">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xF0E2;" />
                     </NavigationViewItem.Icon>
@@ -269,7 +269,9 @@
                     <Grid x:Name="GeneralPage" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" HorizontalAlignment="Center" Spacing="8" Margin="0,0,0,16">
@@ -277,53 +279,19 @@
                             <TextBlock x:Name="SettingsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="18" TextAlignment="Center"/>
                         </StackPanel>
 
-                        <!-- 分類索引標籤 + 平台卡片 -->
-                        <NavigationView x:Name="PlatformCategoryNav"
-                                        Grid.Row="1"
-                                        PaneDisplayMode="Top"
-                                        Background="Transparent"
-                                        IsBackButtonVisible="Collapsed"
-                                        IsSettingsVisible="False"
-                                        SelectionChanged="PlatformCategoryNav_SelectionChanged"
-                                        XYFocusKeyboardNavigation="Enabled">
+                        <!-- 分類索引標籤 — SelectorBar 置中，LB/RB 由 code 切換 -->
+                        <SelectorBar x:Name="PlatformCategorySelectorBar"
+                                     Grid.Row="1"
+                                     HorizontalAlignment="Center"
+                                     Margin="0,0,0,8"
+                                     IsTabStop="False"
+                                     SelectionChanged="PlatformCategorySelectorBar_SelectionChanged">
+                            <SelectorBarItem x:Uid="Nav_SystemPlatforms" Tag="System" IsTabStop="False"/>
+                            <SelectorBarItem x:Uid="Nav_UserPlatforms" Tag="User" IsTabStop="False"/>
+                        </SelectorBar>
 
-                            <!-- Phantom 配色：Top 索引標籤橫條融入主背景 -->
-                            <NavigationView.Resources>
-                                <SolidColorBrush x:Key="NavigationViewTopPaneBackground" Color="Transparent"/>
-                                <SolidColorBrush x:Key="NavigationViewContentBackground" Color="Transparent"/>
-                                <!-- 移除 Top 模式 ContentGrid 與 pane 之間的 1px 分隔線 -->
-                                <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="Transparent"/>
-                                <!-- 選取指示器填滿項目完整寬度 -->
-                                <x:Double x:Key="NavigationViewSelectionIndicatorWidth">1000</x:Double>
-                                <x:Double x:Key="NavigationViewSelectionIndicatorHeight">2</x:Double>
-                            </NavigationView.Resources>
-
-                            <NavigationView.MenuItems>
-                                <!-- IsTabStop=False：控制器無法直接 D-pad 焦點至索引標籤，僅可滑鼠/觸控點擊；LB/RB 由 code 切換 -->
-                                <NavigationViewItem x:Uid="Nav_SystemPlatforms" Tag="System" IsSelected="True" IsTabStop="False">
-                                    <NavigationViewItem.Icon>
-                                        <FontIcon Glyph="&#xE7FC;" />
-                                    </NavigationViewItem.Icon>
-                                </NavigationViewItem>
-                                <NavigationViewItem x:Uid="Nav_UserPlatforms" Tag="User" IsTabStop="False">
-                                    <NavigationViewItem.Icon>
-                                        <FontIcon Glyph="&#xE77B;" />
-                                    </NavigationViewItem.Icon>
-                                </NavigationViewItem>
-                            </NavigationView.MenuItems>
-
-                            <NavigationView.PaneFooter>
-                                <Button x:Name="ImportPlatformButton"
-                                        x:Uid="ImportPlatformButton"
-                                        Visibility="Collapsed"
-                                        Click="ImportPlatformButton_Click"
-                                        Background="Transparent"
-                                        BorderBrush="Transparent"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        VerticalAlignment="Center" />
-                            </NavigationView.PaneFooter>
-
-                            <Grid>
+                        <!-- 平台卡片區域 -->
+                        <Grid Grid.Row="2">
                             <!-- 平台選擇卡片網格（依可用寬度自動決定欄數，垂直捲動） -->
                             <GridView x:Name="PlatformGridView"
                                       SelectionMode="Single"
@@ -474,8 +442,19 @@
                                             FontSize="16" Padding="32,12" Margin="0,8,0,0"/>
                                 </StackPanel>
                             </ScrollViewer>
-                            </Grid>
-                        </NavigationView>
+                        </Grid>
+
+                        <!-- Import 按鈕置中於卡片區域下方 -->
+                        <Button x:Name="ImportPlatformButton"
+                                x:Uid="ImportPlatformButton"
+                                Grid.Row="3"
+                                Visibility="Collapsed"
+                                Click="ImportPlatformButton_Click"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                HorizontalAlignment="Center"
+                                Margin="0,8,0,0" />
                     </Grid>
 
                     <!-- 進階設定頁面 -->
@@ -723,18 +702,19 @@
                             <TextBlock x:Uid="MouseModeSubtitle" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="18" TextAlignment="Center"/>
                         </StackPanel>
 
-                        <!-- Tab bar — SelectorBar di-center sepenuhnya, LB/RB di code switching section -->
+                        <!-- Tab bar — SelectorBar di-center sepenuhnya, LB/RB di code switching section, tidak bisa dinavigasi dg kursor -->
                         <SelectorBar x:Name="MouseModeSectionNav"
                                      Grid.Row="1"
                                      HorizontalAlignment="Center"
                                      Margin="0,0,0,8"
+                                     IsTabStop="False"
                                      SelectionChanged="MouseModeSectionNav_SelectionChanged">
-                            <SelectorBarItem x:Uid="MouseModeSection_General" Tag="General">
+                            <SelectorBarItem x:Uid="MouseModeSection_General" Tag="General" IsTabStop="False">
                                 <SelectorBarItem.Icon>
                                     <FontIcon Glyph="&#xEBFC;" />
                                 </SelectorBarItem.Icon>
                             </SelectorBarItem>
-                            <SelectorBarItem x:Uid="MouseModeSection_InputMapping" Tag="InputMapping">
+                            <SelectorBarItem x:Uid="MouseModeSection_InputMapping" Tag="InputMapping" IsTabStop="False">
                                 <SelectorBarItem.Icon>
                                     <FontIcon Glyph="&#xE7FC;" />
                                 </SelectorBarItem.Icon>
@@ -990,7 +970,15 @@
                                         <TextBlock x:Uid="MouseModeSection_InputMappingDesc" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                    FontSize="13" TextWrapping="Wrap"/>
 
-                                        <!-- Save / Load config row -->
+                                        <!-- Layout 切換 (Lefty / Righty) -->
+                                        <SelectorBar x:Name="MappingLayoutSelector"
+                                                     SelectionChanged="MappingLayoutSelector_SelectionChanged"
+                                                     HorizontalAlignment="Center">
+                                            <SelectorBarItem x:Name="OmniNavSelectorBarItem" x:Uid="MappingLayout_OmniNav" Tag="OmniNav" IsSelected="True" IsTabStop="True"/>
+                                            <SelectorBarItem x:Name="ClassicSelectorBarItem" x:Uid="MappingLayout_Classic" Tag="Classic" IsTabStop="True"/>
+                                        </SelectorBar>
+
+                                        <!-- Save / Load config row (hanya untuk layout yang sedang ditampilkan) -->
                                         <Grid HorizontalAlignment="Stretch">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
@@ -1003,14 +991,6 @@
                                             <Button x:Name="LoadMappingConfigButton" Grid.Column="2" Content="Load Config"
                                                     Click="LoadMappingConfig_Click"/>
                                         </Grid>
-
-                                        <!-- Layout 切換 (OmniNav / Classic) -->
-                                        <SelectorBar x:Name="MappingLayoutSelector"
-                                                     SelectionChanged="MappingLayoutSelector_SelectionChanged"
-                                                     HorizontalAlignment="Center">
-                                            <SelectorBarItem x:Name="OmniNavSelectorBarItem" x:Uid="MappingLayout_OmniNav" Tag="OmniNav" IsSelected="True" IsTabStop="True"/>
-                                            <SelectorBarItem x:Name="ClassicSelectorBarItem" x:Uid="MappingLayout_Classic" Tag="Classic" IsTabStop="True"/>
-                                        </SelectorBar>
 
                                         <!-- Layered Mode 卡片 -->
                                         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"

@@ -122,9 +122,9 @@ namespace OmniConsole.Pages
             // 初始化 NavigationView，預設選取第一個「一般」項目
             // 賦值觸發 SettingsNav_SelectionChanged → UpdateGamepadHints()，此時狀態已正確
             SettingsNav.SelectedItem = SettingsNav.MenuItems[0];
-            PlatformCategoryNav.SelectedItem = isUserPlatform
-                ? PlatformCategoryNav.MenuItems[1]
-                : PlatformCategoryNav.MenuItems[0];
+            PlatformCategorySelectorBar.SelectedItem = isUserPlatform
+                ? PlatformCategorySelectorBar.Items[1] as SelectorBarItem
+                : PlatformCategorySelectorBar.Items[0] as SelectorBarItem;
             LoadPlatformCards();
 
             // 顯示版本號
@@ -804,6 +804,7 @@ namespace OmniConsole.Pages
         {
             SettingsService.SetMouseModeLayout(
                 MouseModeLayoutSwitch.IsOn ? SettingsService.LayoutClassic : SettingsService.LayoutOmniNav);
+            UpdateMappingLayoutActiveIndicator();
         }
 
         /// <summary>
@@ -950,7 +951,7 @@ namespace OmniConsole.Pages
             System.IO.Directory.CreateDirectory(dir);
             string filePath = System.IO.Path.Combine(dir, configName + ".json");
 
-            string json = SettingsService.ExportMappingJson();
+            string json = SettingsService.ExportMappingJsonForLayout(_currentMappingLayout);
             System.IO.File.WriteAllText(filePath, json, System.Text.Encoding.UTF8);
 
             var confirm = new ContentDialog
@@ -1001,8 +1002,15 @@ namespace OmniConsole.Pages
             try
             {
                 string json = System.IO.File.ReadAllText(filePath, System.Text.Encoding.UTF8);
-                SettingsService.ImportMappingJson(json);
-                InitMouseModePage();
+                SettingsService.ImportMappingJsonForLayout(json, _currentMappingLayout);
+                // Refresh mapping table without resetting to General tab
+                _suppressMappingEvents = true;
+                try
+                {
+                    LoadLayeredStateForLayout(_currentMappingLayout);
+                    RefreshMappingTable();
+                }
+                finally { _suppressMappingEvents = false; }
             }
             catch (Exception ex)
             {
@@ -1108,11 +1116,11 @@ namespace OmniConsole.Pages
         // ── 平台分類索引標籤切換 ──────────────────────────────────────────────
 
         /// <summary>
-        /// 處理分類 NavigationView（系統/使用者）的選項變更。
+        /// 處理分類 SelectorBar（系統/使用者）的選項變更。
         /// </summary>
-        private void PlatformCategoryNav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+        private void PlatformCategorySelectorBar_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
         {
-            if (args.SelectedItemContainer is NavigationViewItem item && item.Tag is string tag)
+            if (sender.SelectedItem is SelectorBarItem item && item.Tag?.ToString() is string tag)
             {
                 SwitchCategoryTab(tag);
             }
@@ -1126,12 +1134,12 @@ namespace OmniConsole.Pages
             if (_currentCategoryTag == tag) return;
             _currentCategoryTag = tag;
 
-            // 同步 NavigationView 選取狀態（LB/RB 肩鍵觸發時需要）
-            foreach (NavigationViewItem navItem in PlatformCategoryNav.MenuItems.Cast<NavigationViewItem>())
+            // 同步 SelectorBar 選取狀態（LB/RB 肩鍵觸發時需要）
+            foreach (SelectorBarItem selectorItem in PlatformCategorySelectorBar.Items.OfType<SelectorBarItem>())
             {
-                if (navItem.Tag is string t && t == tag)
+                if (selectorItem.Tag is string t && t == tag)
                 {
-                    PlatformCategoryNav.SelectedItem = navItem;
+                    PlatformCategorySelectorBar.SelectedItem = selectorItem;
                     break;
                 }
             }
@@ -1463,11 +1471,7 @@ namespace OmniConsole.Pages
                     _selectedPlatformId = card.Id;
                     break;
 
-                // 分類索引標籤（系統 / 使用者）：透過 SwitchCategoryTab 統一切換
-                case NavigationViewItem navItem when PlatformCategoryNav.MenuItems.Contains(navItem):
-                    if (navItem.Tag is string categoryTag)
-                        SwitchCategoryTab(categoryTag);
-                    break;
+                // 分類索引標籤已改為 SelectorBar，不再由 A 鍵觸發（LB/RB 切換）
 
                 // 設定導覽項目（一般 / 進階 / 疑難排解）：選取頁面並收合側邊欄
                 case NavigationViewItem navItem:
@@ -2046,10 +2050,23 @@ namespace OmniConsole.Pages
                     }
                 }
 
+                UpdateMappingLayoutActiveIndicator();
                 LoadLayeredStateForLayout(_currentMappingLayout);
                 RefreshMappingTable();
             }
             finally { _suppressMappingEvents = false; }
+        }
+
+        /// <summary>
+        /// 更新 Lefty/Righty SelectorBarItem 的 Text，在目前啟用的 layout 後面加上 "(active)"。
+        /// </summary>
+        private void UpdateMappingLayoutActiveIndicator()
+        {
+            string activeLayout = SettingsService.GetMouseModeLayout();
+            if (OmniNavSelectorBarItem != null)
+                OmniNavSelectorBarItem.Text = activeLayout == SettingsService.LayoutOmniNav ? "Lefty (active)" : "Lefty";
+            if (ClassicSelectorBarItem != null)
+                ClassicSelectorBarItem.Text = activeLayout == SettingsService.LayoutClassic ? "Righty (active)" : "Righty";
         }
 
         /// <summary>

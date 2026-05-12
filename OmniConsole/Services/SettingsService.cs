@@ -972,6 +972,19 @@ namespace OmniConsole.Services
             return obj.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
         }
 
+        /// <summary>Export button mappings + layered mode settings for a single layout to JSON (layout-agnostic format).</summary>
+        public static string ExportMappingJsonForLayout(string layout)
+        {
+            var obj = new System.Text.Json.Nodes.JsonObject();
+            obj["layeredEnabled"] = GetLayeredModeEnabled(layout);
+            obj["layeredButton"] = GetLayeredModeButton(layout);
+            var mappings = new System.Text.Json.Nodes.JsonObject();
+            foreach (var btn in AllMappableButtons)
+                mappings[btn] = GetButtonMapping(layout, btn);
+            obj["mappings"] = mappings;
+            return obj.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+
         /// <summary>Import button mappings + layered mode settings from JSON and persist.</summary>
         public static void ImportMappingJson(string json)
         {
@@ -997,6 +1010,57 @@ namespace OmniConsole.Services
                         if (mappings.TryGetPropertyValue(btn, out var mv) && mv != null)
                             SetButtonMapping(layout, btn, mv.GetValue<string>());
                     }
+                }
+            }
+        }
+
+        /// <summary>Import button mappings + layered mode settings from JSON for a single layout and persist.
+        /// Supports layout-agnostic format (flat) and legacy layout-keyed format.</summary>
+        public static void ImportMappingJsonForLayout(string json, string targetLayout)
+        {
+            var obj = System.Text.Json.Nodes.JsonNode.Parse(json)?.AsObject()
+                ?? throw new System.Text.Json.JsonException("Invalid mapping JSON");
+
+            // Determine the source object: flat format has "mappings" at root level,
+            // legacy format wraps in a layout key (e.g. {"OmniNav": {...}} or {"Classic": {...}})
+            System.Text.Json.Nodes.JsonObject? layoutObj;
+            if (obj.ContainsKey("mappings"))
+            {
+                // Flat (layout-agnostic) format
+                layoutObj = obj;
+            }
+            else
+            {
+                // Legacy layout-keyed format — try target layout first, then any layout key
+                layoutObj = null;
+                if (obj.TryGetPropertyValue(targetLayout, out var node) && node != null)
+                    layoutObj = node.AsObject();
+                else
+                {
+                    foreach (var layout in new[] { LayoutOmniNav, LayoutClassic })
+                    {
+                        if (obj.TryGetPropertyValue(layout, out var n) && n != null)
+                        { layoutObj = n.AsObject(); break; }
+                    }
+                }
+                if (layoutObj == null) throw new System.Text.Json.JsonException("No valid mapping data found in JSON");
+            }
+
+            if (layoutObj.TryGetPropertyValue("layeredEnabled", out var le) && le != null)
+                SetLayeredModeEnabled(targetLayout, le.GetValue<bool>());
+            if (layoutObj.TryGetPropertyValue("layeredButton", out var lb) && lb != null)
+            {
+                string btn = lb.GetValue<string>();
+                if (Array.IndexOf(AllMappableButtons, btn) >= 0)
+                    SetLayeredModeButton(targetLayout, btn);
+            }
+            if (layoutObj.TryGetPropertyValue("mappings", out var mNode) && mNode != null)
+            {
+                var mappings = mNode.AsObject();
+                foreach (var btn in AllMappableButtons)
+                {
+                    if (mappings.TryGetPropertyValue(btn, out var mv) && mv != null)
+                        SetButtonMapping(targetLayout, btn, mv.GetValue<string>());
                 }
             }
         }

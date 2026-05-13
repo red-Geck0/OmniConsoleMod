@@ -25,7 +25,7 @@ This fork focuses on **gamepad UX improvements**, **OmniNav (mouse mode) refinem
 
 **OmniNav (formerly know as Gamepad Mouse Mode)**
 - Dedicated OmniNav settings page
-- Whitelist/Blacklist mode — user-editable app lists for fine-grained control
+- Whitelist/Blacklist mode — user-editable app lists for fine-grained control. Can be edited on the fly with OmniCharm Widget without needing to open settings.
 - Dual layout support: **Lefty** (left stick = cursor, formerly know as OmniNav layout) / **Righty** (right stick = cursor, formerly known as Classic layout)
 - Per-layout custom button mappings with save/load config (layout-agnostic JSON)
 - Layered Mode — hold-to-activate custom mappings with audio feedback
@@ -35,7 +35,7 @@ This fork focuses on **gamepad UX improvements**, **OmniNav (mouse mode) refinem
 - Fixed D-Pad focus flow across settings pages
 - Misc UI polish.
 - Updated labels on OmniCharm Widget: OmniNav Mode, Off/Whitelisted/Blacklisted, Lefty/Righty
-- Custom platform support: One Game Launcher, MSI Center M
+- Added default platform support: One Game Launcher, MSI Center M
 
 ---
 

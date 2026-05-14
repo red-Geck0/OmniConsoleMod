@@ -19,6 +19,43 @@ static const int g_ruleCount = _countof(g_rules);
 // 前景程式偵測
 // ============================================================================
 
+// UWP apps 由 ApplicationFrameHost.exe 宿主。前景視窗的 PID 是 ApplicationFrameHost，
+// 但實際 app 的 CoreWindow 是其子視窗，擁有不同的 PID。
+// 此函式找到 ApplicationFrameWindow 的子視窗中屬於不同 PID 的那個，回傳其行程名。
+static std::wstring ResolveUwpProcessName(HWND frameHwnd) {
+    DWORD framePid = 0;
+    GetWindowThreadProcessId(frameHwnd, &framePid);
+
+    struct EnumData { DWORD framePid; std::wstring result; };
+    EnumData data = { framePid, L"" };
+
+    EnumChildWindows(frameHwnd, [](HWND child, LPARAM lParam) -> BOOL {
+        auto* d = reinterpret_cast<EnumData*>(lParam);
+        DWORD childPid = 0;
+        GetWindowThreadProcessId(child, &childPid);
+        if (childPid != 0 && childPid != d->framePid) {
+            HANDLE hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, childPid);
+            if (hProc) {
+                WCHAR path[MAX_PATH] = {};
+                DWORD size = MAX_PATH;
+                if (QueryFullProcessImageNameW(hProc, 0, path, &size)) {
+                    std::wstring fullPath = path;
+                    size_t slash = fullPath.find_last_of(L'\\');
+                    std::wstring filename = (slash != std::wstring::npos) ? fullPath.substr(slash + 1) : fullPath;
+                    size_t dot = filename.rfind(L'.');
+                    if (dot != std::wstring::npos) filename = filename.substr(0, dot);
+                    d->result = filename;
+                }
+                CloseHandle(hProc);
+            }
+            return FALSE; // 找到即停止
+        }
+        return TRUE;
+    }, reinterpret_cast<LPARAM>(&data));
+
+    return data.result;
+}
+
 std::wstring GetForegroundProcessName() {
     HWND hwnd = GetForegroundWindow();
     if (!hwnd) return L"";
@@ -42,6 +79,15 @@ std::wstring GetForegroundProcessName() {
         result = filename;
     }
     CloseHandle(hProc);
+
+    // UWP apps: ApplicationFrameHost 只是宿主，解析實際 app 行程名
+    if (_wcsicmp(result.c_str(), L"ApplicationFrameHost") == 0) {
+        std::wstring uwpName = ResolveUwpProcessName(hwnd);
+        if (!uwpName.empty()) {
+            result = uwpName;
+        }
+    }
+
     return result;
 }
 
@@ -181,8 +227,13 @@ bool IsMouseModeForceExcluded(const std::wstring& processName, const AppConfig& 
     // Special detection: Steam Big Picture (steamwebhelper tanpa WS_CAPTION + ukuran besar)
     if (_wcsicmp(processName.c_str(), L"steamwebhelper") == 0 && IsSteamBigPicture())
         return true;
-    // Special detection: UWP apps (Xbox App / Armoury Crate SE via ApplicationFrameHost)
+    // Special detection: UWP apps yang diketahui punya gamepad navigation sendiri
+    // (GetForegroundProcessName sudah resolve ke nama asli, tapi jika gagal resolve
+    // masih bisa jatuh ke sini sebagai ApplicationFrameHost)
     if (_wcsicmp(processName.c_str(), L"ApplicationFrameHost") == 0 && IsExcludedAppFrame())
         return true;
+    // Hardcoded UWP exclusions by resolved process name (gamepad-native apps)
+    if (_wcsicmp(processName.c_str(), L"XboxApp") == 0) return true;
+    if (_wcsicmp(processName.c_str(), L"ArmouryCrate.SE") == 0) return true;
     return false;
 }

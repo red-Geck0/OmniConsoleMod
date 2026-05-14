@@ -5,8 +5,10 @@
 #include <thread>
 #include <objbase.h>
 #include <shellapi.h>
+#include <dwmapi.h>
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "dwmapi.lib")
 
 // ============================================================================
 // 手把滑鼠模式（Gamepad Mouse Mode）
@@ -191,44 +193,52 @@ namespace {
 
     // ── Virtual keyboard helpers ──────────────────────────────────────────────
 
-    // Method 1: ITipInvocation::Toggle() via COM (works best on touch-capable devices).
-    // {4CE576FA-83DC-4F88-951C-9D0782B4E376} / {37C994E7-432B-4834-A2F7-DCE1F13B834B}
-    struct ITipInvocation_Vtbl { void* qi; void* addref; void* release; void* toggle; };
+    // Method 1: Windows 11 Touch Keyboard via TabTip.exe window manipulation.
+    // Instead of ITipInvocation::Toggle() (which auto-hides when no text field is focused),
+    // we directly manage the TabTip window visibility for reliable toggle behavior.
+    //
+    // IPTip_Main_Window is the window class of the touch keyboard panel.
+    // If visible → hide it (toggle off). If hidden/not running → launch and show it.
     static void LaunchVkbCom() {
         std::thread([]() {
-            // Ensure tabtip.exe is registered as COM server
+            // Check if touch keyboard is already visible
+            HWND hwndTip = FindWindowW(L"IPTip_Main_Window", nullptr);
+            if (hwndTip) {
+                // Check if it's currently visible (not cloaked and has WS_VISIBLE)
+                DWORD cloaked = 0;
+                DwmGetWindowAttribute(hwndTip, DWMWA_CLOAKED, &cloaked, sizeof(cloaked));
+                bool isVisible = IsWindowVisible(hwndTip) && cloaked == 0;
+
+                if (isVisible) {
+                    // Toggle off: send close to hide the keyboard
+                    PostMessageW(hwndTip, WM_SYSCOMMAND, SC_CLOSE, 0);
+                    Log(L"[MouseMode] VKB_COM: Touch keyboard hidden (toggle off)");
+                    return;
+                }
+            }
+
+            // Toggle on: launch TabTip.exe and wait for the window to appear
             ShellExecuteW(nullptr, L"open",
                 L"C:\\Program Files\\Common Files\\Microsoft Shared\\Ink\\TabTip.exe",
-                nullptr, nullptr, SW_HIDE);
-            Sleep(120);
+                nullptr, nullptr, SW_SHOWNORMAL);
 
-            HRESULT hrInit = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-
-            static const CLSID CLSID_TipInv =
-                {0x4CE576FA,0x83DC,0x4F88,{0x95,0x1C,0x9D,0x07,0x82,0xB4,0xE3,0x76}};
-            static const IID IID_ITipInv =
-                {0x37C994E7,0x432B,0x4834,{0xA2,0xF7,0xDC,0xE1,0xF1,0x3B,0x83,0x4B}};
-
-            // Declare minimal COM interface inline (avoids SDK header dependency)
-            struct ITipInv : IUnknown { virtual HRESULT STDMETHODCALLTYPE Toggle(HWND) = 0; };
-
-            ITipInv* pTip = nullptr;
-            HRESULT hr = CoCreateInstance(CLSID_TipInv, nullptr,
-                CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER,
-                IID_ITipInv, reinterpret_cast<void**>(&pTip));
-            if (SUCCEEDED(hr) && pTip) {
-                // Pass the foreground window (not GetDesktopWindow) so Windows anchors
-                // the touch keyboard to the active app. Using GetDesktopWindow causes
-                // auto-hide in apps without a focused text input.
-                HWND target = GetForegroundWindow();
-                if (!target) target = GetDesktopWindow();
-                pTip->Toggle(target);
-                pTip->Release();
-                Log(L"[MouseMode] VKB_COM: ITipInvocation::Toggle called (hwnd=0x%p)", target);
-            } else {
-                Log(L"[MouseMode] VKB_COM: CoCreateInstance failed hr=0x%08X", (unsigned)hr);
+            // Wait for the keyboard window to appear (up to 2 seconds)
+            for (int i = 0; i < 40; i++) {
+                Sleep(50);
+                hwndTip = FindWindowW(L"IPTip_Main_Window", nullptr);
+                if (hwndTip && IsWindowVisible(hwndTip)) {
+                    Log(L"[MouseMode] VKB_COM: Touch keyboard shown (toggle on)");
+                    return;
+                }
             }
-            if (SUCCEEDED(hrInit)) CoUninitialize();
+
+            // If window appeared but might be cloaked, force show it
+            if (hwndTip) {
+                ShowWindow(hwndTip, SW_SHOW);
+                Log(L"[MouseMode] VKB_COM: Touch keyboard force-shown");
+            } else {
+                Log(L"[MouseMode] VKB_COM: TabTip.exe launched but window not found");
+            }
         }).detach();
     }
 

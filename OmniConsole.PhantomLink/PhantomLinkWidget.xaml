@@ -7,16 +7,18 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    FontSize="15"
+    FontSize="18"
     UseSystemFocusVisuals="False">
 
     <Page.Resources>
         <Style TargetType="ToggleButton">
             <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="12,10"/>
         </Style>
         <!-- Button 圓角對齊 ToggleButton 視覺風格（Quick Actions 用） -->
         <Style TargetType="Button">
             <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="12,10"/>
         </Style>
     </Page.Resources>
 

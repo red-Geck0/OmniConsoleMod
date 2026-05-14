@@ -217,9 +217,14 @@ namespace {
                 CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER,
                 IID_ITipInv, reinterpret_cast<void**>(&pTip));
             if (SUCCEEDED(hr) && pTip) {
-                pTip->Toggle(GetDesktopWindow());
+                // Pass the foreground window (not GetDesktopWindow) so Windows anchors
+                // the touch keyboard to the active app. Using GetDesktopWindow causes
+                // auto-hide in apps without a focused text input.
+                HWND target = GetForegroundWindow();
+                if (!target) target = GetDesktopWindow();
+                pTip->Toggle(target);
                 pTip->Release();
-                Log(L"[MouseMode] VKB_COM: ITipInvocation::Toggle called");
+                Log(L"[MouseMode] VKB_COM: ITipInvocation::Toggle called (hwnd=0x%p)", target);
             } else {
                 Log(L"[MouseMode] VKB_COM: CoCreateInstance failed hr=0x%08X", (unsigned)hr);
             }

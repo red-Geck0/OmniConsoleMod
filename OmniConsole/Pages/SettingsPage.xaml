@@ -953,7 +953,6 @@
 
                                                     <ComboBox x:Name="CursorSpeedCombo" Grid.Column="2"
                                                               SelectionChanged="CursorSpeedCombo_SelectionChanged"
-                                                              XYFocusDown="{x:Bind OmniNavSelectorBarItem, Mode=OneTime}"
                                                               MinWidth="120" VerticalAlignment="Center" />
                                                 </Grid>
                                             </StackPanel>
@@ -974,8 +973,10 @@
                                         <SelectorBar x:Name="MappingLayoutSelector"
                                                      SelectionChanged="MappingLayoutSelector_SelectionChanged"
                                                      HorizontalAlignment="Center">
-                                            <SelectorBarItem x:Name="OmniNavSelectorBarItem" x:Uid="MappingLayout_OmniNav" Tag="OmniNav" IsSelected="True" IsTabStop="True"/>
-                                            <SelectorBarItem x:Name="ClassicSelectorBarItem" x:Uid="MappingLayout_Classic" Tag="Classic" IsTabStop="True"/>
+                                            <SelectorBarItem x:Name="OmniNavSelectorBarItem" x:Uid="MappingLayout_OmniNav" Tag="OmniNav" IsSelected="True" IsTabStop="True"
+                                                             XYFocusDown="{x:Bind SaveMappingConfigButton, Mode=OneTime}"/>
+                                            <SelectorBarItem x:Name="ClassicSelectorBarItem" x:Uid="MappingLayout_Classic" Tag="Classic" IsTabStop="True"
+                                                             XYFocusDown="{x:Bind LoadMappingConfigButton, Mode=OneTime}"/>
                                         </SelectorBar>
 
                                         <!-- Save / Load config row (hanya untuk layout yang sedang ditampilkan) -->
@@ -987,9 +988,13 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="Mapping Configurations" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
                                             <Button x:Name="SaveMappingConfigButton" Grid.Column="1" Content="Save Config"
-                                                    Click="SaveMappingConfig_Click" Margin="0,0,8,0"/>
+                                                    Click="SaveMappingConfig_Click" Margin="0,0,8,0"
+                                                    XYFocusUp="{x:Bind OmniNavSelectorBarItem, Mode=OneTime}"
+                                                    XYFocusDown="{x:Bind LayeredModeSwitch, Mode=OneTime}"/>
                                             <Button x:Name="LoadMappingConfigButton" Grid.Column="2" Content="Load Config"
-                                                    Click="LoadMappingConfig_Click"/>
+                                                    Click="LoadMappingConfig_Click"
+                                                    XYFocusUp="{x:Bind OmniNavSelectorBarItem, Mode=OneTime}"
+                                                    XYFocusDown="{x:Bind LayeredModeSwitch, Mode=OneTime}"/>
                                         </Grid>
 
                                         <!-- Layered Mode 卡片 -->
@@ -1017,7 +1022,7 @@
 
                                                     <ToggleSwitch x:Name="LayeredModeSwitch"
                                                                   Toggled="LayeredModeSwitch_Toggled"
-                                                                  XYFocusUp="{x:Bind ClassicSelectorBarItem, Mode=OneTime}"
+                                                                  XYFocusUp="{x:Bind SaveMappingConfigButton, Mode=OneTime}"
                                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                                 </Grid>
 
@@ -1269,10 +1274,11 @@
                                         </Border>
 
                                         <!-- Reset to Defaults -->
-                                        <Button x:Uid="ResetMappingsButton"
+                                        <Button x:Name="ResetMappingsButton" x:Uid="ResetMappingsButton"
                                                 Click="ResetMappingsButton_Click"
                                                 HorizontalAlignment="Center"
-                                                FontSize="14" Padding="24,8" Margin="0,8,0,0"/>
+                                                FontSize="14" Padding="24,8" Margin="0,8,0,0"
+                                                XYFocusUp="{x:Bind EditBtn_DPadRight, Mode=OneTime}"/>
 
                                     </StackPanel>
                                 </ScrollViewer>

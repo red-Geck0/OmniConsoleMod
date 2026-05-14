@@ -187,7 +187,7 @@ namespace OmniConsole.Pages
 
             // 還原自動檢查更新開關狀態，並顯示進階區版本號
             AutoUpdateCheckSwitch.IsOn = SettingsService.GetAutoUpdateCheckEnabled();
-            AdvancedVersionText.Text = SettingsService.GetAppVersion();
+            AdvancedVersionText.Text = $"{SettingsService.GetAppVersion()} ( OmniConsoleMod )";
 
             // 讀取快取的更新資訊
             ShowSettingsUpdateInfoBar();

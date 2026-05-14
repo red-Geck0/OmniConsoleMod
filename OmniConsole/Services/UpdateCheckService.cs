@@ -18,8 +18,8 @@ namespace OmniConsole.Services
     /// </summary>
     public static class UpdateCheckService
     {
-        private const string GitHubApiUrl = "https://api.github.com/repos/8bit2qubit/OmniConsole/releases/latest";
-        private const string ReleasePageUrl = "https://github.com/8bit2qubit/OmniConsole/releases/latest";
+        private const string GitHubApiUrl = "https://api.github.com/repos/red-Geck0/OmniConsoleMod/releases/latest";
+        private const string ReleasePageUrl = "https://github.com/red-Geck0/OmniConsoleMod/releases/latest";
 
         public const string PhantomLinkFamilyName = "4fa8e044-7ffa-4059-b034-e4111881d96e_n7gpkx2kypjte";
 

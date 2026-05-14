@@ -659,10 +659,16 @@ namespace OmniConsole.Services
         /// 確保焦點目前落在 <see cref="_searchRoot"/> 內的有效控制項上。
         /// 若焦點遺失或位於非互動元件，則強制恢復。
         /// </summary>
+        private long _lastEnsureFocusTick;
         private void EnsureFocus()
         {
             try
             {
+                // 節流：200ms 內不重複執行
+                long now = Environment.TickCount64;
+                if (now - _lastEnsureFocusTick < 200) return;
+                _lastEnsureFocusTick = now;
+
                 // Dialog 開啟時不搶走焦點
                 if (SuppressFocusEnforcement) return;
 

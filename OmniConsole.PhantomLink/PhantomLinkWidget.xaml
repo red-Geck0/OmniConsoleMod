@@ -140,7 +140,14 @@
                                       UseSystemFocusVisuals="True" MinWidth="88"
                                       XYFocusUp="{x:Bind SteamInGameOverlayOnBtn}"
                                       XYFocusLeft="{x:Bind ModeAutoBtn}"
-                                      XYFocusRight="{x:Bind ModeForceOnBtn}"
+                                      XYFocusRight="{x:Bind ModeOmniListBtn}"
+                                      XYFocusDown="{x:Bind LayoutNavBtn}"/>
+                        <ToggleButton x:Name="ModeOmniListBtn" x:Uid="Widget_Mode_OmniList"
+                                      Click="ModeBtn_Click" Tag="OmniList"
+                                      UseSystemFocusVisuals="True" MinWidth="88"
+                                      XYFocusUp="{x:Bind SteamInGameOverlayOnBtn}"
+                                      XYFocusLeft="{x:Bind ModeForceOnBtn}"
+                                      XYFocusRight="{x:Bind ModeOmniListBtn}"
                                       XYFocusDown="{x:Bind LayoutNavBtn}"/>
                     </StackPanel>
                 </StackPanel>

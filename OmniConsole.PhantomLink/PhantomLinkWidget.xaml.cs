@@ -264,6 +264,7 @@ namespace OmniConsole.PhantomLink
                 ModeOffBtn.IsChecked = mode == PhantomKeyStore.MouseModeOff;
                 ModeAutoBtn.IsChecked = mode == PhantomKeyStore.MouseModeAuto;
                 ModeForceOnBtn.IsChecked = mode == PhantomKeyStore.MouseModeForceOn;
+                ModeOmniListBtn.IsChecked = mode == PhantomKeyStore.MouseModeOmniList;
 
                 // Layout
                 string layout = PhantomKeyStore.GetMouseModeLayout();
@@ -297,6 +298,7 @@ namespace OmniConsole.PhantomLink
             ModeOffBtn.IsEnabled = !_builtInMapping;
             ModeAutoBtn.IsEnabled = !_builtInMapping;
             ModeForceOnBtn.IsEnabled = !_builtInMapping;
+            ModeOmniListBtn.IsEnabled = !_builtInMapping;
 
             LayoutNavBtn.IsEnabled = mouseOn;
             LayoutClassicBtn.IsEnabled = mouseOn;
@@ -320,7 +322,8 @@ namespace OmniConsole.PhantomLink
             _currentMode = mode;
             _currentForegroundApp = PhantomKeyStore.GetForegroundProcess();
 
-            if (mode == PhantomKeyStore.MouseModeOff || _builtInMapping || string.IsNullOrEmpty(_currentForegroundApp))
+            if (mode == PhantomKeyStore.MouseModeOff || mode == PhantomKeyStore.MouseModeOmniList
+                || _builtInMapping || string.IsNullOrEmpty(_currentForegroundApp))
             {
                 AppListToggleBtn.Visibility = Visibility.Collapsed;
                 return;
@@ -465,13 +468,14 @@ namespace OmniConsole.PhantomLink
 
             string mode = btn.Tag as string ?? PhantomKeyStore.MouseModeAuto;
 
-            // 三顆 ToggleButton 互斥：選中一顆時取消其餘兩顆
+            // 四顆 ToggleButton 互斥：選中一顆時取消其餘
             _loading = true;
             try
             {
                 ModeOffBtn.IsChecked = mode == PhantomKeyStore.MouseModeOff;
                 ModeAutoBtn.IsChecked = mode == PhantomKeyStore.MouseModeAuto;
                 ModeForceOnBtn.IsChecked = mode == PhantomKeyStore.MouseModeForceOn;
+                ModeOmniListBtn.IsChecked = mode == PhantomKeyStore.MouseModeOmniList;
             }
             finally { _loading = false; }
 

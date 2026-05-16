@@ -17,6 +17,7 @@ namespace OmniConsole.PhantomLink.Services
         public const string MouseModeOff = "Off";
         public const string MouseModeAuto = "Whitelist";
         public const string MouseModeForceOn = "Blacklist";
+        public const string MouseModeOmniList = "OmniList";
 
         public const string LayoutOmniNav = "OmniNav";
         public const string LayoutClassic = "Classic";
@@ -117,7 +118,7 @@ namespace OmniConsole.PhantomLink.Services
         public static string GetMouseMode()
         {
             var s = Read("PhantomKey", "MouseMode", MouseModeAuto);
-            if (s == MouseModeOff || s == MouseModeAuto || s == MouseModeForceOn) return s;
+            if (s == MouseModeOff || s == MouseModeAuto || s == MouseModeForceOn || s == MouseModeOmniList) return s;
             // 相容舊版值
             if (s == "Auto") return MouseModeAuto;
             if (s == "ForceOn") return MouseModeForceOn;
@@ -129,7 +130,7 @@ namespace OmniConsole.PhantomLink.Services
         /// </summary>
         public static void SetMouseMode(string mode)
         {
-            if (mode != MouseModeOff && mode != MouseModeAuto && mode != MouseModeForceOn)
+            if (mode != MouseModeOff && mode != MouseModeAuto && mode != MouseModeForceOn && mode != MouseModeOmniList)
                 mode = MouseModeAuto;
             Write("PhantomKey", "MouseMode", mode);
         }

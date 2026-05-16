@@ -347,6 +347,9 @@
   <data name="MouseModeItem_Blacklist.Content" xml:space="preserve">
     <value>黑名单</value>
   </data>
+  <data name="MouseModeItem_OmniList.Content" xml:space="preserve">
+    <value>OmniList</value>
+  </data>
   <data name="MouseModeSetting_Note.Text" xml:space="preserve">
     <value>使用下方列表自定义哪些应用激活 OmniNav 模式。</value>
   </data>
@@ -364,6 +367,19 @@
   </data>
   <data name="MouseModeAutoDetect_Note.Text" xml:space="preserve">
     <value>文件资源管理器和 Steam 由系统自动管理，不受此列表影响。</value>
+  </data>
+  <data name="MouseModeOmniList_Title.Text" xml:space="preserve">
+    <value>OmniList 模式</value>
+  </data>
+  <data name="MouseModeOmniList_Desc.Text" xml:space="preserve">
+    <value>结合白名单与黑名单行为的混合模式，搭配动态分层模式。
+
+• 白名单应用：OmniNav 映射始终启用（分层模式关闭）。
+• 非白名单应用：OmniNav 映射启用，但需按住分层模式触发键。
+• 黑名单应用：OmniNav 映射完全禁用。
+• 若应用同时在两个列表中，白名单优先。
+
+请从「白名单」或「黑名单」模式配置您的应用列表 — OmniList 共享相同的列表。</value>
   </data>
   <data name="MouseModeAddApp_Browse.Content" xml:space="preserve">
     <value>浏览 .exe...</value>

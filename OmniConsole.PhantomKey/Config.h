@@ -8,7 +8,8 @@
 
 // Whitelist = aktif hanya untuk app di daftar [MouseMode.Whitelist] (dulu Auto)
 // Blacklist  = aktif untuk semua app KECUALI daftar [MouseMode.Blacklist] (dulu ForceOn)
-enum class MouseModeState { Off, Whitelist, Blacklist };
+// OmniList  = hybrid: whitelist apps = no layered, non-whitelist = layered ON, blacklist = disabled
+enum class MouseModeState { Off, Whitelist, Blacklist, OmniList };
 
 // Index ke array mapping (sinkron dengan kButtonNames di Config.cpp).
 enum ButtonIdx {

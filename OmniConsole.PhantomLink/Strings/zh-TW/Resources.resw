@@ -161,6 +161,9 @@
   <data name="Widget_Mode_ForceOn.Content" xml:space="preserve">
     <value>黑名單</value>
   </data>
+  <data name="Widget_Mode_OmniList.Content" xml:space="preserve">
+    <value>OmniList</value>
+  </data>
   <data name="Widget_Layout_Title.Text" xml:space="preserve">
     <value>控制器版面配置</value>
   </data>

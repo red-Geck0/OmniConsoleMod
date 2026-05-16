@@ -347,6 +347,9 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   <data name="MouseModeItem_Blacklist.Content" xml:space="preserve">
     <value>Blacklisted</value>
   </data>
+  <data name="MouseModeItem_OmniList.Content" xml:space="preserve">
+    <value>OmniList</value>
+  </data>
   <data name="MouseModeSetting_Note.Text" xml:space="preserve">
     <value>Customize which apps activate OmniNav Mode using the lists below.</value>
   </data>
@@ -364,6 +367,19 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   </data>
   <data name="MouseModeAutoDetect_Note.Text" xml:space="preserve">
     <value>File Explorer and Steam are managed automatically regardless of this list.</value>
+  </data>
+  <data name="MouseModeOmniList_Title.Text" xml:space="preserve">
+    <value>OmniList Mode</value>
+  </data>
+  <data name="MouseModeOmniList_Desc.Text" xml:space="preserve">
+    <value>This is a hybrid mode combining Whitelisted and Blacklisted behavior along with dynamic Layered Mode.
+
+• For apps listed on whitelist, mappings is always active (Layered mode forced OFF).
+• For other apps not listed on whitelist, mappings is still active but requires holding the Layered Mode trigger button.
+• For apps listed on blacklist, mappings is completely disabled.
+• In case of an app both listed on whitelist &amp; blacklist, whitelist takes priority.
+
+Configure your whitelist or blacklist from the Whitelisted/Blacklisted modes, OmniList shares the same app lists.</value>
   </data>
   <data name="MouseModeAddApp_Browse.Content" xml:space="preserve">
     <value>Browse .exe...</value>

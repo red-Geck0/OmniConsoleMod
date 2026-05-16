@@ -153,6 +153,7 @@ static MouseModeState ParseMouseMode(const std::wstring& s) {
     if (_wcsicmp(s.c_str(), L"Off")       == 0) return MouseModeState::Off;
     if (_wcsicmp(s.c_str(), L"Blacklist") == 0) return MouseModeState::Blacklist;
     if (_wcsicmp(s.c_str(), L"Whitelist") == 0) return MouseModeState::Whitelist;
+    if (_wcsicmp(s.c_str(), L"OmniList")  == 0) return MouseModeState::OmniList;
     // Migration: nilai lama dari versi sebelumnya
     if (_wcsicmp(s.c_str(), L"ForceOn")   == 0) return MouseModeState::Blacklist;
     if (_wcsicmp(s.c_str(), L"Auto")      == 0) return MouseModeState::Whitelist;
@@ -163,6 +164,7 @@ static const wchar_t* MouseModeToStr(MouseModeState m) {
     switch (m) {
         case MouseModeState::Off:       return L"Off";
         case MouseModeState::Blacklist: return L"Blacklist";
+        case MouseModeState::OmniList:  return L"OmniList";
         default:                        return L"Whitelist";
     }
 }

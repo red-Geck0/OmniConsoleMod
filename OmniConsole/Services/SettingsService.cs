@@ -123,7 +123,7 @@ namespace OmniConsole.Services
                     settings.Values[DefaultPlatformKey] = defaultPlatform;
 
                 string mouseMode = MigrateMouseMode(ReadShared("PhantomKey", "MouseMode", MouseModeWhitelist));
-                if (mouseMode == MouseModeOff || mouseMode == MouseModeWhitelist || mouseMode == MouseModeBlacklist)
+                if (mouseMode == MouseModeOff || mouseMode == MouseModeWhitelist || mouseMode == MouseModeBlacklist || mouseMode == MouseModeOmniList)
                     settings.Values["MouseMode"] = mouseMode;
 
                 // Reload app lists
@@ -646,6 +646,7 @@ namespace OmniConsole.Services
         public const string MouseModeOff = "Off";
         public const string MouseModeWhitelist = "Whitelist";   // dulu "Auto"
         public const string MouseModeBlacklist = "Blacklist";   // dulu "ForceOn"
+        public const string MouseModeOmniList = "OmniList";
 
         // Default app list CSV values (sinkron dengan C++ Config.cpp default)
         private const string DefaultWhitelistApps = "msedge,chrome,firefox,opera,brave,EpicGamesLauncher,Discord";
@@ -669,7 +670,7 @@ namespace OmniConsole.Services
             if (settings.Values.TryGetValue("MouseMode", out object? value) && value is string str)
             {
                 str = MigrateMouseMode(str);
-                if (str == MouseModeOff || str == MouseModeWhitelist || str == MouseModeBlacklist)
+                if (str == MouseModeOff || str == MouseModeWhitelist || str == MouseModeBlacklist || str == MouseModeOmniList)
                     return str;
             }
             return MouseModeWhitelist;
@@ -680,7 +681,7 @@ namespace OmniConsole.Services
         /// </summary>
         public static void SetMouseMode(string mode)
         {
-            if (mode != MouseModeOff && mode != MouseModeWhitelist && mode != MouseModeBlacklist)
+            if (mode != MouseModeOff && mode != MouseModeWhitelist && mode != MouseModeBlacklist && mode != MouseModeOmniList)
                 mode = MouseModeWhitelist;
             var settings = ApplicationData.Current.LocalSettings;
             if (settings.Values.TryGetValue("MouseMode", out object? prev) && prev is string pv && pv == mode)

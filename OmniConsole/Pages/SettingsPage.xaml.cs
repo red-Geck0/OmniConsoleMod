@@ -164,6 +164,7 @@ namespace OmniConsole.Pages
             {
                 SettingsService.MouseModeOff => 0,
                 SettingsService.MouseModeBlacklist => 2,
+                SettingsService.MouseModeOmniList => 3,
                 _ => 1,
             };
             MouseModeLayoutSwitch.IsOn = SettingsService.GetMouseModeLayout() == SettingsService.LayoutClassic;
@@ -847,6 +848,7 @@ namespace OmniConsole.Pages
             mode ??= (MouseModeCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? SettingsService.MouseModeWhitelist;
             WhitelistPanel.Visibility = mode == SettingsService.MouseModeWhitelist ? Visibility.Visible : Visibility.Collapsed;
             BlacklistPanel.Visibility = mode == SettingsService.MouseModeBlacklist ? Visibility.Visible : Visibility.Collapsed;
+            OmniListPanel.Visibility = mode == SettingsService.MouseModeOmniList ? Visibility.Visible : Visibility.Collapsed;
         }
 
         /// <summary>Load current app lists dari SettingsService ke ListView.</summary>

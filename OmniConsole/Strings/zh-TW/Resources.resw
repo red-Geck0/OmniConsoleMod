@@ -347,6 +347,9 @@
   <data name="MouseModeItem_Blacklist.Content" xml:space="preserve">
     <value>黑名單</value>
   </data>
+  <data name="MouseModeItem_OmniList.Content" xml:space="preserve">
+    <value>OmniList</value>
+  </data>
   <data name="MouseModeSetting_Note.Text" xml:space="preserve">
     <value>使用下方清單自訂哪些應用程式啟用 OmniNav 模式。</value>
   </data>
@@ -364,6 +367,19 @@
   </data>
   <data name="MouseModeAutoDetect_Note.Text" xml:space="preserve">
     <value>檔案總管和 Steam 由系統自動管理。</value>
+  </data>
+  <data name="MouseModeOmniList_Title.Text" xml:space="preserve">
+    <value>OmniList 模式</value>
+  </data>
+  <data name="MouseModeOmniList_Desc.Text" xml:space="preserve">
+    <value>結合白名單與黑名單行為的混合模式，搭配動態分層模式。
+
+• 白名單應用程式：OmniNav 對應始終啟用（分層模式關閉）。
+• 非白名單應用程式：OmniNav 對應啟用，但需按住分層模式觸發鍵。
+• 黑名單應用程式：OmniNav 對應完全停用。
+• 若應用程式同時在兩份清單中，白名單優先。
+
+請從「白名單」或「黑名單」模式設定您的應用程式清單 — OmniList 共用相同的清單。</value>
   </data>
   <data name="MouseModeAddApp_Browse.Content" xml:space="preserve">
     <value>瀏覽 .exe...</value>

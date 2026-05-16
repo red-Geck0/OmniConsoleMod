@@ -758,6 +758,7 @@
                                                         <ComboBoxItem x:Uid="MouseModeItem_Off"       Tag="Off"/>
                                                         <ComboBoxItem x:Uid="MouseModeItem_Whitelist" Tag="Whitelist"/>
                                                         <ComboBoxItem x:Uid="MouseModeItem_Blacklist" Tag="Blacklist"/>
+                                                        <ComboBoxItem x:Uid="MouseModeItem_OmniList" Tag="OmniList"/>
                                                     </ComboBox>
                                                 </Grid>
                                             </StackPanel>
@@ -902,6 +903,28 @@
                                                         </DataTemplate>
                                                     </ListView.ItemTemplate>
                                                 </ListView>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- OmniList description: muncul saat mode = OmniList -->
+                                        <Border x:Name="OmniListPanel"
+                                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                BorderThickness="1" CornerRadius="8"
+                                                HorizontalAlignment="Stretch" MinWidth="700"
+                                                Visibility="Collapsed">
+                                            <StackPanel Padding="16">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <FontIcon Glyph="&#xE8FD;" FontSize="20" Margin="0,0,12,0" VerticalAlignment="Top" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                                    <StackPanel Grid.Column="1" Spacing="8">
+                                                        <TextBlock x:Uid="MouseModeOmniList_Title" FontWeight="SemiBold" FontSize="15"/>
+                                                        <TextBlock x:Uid="MouseModeOmniList_Desc" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Grid>
                                             </StackPanel>
                                         </Border>
 

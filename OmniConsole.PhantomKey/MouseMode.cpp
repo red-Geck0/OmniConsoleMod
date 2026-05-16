@@ -564,7 +564,7 @@ namespace {
 
 namespace MouseMode {
 
-void Tick(const XINPUT_GAMEPAD& pad, const AppConfig& cfg, bool skipDpad) {
+void Tick(const XINPUT_GAMEPAD& pad, const AppConfig& cfg, bool skipDpad, int layeredOverride) {
     bool classic = (_wcsicmp(cfg.mouseModeLayout.c_str(), L"Classic") == 0);
 
     // 搖桿分配
@@ -582,7 +582,13 @@ void Tick(const XINPUT_GAMEPAD& pad, const AppConfig& cfg, bool skipDpad) {
     bool layeredEnabled  = classic ? cfg.layeredEnabledClassic : cfg.layeredEnabledOmniNav;
     int  layeredTrigger  = classic ? cfg.layeredButtonClassic  : cfg.layeredButtonOmniNav;
 
-    // Update Layered Mode state machine (3-detik hold timer)
+    // OmniList layered override:
+    //  1 = force layered ON (non-whitelist apps must hold trigger)
+    // -1 = force layered OFF (whitelist apps get full access)
+    if (layeredOverride > 0) layeredEnabled = true;
+    else if (layeredOverride < 0) layeredEnabled = false;
+
+    // Update Layered Mode state machine
     UpdateLayeredMode(layeredTrigger, layeredEnabled,
                       pad.wButtons, pad.bLeftTrigger, pad.bRightTrigger);
 

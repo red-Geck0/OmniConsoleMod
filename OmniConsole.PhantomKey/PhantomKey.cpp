@@ -166,12 +166,34 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
         }
 
         // Mouse Mode: Whitelist = aktif jika app di daftar, Blacklist = aktif kecuali app di daftar
+        // OmniList = hybrid: whitelist → no layered, non-whitelist → layered ON, blacklist → disabled
         bool mouseModeActive = false;
+        int omniListLayeredOverride = 0; // 0=normal, 1=force ON, -1=force OFF
         if (!config.hasBuiltInGamepadMapping) {
             switch (config.mouseMode) {
                 case MouseModeState::Off:       break;
                 case MouseModeState::Whitelist: mouseModeActive = IsMouseModeTarget(currentFg, config); break;
                 case MouseModeState::Blacklist: mouseModeActive = !IsMouseModeForceExcluded(currentFg, config); break;
+                case MouseModeState::OmniList: {
+                    // Whitelist check (includes special detection for explorer/steam)
+                    bool inWhitelist = IsMouseModeTarget(currentFg, config);
+                    // Blacklist check
+                    bool inBlacklist = IsMouseModeForceExcluded(currentFg, config);
+
+                    if (inWhitelist) {
+                        // Whitelist wins: mapping ON, layered forced OFF
+                        mouseModeActive = true;
+                        omniListLayeredOverride = -1;
+                    } else if (inBlacklist) {
+                        // Blacklisted: mapping OFF
+                        mouseModeActive = false;
+                    } else {
+                        // Not in either list: mapping ON, layered forced ON
+                        mouseModeActive = true;
+                        omniListLayeredOverride = 1;
+                    }
+                    break;
+                }
             }
         }
 
@@ -243,7 +265,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
         // ── Mouse Mode：前景為目標程式時將手把映射為滑鼠+鍵盤 ──
         // 檔案總管對 D-pad 已有原生反應，跳過 D-pad 映射避免雙跳；其他鍵仍由 Mouse Mode 處理
         if (mouseModeActive) {
-            MouseMode::Tick(activePad, config, ForegroundHandlesDpadNatively(currentFg));
+            MouseMode::Tick(activePad, config, ForegroundHandlesDpadNatively(currentFg), omniListLayeredOverride);
         }
     }
 

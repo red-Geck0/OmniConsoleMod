@@ -36,7 +36,11 @@ namespace MouseMode {
 
     // 主迴圈每 tick 呼叫
     // skipDpad: 前景對 D-pad 已有原生反應時設為 true，跳過 D-pad → 方向鍵映射
-    void Tick(const XINPUT_GAMEPAD& pad, const AppConfig& cfg, bool skipDpad);
+    // layeredOverride: OmniList 模式下覆蓋 layered mode 設定
+    //   0 = 使用設定值（正常行為）
+    //   1 = 強制啟用 layered mode（OmniList 非白名單 app）
+    //  -1 = 強制停用 layered mode（OmniList 白名單 app）
+    void Tick(const XINPUT_GAMEPAD& pad, const AppConfig& cfg, bool skipDpad, int layeredOverride = 0);
 
     // 離開目標前景時清除滾輪累積與長按連發狀態
     void Reset();

@@ -250,7 +250,7 @@ AppConfig ReadConfig() {
     // Default whitelist: browser + EpicGamesLauncher (explorer & steamwebhelper via special detection)
     // Default blacklist: OmniConsole + Playnite (hardcoded special detection tetap jalan di atas list ini)
     cfg.mouseModeWhitelist = ParseCsv(ReadString(L"MouseMode.Whitelist", L"Apps",
-        L"msedge,chrome,firefox,opera,brave,EpicGamesLauncher"));
+        L"msedge,chrome,firefox,opera,brave,EpicGamesLauncher,Discord"));
     cfg.mouseModeBlacklist = ParseCsv(ReadString(L"MouseMode.Blacklist", L"Apps",
         L"OmniConsole,Playnite.FullscreenApp"));
 

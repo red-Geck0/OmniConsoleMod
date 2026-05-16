@@ -648,7 +648,7 @@ namespace OmniConsole.Services
         public const string MouseModeBlacklist = "Blacklist";   // dulu "ForceOn"
 
         // Default app list CSV values (sinkron dengan C++ Config.cpp default)
-        private const string DefaultWhitelistApps = "msedge,chrome,firefox,opera,brave,EpicGamesLauncher";
+        private const string DefaultWhitelistApps = "msedge,chrome,firefox,opera,brave,EpicGamesLauncher,Discord";
         private const string DefaultBlacklistApps = "OmniConsole,Playnite.FullscreenApp,OneGameLauncher";
 
         /// <summary>Konversi nilai mode lama (Auto/ForceOn) ke nilai baru (Whitelist/Blacklist).</summary>

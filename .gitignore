@@ -71,3 +71,9 @@ desktop.ini
 
 ## Build-time generated sources
 OmniConsole.PhantomLink/Generated/
+
+## Local per-machine build/signing overrides
+Directory.Build.props
+
+## Local tooling
+.claude/

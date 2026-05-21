@@ -190,6 +190,48 @@ namespace OmniConsole.Models
                 ],
             },
 
+            // ── One Game Launcher ─────────────────────────────────────────────
+            new()
+            {
+                Id = "OneGameLauncher",
+                DisplayNameKey = "Platform_OneGameLauncher",
+                IconAsset = "ms-appx:///Assets/Platforms/one_game_launcher.png",
+                AvailabilityStrategy = new()
+                {
+                    Type = LaunchStrategyType.PackagedApp,
+                    PackageFamilyName = "62269AlexShats.OneGameLauncher_gghb1w55myjr2",
+                },
+                LaunchStrategies =
+                [
+                    new()
+                    {
+                        Type = LaunchStrategyType.PackagedApp,
+                        PackageFamilyName = "62269AlexShats.OneGameLauncher_gghb1w55myjr2",
+                    },
+                ],
+            },
+
+            // ── MSI Center M ──────────────────────────────────────────────────
+            new()
+            {
+                Id = "MsiCenterM",
+                DisplayNameKey = "Platform_MsiCenterM",
+                IconAsset = "ms-appx:///Assets/Platforms/center_m_msi_claw.png",
+                AvailabilityStrategy = new()
+                {
+                    Type = LaunchStrategyType.PackagedApp,
+                    PackageFamilyName = "9426MICRO-STARINTERNATION.64797CC12EF8E_kzh8wxbdkxb8p",
+                },
+                LaunchStrategies =
+                [
+                    new()
+                    {
+                        Type = LaunchStrategyType.PackagedApp,
+                        PackageFamilyName = "9426MICRO-STARINTERNATION.64797CC12EF8E_kzh8wxbdkxb8p",
+                    },
+                ],
+            },
+
             // ── 在此新增更多平台 ──────────────────────────────────────────────
             // new()
             // {

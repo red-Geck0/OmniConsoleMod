@@ -1276,7 +1276,8 @@ namespace OmniConsole.Pages
                     OnGamepadRBPressed,
                     OnGamepadXButtonPressed,
                     OnGamepadYButtonPressed,
-                    OnGamepadMenuButtonPressed
+                    OnGamepadMenuButtonPressed,
+                    OnGamepadViewButtonPressed
                 );
             }
             _gamepadNavigationService.Start();
@@ -1528,6 +1529,68 @@ namespace OmniConsole.Pages
             if (string.IsNullOrEmpty(_selectedPlatformId)) return;
 
             LaunchPlatformDirectlyRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        // ── 側邊選單開合 ───────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 手把 View（⊞）鍵：開合側邊選單。選單僅能由此鍵開啟，
+        /// 漢堡按鈕不參與控制器導覽（見 SettingsNav_Loaded）。
+        /// </summary>
+        private void OnGamepadViewButtonPressed()
+        {
+            SettingsNav.IsPaneOpen = !SettingsNav.IsPaneOpen;
+        }
+
+        /// <summary>側邊選單展開：導覽項目恢復可聚焦，並把焦點移到目前選取項目。</summary>
+        private void SettingsNav_PaneOpened(NavigationView sender, object args)
+        {
+            UpdateNavItemFocusability(true);
+            DispatcherQueue.TryEnqueue(() =>
+                (SettingsNav.SelectedItem as NavigationViewItem)?.Focus(FocusState.Programmatic));
+        }
+
+        /// <summary>側邊選單收合：導覽項目不可聚焦，避免控制器從內容區跳進選單。</summary>
+        private void SettingsNav_PaneClosed(NavigationView sender, object args)
+        {
+            UpdateNavItemFocusability(false);
+        }
+
+        /// <summary>
+        /// SettingsNav 載入完成：套用初始可聚焦狀態（pane 預設收合），
+        /// 並關閉漢堡按鈕的 Tab 停駐，使其無法被控制器導覽自內容區聚焦。
+        /// 滑鼠／觸控仍可點選漢堡按鈕。
+        /// </summary>
+        private void SettingsNav_Loaded(object sender, RoutedEventArgs e)
+        {
+            UpdateNavItemFocusability(SettingsNav.IsPaneOpen);
+
+            if (FindDescendantByName(SettingsNav, "TogglePaneButton") is Control toggleButton)
+                toggleButton.IsTabStop = false;
+        }
+
+        /// <summary>依 pane 開合狀態切換導覽項目的控制器可聚焦性。</summary>
+        private void UpdateNavItemFocusability(bool paneOpen)
+        {
+            foreach (var item in SettingsNav.MenuItems.OfType<NavigationViewItem>())
+                item.IsTabStop = paneOpen;
+            foreach (var item in SettingsNav.FooterMenuItems.OfType<NavigationViewItem>())
+                item.IsTabStop = paneOpen;
+        }
+
+        /// <summary>在視覺樹中依名稱往下搜尋第一個符合的子元素。</summary>
+        private static DependencyObject? FindDescendantByName(DependencyObject root, string name)
+        {
+            int count = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < count; i++)
+            {
+                var child = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(root, i);
+                if (child is FrameworkElement fe && fe.Name == name)
+                    return child;
+                if (FindDescendantByName(child, name) is { } nested)
+                    return nested;
+            }
+            return null;
         }
 
         // ── 更新檢查 ───────────────────────────────────────────────────────────

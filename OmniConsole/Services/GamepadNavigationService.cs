@@ -339,6 +339,7 @@ namespace OmniConsole.Services
         private readonly Action? _onXButtonPressed;
         private readonly Action? _onYButtonPressed;
         private readonly Action? _onMenuButtonPressed;
+        private readonly Action? _onViewButtonPressed;
 
         /// <summary>
         /// 初始化 <see cref="GamepadNavigationService"/> 類別的新執行個體。
@@ -352,7 +353,8 @@ namespace OmniConsole.Services
         /// <param name="onXButtonPressed">當按下手把 'X' 鍵時觸發的委派動作（可選）。</param>
         /// <param name="onYButtonPressed">當按下手把 'Y' 鍵時觸發的委派動作（可選）。</param>
         /// <param name="onMenuButtonPressed">當按下手把 'Menu（☰）' 鍵時觸發的委派動作（可選）。</param>
-        public GamepadNavigationService(UIElement searchRoot, DispatcherQueue dispatcherQueue, Action onAButtonPressed, Action? onBButtonPressed = null, Action? onLBPressed = null, Action? onRBPressed = null, Action? onXButtonPressed = null, Action? onYButtonPressed = null, Action? onMenuButtonPressed = null)
+        /// <param name="onViewButtonPressed">當按下手把 'View（⊞）' 鍵時觸發的委派動作（可選）。</param>
+        public GamepadNavigationService(UIElement searchRoot, DispatcherQueue dispatcherQueue, Action onAButtonPressed, Action? onBButtonPressed = null, Action? onLBPressed = null, Action? onRBPressed = null, Action? onXButtonPressed = null, Action? onYButtonPressed = null, Action? onMenuButtonPressed = null, Action? onViewButtonPressed = null)
         {
             _searchRoot = searchRoot;
             _onAButtonPressed = onAButtonPressed;
@@ -362,6 +364,7 @@ namespace OmniConsole.Services
             _onXButtonPressed = onXButtonPressed;
             _onYButtonPressed = onYButtonPressed;
             _onMenuButtonPressed = onMenuButtonPressed;
+            _onViewButtonPressed = onViewButtonPressed;
 
             _gamepadTimer = dispatcherQueue.CreateTimer();
             _gamepadTimer.Interval = TimeSpan.FromMilliseconds(50); // 20 FPS
@@ -552,6 +555,11 @@ namespace OmniConsole.Services
                         {
                             PlaySound(ElementSoundKind.Invoke);
                             _onMenuButtonPressed?.Invoke();
+                        }
+                        else if (IsButtonPressed(reading, prev, GamepadButtons.View))
+                        {
+                            PlaySound(ElementSoundKind.Invoke);
+                            _onViewButtonPressed?.Invoke();
                         }
                     }
 

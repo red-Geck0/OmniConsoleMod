@@ -167,10 +167,13 @@
         <!-- 設定模式：多頁面導覽介面 -->
         <!-- 掌機最佳化：預設隱藏導覽選單，僅顯示漢堡按鈕以最大化內容空間 -->
         <NavigationView x:Name="SettingsNav"
-                        PaneDisplayMode="LeftMinimal"
+                        PaneDisplayMode="LeftCompact"
                         IsPaneOpen="False"
                         IsBackButtonVisible="Collapsed"
                         IsSettingsVisible="False"
+                        Loaded="SettingsNav_Loaded"
+                        PaneOpened="SettingsNav_PaneOpened"
+                        PaneClosed="SettingsNav_PaneClosed"
                         SelectionChanged="SettingsNav_SelectionChanged"
                         XYFocusKeyboardNavigation="Enabled">
 

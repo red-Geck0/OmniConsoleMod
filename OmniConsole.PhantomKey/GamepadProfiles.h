@@ -1,26 +1,29 @@
 #pragma once
 #include <windows.h>
 #include <string>
+#include <vector>
 #include "Bindings.h"
 
 // ============================================================================
-// 玩家自訂 per-App 手把映射 profile
+// 手把映射 profile store
 // ============================================================================
 //
 // GamepadProfiles.json 位於 %LOCALAPPDATA%\Publishers\<PublisherHash>\OmniConsoleShared\
 //（與 Shared.ini 同目錄）。C++ 端僅讀，由 C# 端 GamepadProfileStore 寫。
 //
-// 比對流程：先試取前景 AUMID（ApplicationFrameHost 宿主走 CoreWindow 反查宿主 pid，
-//           自跑 exe 的 packaged 直接對前景 pid 取）。
-//   - 取到 AUMID → 比 kind=Aumid，未命中也不回退到 process 名稱。
-//   - 取不到（Win32 桌面 process）→ 強綁定 path：procName + fullPath 雙件相符才命中，
-//                                    舊 name-only profile（fullPath 空）一律忽略，
-//                                    由主程式 Editor 開啟時自動升級為 path-bound。
+// 模型：profile 為可命名、可重用的實體；App 透過 assignment 指派到某 profile。
+//       未被指派的 App 一律套用 defaultProfileId 指向的 profile。
 //
-// AppId 為跨 store 共用識別。
+// 前景解析流程：先試取前景 AUMID（ApplicationFrameHost 宿主走 CoreWindow 反查宿主
+//   pid，自跑 exe 的 packaged 直接對前景 pid 取）。
+//   - 取到 AUMID → 只比 kind=Aumid 的 assignment，未命中不回退 process 名稱。
+//   - 取不到（Win32 桌面 process）→ procName + fullPath 雙件相符的 assignment 才命中。
+//   命中 assignment → 用其 profile；未命中 → 用 defaultProfileId 的 profile。
+//
+// 與 C# 端 OmniConsole/Services/GamepadProfileStore.cs 對應。
 // ============================================================================
 
-// ── 識別（跨 store 共用） ──────────────────────────────────────────────────
+// ── App 識別（assignment 用） ───────────────────────────────────────────────
 struct AppId {
     enum class Kind { Process, Aumid };
     Kind         kind  = Kind::Process;
@@ -28,17 +31,44 @@ struct AppId {
     std::wstring fullPath;  // 僅 Kind=Process 適用；空字串代表 name 通配
 };
 
-// ── 一份 gamepad profile ───────────────────────────────────────────────────
-struct GamepadProfile {
-    AppId        appId;
-    std::wstring displayName;
-    Bindings     bindings{};
+// ── Layered Mode 設定 ───────────────────────────────────────────────────────
+enum class LayeredActivationMode { HoldRelease, DoubleTapToggle };
+
+struct ProfileLayered {
+    bool                  enabled        = false;
+    KeyId                 triggerKey     = KeyId::RS;
+    LayeredActivationMode activationMode = LayeredActivationMode::HoldRelease;
 };
 
-// ── 讀取與比對 ──────────────────────────────────────────────────────────────
+// ── 一份 profile ────────────────────────────────────────────────────────────
+struct GamepadProfile {
+    std::wstring   id;
+    std::wstring   name;
+    bool           isBuiltIn          = false;
+    bool           isReadOnly         = false;
+    int            cursorSpeedPercent = 100;
+    bool           dpadAutoRepeat     = true;   // D-pad 補 keydown（導覽用）或純鏡像按住（遊戲用）
+    ProfileLayered layered;
+    Bindings       bindings{};
+};
 
-// 從 GamepadProfiles.json 讀取所有 profile；檔案不存在或解析失敗回空 vector
-std::vector<GamepadProfile> LoadGamepadProfiles();
+// ── App → profile 指派 ──────────────────────────────────────────────────────
+struct ProfileAssignment {
+    AppId        appId;
+    std::wstring profileId;
+};
+
+// ── 整個 store ──────────────────────────────────────────────────────────────
+struct GamepadProfileStore {
+    std::wstring                   defaultProfileId;
+    std::vector<GamepadProfile>    profiles;
+    std::vector<ProfileAssignment> assignments;
+};
+
+// ── 讀取與解析 ──────────────────────────────────────────────────────────────
+
+// 從 GamepadProfiles.json 讀取整個 store；檔案不存在或解析失敗回空 store
+GamepadProfileStore LoadGamepadProfileStore();
 
 // 回傳 GamepadProfiles.json 的最後寫入時間（FILETIME 壓成 uint64_t）；不存在回 0
 unsigned long long GetGamepadProfilesLastWriteTime();
@@ -47,9 +77,9 @@ unsigned long long GetGamepadProfilesLastWriteTime();
 // 自跑 exe 的 packaged（Notepad / SnippingTool 等）回空字串
 std::wstring GetForegroundAumid(HWND hwnd);
 
-// 依前景 process 名稱、完整路徑與 HWND 找符合的 profile；未命中回 nullptr。
-// fullPath 為空時直接回 nullptr（強綁定 path、不做 name 通配）。
-const GamepadProfile* FindGamepadProfileForForeground(const std::vector<GamepadProfile>& profiles,
-                                                      const std::wstring& procName,
-                                                      const std::wstring& fullPath,
-                                                      HWND fgHwnd);
+// 解析前景 App 應套用的 profile：先查 assignment，未命中回 defaultProfileId 的 profile。
+// store 內無對應 profile（含 default 都找不到）時回 nullptr。
+const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& store,
+                                                  const std::wstring& procName,
+                                                  const std::wstring& fullPath,
+                                                  HWND fgHwnd);

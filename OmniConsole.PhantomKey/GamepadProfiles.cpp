@@ -264,6 +264,12 @@ namespace json {
         return (int)v->n;
     }
 
+    bool GetBool(const std::shared_ptr<Value>& obj, const wchar_t* key, bool defaultVal = false) {
+        auto v = Get(obj, key);
+        if (!v || v->type != Type::Bool) return defaultVal;
+        return v->b;
+    }
+
 }  // namespace json
 
 // ── modifier 字串 → VK 對照 ───────────────────────────────────────────────
@@ -344,28 +350,80 @@ static Action ParseAction(const std::shared_ptr<json::Value>& obj) {
         a.kind = ActionKind::StickArrows;
     } else if (_wcsicmp(kind.c_str(), L"StickWasd") == 0) {
         a.kind = ActionKind::StickWasd;
+    } else if (_wcsicmp(kind.c_str(), L"TouchKeyboard") == 0) {
+        a.kind = ActionKind::TouchKeyboard;
+        std::wstring vkb = json::GetString(obj, L"vkb", L"Com");
+        a.vkb = (_wcsicmp(vkb.c_str(), L"Osk") == 0) ? VkbMethod::Osk : VkbMethod::Com;
     }
     return a;
 }
 
+// ── 解析小工具 ────────────────────────────────────────────────────────────
+
+// 一個 appId 物件 → AppId；value 為空回 false
+static bool ParseAppId(const std::shared_ptr<json::Value>& v, AppId& out) {
+    if (!v || v->type != json::Type::Object) return false;
+    std::wstring value = json::GetString(v, L"value");
+    if (value.empty()) return false;
+    std::wstring kind = json::GetString(v, L"kind");
+    out.kind     = (_wcsicmp(kind.c_str(), L"aumid") == 0) ? AppId::Kind::Aumid : AppId::Kind::Process;
+    out.value    = value;
+    out.fullPath = json::GetString(v, L"fullPath");
+    return true;
+}
+
+// 一個 profile 物件 → GamepadProfile（id 由呼叫端檢查是否為空）
+static GamepadProfile ParseProfile(const std::shared_ptr<json::Value>& p) {
+    GamepadProfile prof;
+    prof.id                 = json::GetString(p, L"id");
+    prof.name               = json::GetString(p, L"name");
+    prof.isBuiltIn          = json::GetBool(p, L"builtIn");
+    prof.isReadOnly         = json::GetBool(p, L"readOnly");
+    prof.cursorSpeedPercent = json::GetInt(p, L"cursorSpeedPercent", 100);
+    prof.dpadAutoRepeat     = json::GetBool(p, L"dpadAutoRepeat", true);
+
+    auto layeredV = json::Get(p, L"layered");
+    if (layeredV && layeredV->type == json::Type::Object) {
+        prof.layered.enabled = json::GetBool(layeredV, L"enabled");
+        KeyId tk;
+        if (ParseKeyId(json::GetString(layeredV, L"triggerKey"), tk))
+            prof.layered.triggerKey = tk;
+        std::wstring am = json::GetString(layeredV, L"activationMode");
+        prof.layered.activationMode = (_wcsicmp(am.c_str(), L"DoubleTapToggle") == 0)
+            ? LayeredActivationMode::DoubleTapToggle
+            : LayeredActivationMode::HoldRelease;
+    }
+
+    auto bindingsV = json::Get(p, L"bindings");
+    if (bindingsV && bindingsV->type == json::Type::Object) {
+        for (const auto& kv : bindingsV->o) {
+            KeyId id;
+            if (!ParseKeyId(kv.first, id)) continue;
+            if (!kv.second || kv.second->type != json::Type::Object) continue;
+            At(prof.bindings, id) = ParseAction(kv.second);
+        }
+    }
+    return prof;
+}
+
 // ── 公開介面 ──────────────────────────────────────────────────────────────
 
-std::vector<GamepadProfile> LoadGamepadProfiles() {
-    std::vector<GamepadProfile> result;
+GamepadProfileStore LoadGamepadProfileStore() {
+    GamepadProfileStore store;
     auto path = GetProfilesPath();
-    if (path.empty()) return result;
+    if (path.empty()) return store;
 
     // 讀檔（UTF-8）
     std::ifstream ifs(path, std::ios::binary);
-    if (!ifs) return result;
+    if (!ifs) return store;
     std::stringstream ss;
     ss << ifs.rdbuf();
     std::string utf8 = ss.str();
-    if (utf8.empty()) return result;
+    if (utf8.empty()) return store;
 
     // UTF-8 → wstring
     int needed = MultiByteToWideChar(CP_UTF8, 0, utf8.data(), (int)utf8.size(), nullptr, 0);
-    if (needed <= 0) return result;
+    if (needed <= 0) return store;
     std::wstring src;
     src.resize(needed);
     MultiByteToWideChar(CP_UTF8, 0, utf8.data(), (int)utf8.size(), &src[0], needed);
@@ -374,40 +432,36 @@ std::vector<GamepadProfile> LoadGamepadProfiles() {
     auto root = parser.Parse();
     if (!root || root->type != json::Type::Object) {
         Log(L"[GamepadProfiles] JSON parse failed: %s", path.c_str());
-        return result;
+        return store;
     }
+
+    store.defaultProfileId = json::GetString(root, L"defaultProfileId");
 
     auto profilesV = json::Get(root, L"profiles");
-    if (!profilesV || profilesV->type != json::Type::Array) return result;
-
-    for (const auto& p : profilesV->a) {
-        if (!p || p->type != json::Type::Object) continue;
-        GamepadProfile prof;
-
-        auto appIdV = json::Get(p, L"appId");
-        if (!appIdV || appIdV->type != json::Type::Object) continue;
-        std::wstring kind  = json::GetString(appIdV, L"kind");
-        std::wstring value = json::GetString(appIdV, L"value");
-        if (value.empty()) continue;
-        prof.appId.kind     = (_wcsicmp(kind.c_str(), L"aumid") == 0) ? AppId::Kind::Aumid : AppId::Kind::Process;
-        prof.appId.value    = value;
-        prof.appId.fullPath = json::GetString(appIdV, L"fullPath");  // 缺欄位回空字串 → 行為等同 name 通配
-
-        prof.displayName = json::GetString(p, L"displayName");
-
-        auto bindingsV = json::Get(p, L"bindings");
-        if (bindingsV && bindingsV->type == json::Type::Object) {
-            for (const auto& kv : bindingsV->o) {
-                KeyId id;
-                if (!ParseKeyId(kv.first, id)) continue;
-                if (!kv.second || kv.second->type != json::Type::Object) continue;
-                At(prof.bindings, id) = ParseAction(kv.second);
-            }
+    if (profilesV && profilesV->type == json::Type::Array) {
+        for (const auto& p : profilesV->a) {
+            if (!p || p->type != json::Type::Object) continue;
+            GamepadProfile prof = ParseProfile(p);
+            if (prof.id.empty()) continue;
+            store.profiles.push_back(std::move(prof));
         }
-        result.push_back(std::move(prof));
     }
-    Log(L"[GamepadProfiles] Loaded %d profile(s) from %s", (int)result.size(), path.c_str());
-    return result;
+
+    auto assignmentsV = json::Get(root, L"assignments");
+    if (assignmentsV && assignmentsV->type == json::Type::Array) {
+        for (const auto& a : assignmentsV->a) {
+            if (!a || a->type != json::Type::Object) continue;
+            ProfileAssignment asn;
+            if (!ParseAppId(json::Get(a, L"appId"), asn.appId)) continue;
+            asn.profileId = json::GetString(a, L"profileId");
+            if (asn.profileId.empty()) continue;
+            store.assignments.push_back(std::move(asn));
+        }
+    }
+
+    Log(L"[GamepadProfiles] Loaded %d profile(s), %d assignment(s) from %s",
+        (int)store.profiles.size(), (int)store.assignments.size(), path.c_str());
+    return store;
 }
 
 unsigned long long GetGamepadProfilesLastWriteTime() {
@@ -490,43 +544,58 @@ static std::wstring NormalizePath(const std::wstring& path) {
     return out;
 }
 
-const GamepadProfile* FindGamepadProfileForForeground(const std::vector<GamepadProfile>& profiles,
-                                           const std::wstring& procName,
-                                           const std::wstring& fullPath,
-                                           HWND fgHwnd) {
-    if (procName.empty()) return nullptr;
+// 以 id 在 store 內找 profile；找不到回 nullptr
+static const GamepadProfile* FindProfileById(const GamepadProfileStore& store, const std::wstring& id) {
+    if (id.empty()) return nullptr;
+    for (const auto& p : store.profiles)
+        if (_wcsicmp(p.id.c_str(), id.c_str()) == 0) return &p;
+    return nullptr;
+}
 
-    // ── 取前景 packaged AUMID（涵蓋兩種型態）──
-    //   1. ApplicationFrameHost 宿主（Xbox / 設定 / 小算盤）：列舉子視窗找 CoreWindow，取宿主 pid
-    //   2. 自跑 exe 的 packaged（Notepad / SnippingTool / WindowsTerminal / OmniConsole 等）：直接對前景 pid 取
-    // 桌面 process：GetApplicationUserModelId 回 APPMODEL_ERROR_NO_PACKAGE → aumid 空字串，落到下方 process 名稱比對
-    DWORD aumidPid = 0;
-    GetWindowThreadProcessId(fgHwnd, &aumidPid);
-    if (_wcsicmp(procName.c_str(), L"ApplicationFrameHost") == 0) {
-        DWORD hostedPid = GetHostedUwpPid(fgHwnd);
-        if (hostedPid != 0) aumidPid = hostedPid;
-    }
-    std::wstring aumid = GetAumidFromProcess(aumidPid);
-    if (!aumid.empty()) {
-        for (const auto& p : profiles) {
-            if (p.appId.kind == AppId::Kind::Aumid &&
-                _wcsicmp(p.appId.value.c_str(), aumid.c_str()) == 0) {
-                return &p;
+const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& store,
+                                                  const std::wstring& procName,
+                                                  const std::wstring& fullPath,
+                                                  HWND fgHwnd) {
+    std::wstring assignedId;
+
+    if (!procName.empty()) {
+        // ── 取前景 packaged AUMID（涵蓋兩種型態）──
+        //   1. ApplicationFrameHost 宿主（Xbox / 設定 / 小算盤）：列舉子視窗找 CoreWindow，取宿主 pid
+        //   2. 自跑 exe 的 packaged（Notepad / SnippingTool / WindowsTerminal / OmniConsole 等）：直接對前景 pid 取
+        DWORD aumidPid = 0;
+        GetWindowThreadProcessId(fgHwnd, &aumidPid);
+        if (_wcsicmp(procName.c_str(), L"ApplicationFrameHost") == 0) {
+            DWORD hostedPid = GetHostedUwpPid(fgHwnd);
+            if (hostedPid != 0) aumidPid = hostedPid;
+        }
+        std::wstring aumid = GetAumidFromProcess(aumidPid);
+
+        if (!aumid.empty()) {
+            // 取到 AUMID：只比 kind=Aumid 的 assignment，未命中不回退 process 名稱
+            for (const auto& asn : store.assignments) {
+                if (asn.appId.kind == AppId::Kind::Aumid &&
+                    _wcsicmp(asn.appId.value.c_str(), aumid.c_str()) == 0) {
+                    assignedId = asn.profileId;
+                    break;
+                }
+            }
+        } else if (!fullPath.empty()) {
+            // Win32：強綁定 path，procName + fullPath 雙件命中的 assignment 才算
+            std::wstring fgPathNorm = NormalizePath(fullPath);
+            for (const auto& asn : store.assignments) {
+                if (asn.appId.kind != AppId::Kind::Process) continue;
+                if (asn.appId.fullPath.empty()) continue;
+                if (_wcsicmp(asn.appId.value.c_str(), procName.c_str()) != 0) continue;
+                if (NormalizePath(asn.appId.fullPath) == fgPathNorm) {
+                    assignedId = asn.profileId;
+                    break;
+                }
             }
         }
-        // packaged 取到 AUMID 但 profile 未命中 → 不再回退到 process 名稱（避免誤命中同名 Win32 profile）
-        return nullptr;
     }
 
-    // Win32：強綁定 path，只認 procName + fullPath 雙件命中（不做 name 通配回退）
-    // 舊 name-only profile 在 store 裡仍會被讀進來，但這裡比對時忽略 — 主程式 Editor 開啟時自動升級為 path-bound
-    if (fullPath.empty()) return nullptr;
-    std::wstring fgPathNorm = NormalizePath(fullPath);
-    for (const auto& p : profiles) {
-        if (p.appId.kind != AppId::Kind::Process) continue;
-        if (p.appId.fullPath.empty()) continue;
-        if (_wcsicmp(p.appId.value.c_str(), procName.c_str()) != 0) continue;
-        if (NormalizePath(p.appId.fullPath) == fgPathNorm) return &p;
-    }
-    return nullptr;
+    // 命中 assignment → 用其 profile；未命中 → 回退 defaultProfileId 的 profile
+    if (const GamepadProfile* assigned = FindProfileById(store, assignedId))
+        return assigned;
+    return FindProfileById(store, store.defaultProfileId);
 }

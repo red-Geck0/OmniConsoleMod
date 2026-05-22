@@ -248,7 +248,7 @@
 
             <!-- 主要導覽項目 -->
             <NavigationView.MenuItems>
-                <NavigationViewItem x:Uid="Nav_General" Tag="General" IsSelected="True" FontSize="24">
+                <NavigationViewItem x:Uid="Nav_General" Tag="General" IsSelected="True" FontSize="24" Margin="0,32,0,0">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xF0E2;" />
                     </NavigationViewItem.Icon>
@@ -1121,13 +1121,12 @@
                 </Grid>
             </NavigationView.Content>
 
-            <!-- 底部選單項目：版本號與作者顯示（不可選取）+ 關於頁入口（可選取） -->
+            <!-- 底部選單項目：版本號顯示（不可選取）+ 關於頁入口（可選取） -->
             <NavigationView.FooterMenuItems>
                 <NavigationViewItem x:Name="VersionItem" IsEnabled="False" SelectsOnInvoked="False">
                     <NavigationViewItem.Content>
                         <StackPanel>
                             <TextBlock x:Name="VersionText" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="20"/>
-                            <TextBlock Text="8bit2qubit (野理)" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="16"/>
                         </StackPanel>
                     </NavigationViewItem.Content>
                 </NavigationViewItem>

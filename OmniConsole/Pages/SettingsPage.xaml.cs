@@ -422,6 +422,40 @@ namespace OmniConsole.Pages
                 {
                     InitGamepadMappingPage();
                 }
+
+                // 切換頁面後把焦點移到該頁首個控制項，避免焦點滯留在側邊選單。
+                // 以 Low 優先序排入佇列，確保新頁面已完成版面配置後才設定焦點。
+                DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+                    () => FocusFirstElementForPage(tag));
+            }
+        }
+
+        /// <summary>切換設定頁後，把控制器焦點移到該頁的首個控制項。</summary>
+        private void FocusFirstElementForPage(string tag)
+        {
+            switch (tag)
+            {
+                case "General":
+                    (PlatformGridView.ContainerFromIndex(0) as UIElement)?.Focus(FocusState.Programmatic);
+                    break;
+                case "Advanced":
+                    if (DownloadInstallButton.Visibility == Visibility.Visible && DownloadInstallButton.IsEnabled)
+                        DownloadInstallButton.Focus(FocusState.Programmatic);
+                    else
+                        CheckForUpdatesButton.Focus(FocusState.Programmatic);
+                    break;
+                case "GamepadMapping":
+                    (FocusManager.FindFirstFocusableElement(GamepadMappingPage) as UIElement)?.Focus(FocusState.Programmatic);
+                    break;
+                case "Troubleshoot":
+                    ResetGameBarButton.Focus(FocusState.Programmatic);
+                    break;
+                case "About":
+                    CopyAboutButton.Focus(FocusState.Programmatic);
+                    break;
+                default:
+                    (FocusManager.FindFirstFocusableElement(this) as UIElement)?.Focus(FocusState.Programmatic);
+                    break;
             }
         }
 

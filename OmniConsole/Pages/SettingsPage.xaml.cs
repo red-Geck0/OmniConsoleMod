@@ -1582,10 +1582,16 @@ namespace OmniConsole.Pages
             SettingsNav.IsPaneOpen = true;
         }
 
+        // 展開的 pane 比 compact rail 多出一段內建頂部留白，所以首個導覽項目的頂部
+        // 邊距需隨 pane 狀態切換，讓「漢堡 ↔ 第一個項目」的間距在兩種狀態下一致。
+        private const double NavFirstItemTopMarginOpen = 0;
+        private const double NavFirstItemTopMarginClosed = 32;
+
         /// <summary>側邊選單展開：導覽項目恢復可聚焦，並把焦點移到目前選取項目。</summary>
         private void SettingsNav_PaneOpened(NavigationView sender, object args)
         {
             UpdateNavItemFocusability(true);
+            SetFirstNavItemTopMargin(NavFirstItemTopMarginOpen);
             DispatcherQueue.TryEnqueue(() =>
                 (SettingsNav.SelectedItem as NavigationViewItem)?.Focus(FocusState.Programmatic));
         }
@@ -1594,6 +1600,14 @@ namespace OmniConsole.Pages
         private void SettingsNav_PaneClosed(NavigationView sender, object args)
         {
             UpdateNavItemFocusability(false);
+            SetFirstNavItemTopMargin(NavFirstItemTopMarginClosed);
+        }
+
+        /// <summary>設定首個導覽項目的頂部邊距（依 pane 開合狀態調整）。</summary>
+        private void SetFirstNavItemTopMargin(double top)
+        {
+            if (SettingsNav.MenuItems.FirstOrDefault() is NavigationViewItem first)
+                first.Margin = new Thickness(0, top, 0, 0);
         }
 
         /// <summary>

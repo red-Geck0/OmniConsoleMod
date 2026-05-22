@@ -1126,7 +1126,7 @@
                 <NavigationViewItem x:Name="VersionItem" IsEnabled="False" SelectsOnInvoked="False">
                     <NavigationViewItem.Content>
                         <StackPanel>
-                            <TextBlock x:Name="VersionText" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="20"/>
+                            <TextBlock x:Name="VersionText" Foreground="{ThemeResource TextFillColorTertiaryBrush}" FontSize="14"/>
                         </StackPanel>
                     </NavigationViewItem.Content>
                 </NavigationViewItem>

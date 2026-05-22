@@ -8,7 +8,7 @@ namespace OmniConsole.PhantomLink.Services
     /// IID 由 Build\GeneratePhantomBridgeIIDs.ps1 從 PhantomBridge.0.h 解析後寫入 PhantomBridgeIIDs.g.cs。
     /// 方法宣告順序需與 IDL（PhantomBridgeFactory.idl）的 vtable 順序逐位相符：
     ///   SendTaskView → OpenSettings → TriggerSteamInGameOverlay → OpenXboxLibrary
-    ///   → GetForegroundAppInfo → OpenProfileEditor
+    ///   → GetForegroundAppInfo → OpenProfileEditor → SetProfileAssignment
     /// </summary>
     [ComImport]
     [Guid(PhantomBridgeIIDs.IPhantomBridgeFactory)]
@@ -27,8 +27,10 @@ namespace OmniConsole.PhantomLink.Services
             [Out, MarshalAs(UnmanagedType.HString)] out string displayName,
             [Out] out bool isElevated);
         void OpenProfileEditor(
+            [MarshalAs(UnmanagedType.HString)] string profileId);
+        void SetProfileAssignment(
             [MarshalAs(UnmanagedType.HString)] string appId,
-            [MarshalAs(UnmanagedType.HString)] string name,
+            [MarshalAs(UnmanagedType.HString)] string profileId,
             [MarshalAs(UnmanagedType.HString)] string fullPath);
     }
 

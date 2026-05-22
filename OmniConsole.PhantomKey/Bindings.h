@@ -37,11 +37,13 @@ enum class ActionKind : int {
     StickCursor,     // 此搖桿 → 游標移動
     StickScroll,     // 此搖桿 → 垂直/水平捲動
     StickArrows,     // 此搖桿 → 方向鍵
-    StickWasd        // 此搖桿 → WASD
+    StickWasd,       // 此搖桿 → WASD
+    TouchKeyboard    // 開合螢幕鍵盤（觸控鍵盤 / osk.exe）
 };
 
 enum class MouseWhich : int { Left = 0, Right, Middle };
 enum class WheelDir   : int { Up = 0, Down, Left, Right };
+enum class VkbMethod  : int { Com = 0, Osk };
 
 // ── Action：一個輸入位的映射 ─────────────────────────────────────────────────
 struct Action {
@@ -50,6 +52,7 @@ struct Action {
     WORD              vk    = 0;                     // KeyTap / KeyHold / KeyCombo 用
     MouseWhich        which = MouseWhich::Left;      // MouseButton 用
     WheelDir          dir   = WheelDir::Up;          // MouseWheel 用
+    VkbMethod         vkb   = VkbMethod::Com;        // TouchKeyboard 用
 };
 
 using Bindings = std::array<Action, kKeyIdCount>;
@@ -74,3 +77,4 @@ inline Action ActStickCursor()       { Action a; a.kind = ActionKind::StickCurso
 inline Action ActStickScroll()       { Action a; a.kind = ActionKind::StickScroll; return a; }
 inline Action ActStickArrows()       { Action a; a.kind = ActionKind::StickArrows; return a; }
 inline Action ActStickWasd()         { Action a; a.kind = ActionKind::StickWasd;   return a; }
+inline Action ActTouchKeyboard(VkbMethod m) { Action a; a.kind = ActionKind::TouchKeyboard; a.vkb = m; return a; }

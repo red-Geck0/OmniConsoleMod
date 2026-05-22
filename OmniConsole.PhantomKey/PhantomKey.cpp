@@ -63,8 +63,8 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     unsigned long long lastIniMTime = GetSharedIniLastWriteTime();
     unsigned long long lastSteamVdfMTime = GetSteamLocalConfigLastWriteTime();
 
-    // 載入玩家自訂 per-App profile（GamepadProfiles.json，與 Shared.ini 同目錄）
-    std::vector<GamepadProfile> appProfiles = LoadGamepadProfiles();
+    // 載入手把映射 profile store（GamepadProfiles.json，與 Shared.ini 同目錄）
+    GamepadProfileStore profileStore = LoadGamepadProfileStore();
     unsigned long long lastProfilesMTime = GetGamepadProfilesLastWriteTime();
 
     // FSE 狀態查詢函式：載入成功時主迴圈會在偵測到 FSE 退出時結束 PhantomKey；
@@ -164,7 +164,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
         if (curProfilesMTime != lastProfilesMTime) {
             Log(L"[PhantomKey] GamepadProfiles.json changed, reloading profiles.");
             lastProfilesMTime = curProfilesMTime;
-            appProfiles = LoadGamepadProfiles();
+            profileStore = LoadGamepadProfileStore();
             MouseMode::Reset();
         }
 
@@ -180,27 +180,19 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
         }
 
         // Mouse Mode 決策順序（每 tick）：
-        //   1. MouseMode==Off / 內建廠商映射       → 不介入
-        //   2. IsMouseModeForceExcluded(P)         → 不介入（OmniConsole 自己 / Playnite / SteamBigPicture / Xbox / Armoury / Windows 設定 / Microsoft Store / FSE Task View）
-        //   3. 玩家自訂 profile 命中               → 啟用，走 TickWithBindings（DPad 純鏡像按住，給遊戲）
-        //   4. MouseMode==Auto && 內建白名單       → 啟用，走 Tick（內建版面，DPad 補 keydown，給導覽）
-        //   5. MouseMode==ForceOn                  → 啟用，走 Tick（內建版面，DPad 補 keydown，給導覽）
-        //   6. 否則                                → 不介入
+        //   1. MouseMode 關閉 / 裝置內建廠商映射 → 不介入
+        //   2. IsMouseModeForceExcluded(P)       → 不介入（系統黑名單 Tier-1：
+        //        OmniConsole 自己 / Playnite / SteamBigPicture / Xbox / Armoury /
+        //        Windows 設定 / Microsoft Store / FSE Task View）
+        //   3. 否則 → 解析前景應套用的 profile（assignment 命中則用其 profile，
+        //             否則用 defaultProfileId 的 profile）→ 啟用，走 Tick
         bool mouseModeActive = false;
-        const GamepadProfile* matchedProfile = nullptr;
-        bool useProfile = false;
-        if (!config.hasBuiltInGamepadMapping &&
-            config.mouseMode != MouseModeState::Off &&
+        const GamepadProfile* activeProfile = nullptr;
+        if (config.mouseModeEnabled &&
+            !config.hasBuiltInGamepadMapping &&
             !IsMouseModeForceExcluded(currentFg)) {
-            matchedProfile = FindGamepadProfileForForeground(appProfiles, currentFg, currentFgPath, GetForegroundHwnd());
-            if (matchedProfile) {
-                mouseModeActive = true;
-                useProfile = true;
-            } else if (config.mouseMode == MouseModeState::Auto && IsMouseModeTarget(currentFg)) {
-                mouseModeActive = true;
-            } else if (config.mouseMode == MouseModeState::ForceOn) {
-                mouseModeActive = true;
-            }
+            activeProfile = ResolveProfileForForeground(profileStore, currentFg, currentFgPath, GetForegroundHwnd());
+            if (activeProfile) mouseModeActive = true;
         }
 
         // 自適應輪詢頻率
@@ -270,14 +262,9 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
 
         // ── Mouse Mode：前景為目標程式時將手把映射為滑鼠+鍵盤 ──
         // 檔案總管對 D-pad 已有原生反應，跳過 D-pad 映射避免雙跳；其他鍵仍由 Mouse Mode 處理
-        if (mouseModeActive) {
+        if (mouseModeActive && activeProfile) {
             bool skipDpad = ForegroundHandlesDpadNatively(currentFg);
-            if (useProfile && matchedProfile) {
-                MouseMode::TickWithBindings(activePad, matchedProfile->bindings,
-                                            config.cursorSpeedPercent, skipDpad);
-            } else {
-                MouseMode::Tick(activePad, config, skipDpad);
-            }
+            MouseMode::Tick(activePad, *activeProfile, skipDpad);
         }
     }
 

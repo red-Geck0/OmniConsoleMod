@@ -231,6 +231,9 @@ namespace {
         h = {};
     }
 
+    // 開合螢幕鍵盤（觸控鍵盤 / osk.exe）；定義於後方
+    void ToggleTouchKeyboard(VkbMethod method);
+
     // 邊緣觸發：依 ActionKind 推進，僅在 changed=true 時動作
     // changed=true 表示此 tick 按鈕狀態翻轉；down=true 表示翻轉後為按下
     void ExecuteButtonAction(KeyId k, const Action& a, bool down, bool changed) {
@@ -289,6 +292,11 @@ namespace {
                     }
                     SendMouseWheel(delta, horizontal);
                 }
+                return;
+
+            case ActionKind::TouchKeyboard:
+                // 邊緣觸發：按下時開合螢幕鍵盤一次
+                if (changed && down) ToggleTouchKeyboard(a.vkb);
                 return;
 
             default:
@@ -351,53 +359,6 @@ namespace {
         out[3] = vx >=  kDirectionThreshold;   // right
     }
 
-    // ── 內建版面表：MakeOmniNav / MakeClassic ────────────────────────────────
-
-    Bindings MakeOmniNav() {
-        Bindings b{};
-        At(b, KeyId::A)         = ActMouseBtn(MouseWhich::Left);
-        At(b, KeyId::B)         = ActMouseBtn(MouseWhich::Right);
-        At(b, KeyId::X)         = ActKeyTap(VK_NEXT);   // PageDown
-        At(b, KeyId::Y)         = ActKeyTap(VK_PRIOR);  // PageUp
-        At(b, KeyId::LB)        = ActKeyCombo({ VK_CONTROL, VK_SHIFT }, VK_TAB);
-        At(b, KeyId::RB)        = ActKeyCombo({ VK_CONTROL }, VK_TAB);
-        At(b, KeyId::LT)        = ActKeyTap(VK_ESCAPE);
-        At(b, KeyId::RT)        = ActKeyTap(VK_RETURN);
-        At(b, KeyId::LS)        = ActKeyCombo({ VK_SHIFT }, VK_TAB);
-        At(b, KeyId::RS)        = ActKeyTap(VK_TAB);
-        At(b, KeyId::DPadUp)    = ActKeyTap(VK_UP);
-        At(b, KeyId::DPadDown)  = ActKeyTap(VK_DOWN);
-        At(b, KeyId::DPadLeft)  = ActKeyTap(VK_LEFT);
-        At(b, KeyId::DPadRight) = ActKeyTap(VK_RIGHT);
-        At(b, KeyId::LStick)    = ActStickCursor();
-        At(b, KeyId::RStick)    = ActStickScroll();
-        return b;
-    }
-
-    Bindings MakeClassic() {
-        Bindings b{};
-        At(b, KeyId::A)         = ActKeyTap(VK_RETURN);
-        At(b, KeyId::B)         = ActKeyTap(VK_ESCAPE);
-        At(b, KeyId::X)         = ActKeyTap(VK_NEXT);
-        At(b, KeyId::Y)         = ActKeyTap(VK_PRIOR);
-        At(b, KeyId::LB)        = ActKeyTap(VK_TAB);
-        At(b, KeyId::RB)        = ActMouseBtn(MouseWhich::Left);
-        At(b, KeyId::LT)        = ActKeyCombo({ VK_SHIFT }, VK_TAB);
-        At(b, KeyId::RT)        = ActMouseBtn(MouseWhich::Right);
-        At(b, KeyId::LS)        = ActNone();
-        At(b, KeyId::RS)        = ActNone();
-        At(b, KeyId::DPadUp)    = ActKeyTap(VK_UP);
-        At(b, KeyId::DPadDown)  = ActKeyTap(VK_DOWN);
-        At(b, KeyId::DPadLeft)  = ActKeyTap(VK_LEFT);
-        At(b, KeyId::DPadRight) = ActKeyTap(VK_RIGHT);
-        At(b, KeyId::LStick)    = ActStickScroll();
-        At(b, KeyId::RStick)    = ActStickCursor();
-        return b;
-    }
-
-    const Bindings& OmniNavTable() { static const Bindings t = MakeOmniNav(); return t; }
-    const Bindings& ClassicTable() { static const Bindings t = MakeClassic(); return t; }
-
     // ── RunBindings：每 tick 主流程 ──────────────────────────────────────────
 
     // KeyId → XInput button mask（按鈕類；LT/RT/搖桿類另走專用路徑）
@@ -435,6 +396,78 @@ namespace {
         outVks[2] = left.vk;
         outVks[3] = right.vk;
         return true;
+    }
+
+    // ── Layered Mode 狀態機 ──────────────────────────────────────────────────
+
+    // HoldRelease：按住 triggerKey 達此門檻（毫秒）才令 layer 作用
+    constexpr ULONGLONG kLayeredHoldMs = 1600;
+    // DoubleTapToggle：兩次 tap 須落在此時窗（毫秒）內才算雙擊
+    constexpr ULONGLONG kDoubleTapWindowMs = 400;
+
+    struct LayeredRuntime {
+        bool      active          = false;  // layer 目前是否作用
+        bool      triggerPrevDown = false;  // triggerKey 上一 tick 是否按下
+        ULONGLONG holdStartMs     = 0;      // HoldRelease：triggerKey 按下的時刻
+        ULONGLONG lastTapMs       = 0;      // DoubleTapToggle：上一次 tap（放開）的時刻
+    };
+    LayeredRuntime layered = {};
+
+    // 釋放所有「壓著」狀態與方向組、清空游標/滾輪累積（不動 prevButtons / layered）
+    void ReleaseHeldInputs() {
+        cursorAccumX = cursorAccumY = 0.0f;
+        wheelAccumX  = wheelAccumY  = 0.0f;
+        for (auto& h : heldButton) {
+            if (h.active && h.vk) SendVKDownUp(h.vk, false);
+            h = {};
+        }
+        for (int g = 0; g < RG_Count; ++g)
+            for (int i = 0; i < 4; ++i) {
+                DirectionalState& s = directionalState[g][i];
+                if (s.active) {
+                    SendVKDownUp(kArrowVks[i], false);
+                    SendVKDownUp(kWasdVks[i],  false);
+                }
+                s = {};
+            }
+    }
+
+    // triggerKey 此 tick 是否按下（搖桿擺動類不可作 trigger，一律回 false）
+    bool IsKeyIdDown(KeyId k, const XINPUT_GAMEPAD& pad) {
+        if (k == KeyId::LT) return pad.bLeftTrigger  >= kTriggerThreshold;
+        if (k == KeyId::RT) return pad.bRightTrigger >= kTriggerThreshold;
+        WORD mask = XInputMaskOf(k);
+        return mask != 0 && (pad.wButtons & mask) != 0;
+    }
+
+    // 更新 Layered Mode 狀態；profile 啟用 Layered 時每 tick 呼叫
+    void UpdateLayeredMode(const GamepadProfile& profile, const XINPUT_GAMEPAD& pad) {
+        const bool      down = IsKeyIdDown(profile.layered.triggerKey, pad);
+        const ULONGLONG now  = GetTickCount64();
+
+        if (profile.layered.activationMode == LayeredActivationMode::HoldRelease) {
+            if (down) {
+                if (!layered.triggerPrevDown) layered.holdStartMs = now;  // 剛按下
+                layered.active = (now - layered.holdStartMs >= kLayeredHoldMs);
+            } else {
+                layered.active = false;
+            }
+        } else {  // DoubleTapToggle
+            if (!down && layered.triggerPrevDown) {  // 剛放開 = 一次 tap
+                if (layered.lastTapMs != 0 && now - layered.lastTapMs <= kDoubleTapWindowMs) {
+                    layered.active    = !layered.active;  // 雙擊命中 → 切換
+                    layered.lastTapMs = 0;
+                } else {
+                    layered.lastTapMs = now;
+                }
+            }
+        }
+        layered.triggerPrevDown = down;
+    }
+
+    // ── 螢幕鍵盤開合（Phase 4 接上實作；目前為佔位）──────────────────────────
+    void ToggleTouchKeyboard(VkbMethod /*method*/) {
+        // TODO(Phase 4)：Com → TabTip 觸控鍵盤；Osk → osk.exe。
     }
 
     void RunBindings(const XINPUT_GAMEPAD& pad, const Bindings& bindings,
@@ -547,43 +580,33 @@ namespace {
 
 namespace MouseMode {
 
-    const Bindings& BuiltInBindings(const wchar_t* layoutName) {
-        if (layoutName && _wcsicmp(layoutName, L"Classic") == 0) return ClassicTable();
-        return OmniNavTable();
-    }
-
-    void Tick(const XINPUT_GAMEPAD& pad, const AppConfig& cfg, bool skipDpad) {
-        const Bindings& b = BuiltInBindings(cfg.mouseModeLayout.c_str());
-        // 內建版面服務導覽類前景（瀏覽器/Epic 等），DPad 走補 keydown 路徑
-        RunBindings(pad, b, cfg.cursorSpeedPercent, skipDpad, /*repeatKeyDown*/ true);
-    }
-
-    void TickWithBindings(const XINPUT_GAMEPAD& pad, const Bindings& bindings,
-                          int cursorSpeedPercent, bool skipDpad) {
-        // 玩家自訂 profile 主要服務遊戲，DPad 走純鏡像按住路徑（實測：補 keydown 會導致遊戲動作卡頓與選單雙觸發）
-        RunBindings(pad, bindings, cursorSpeedPercent, skipDpad, /*repeatKeyDown*/ false);
+    void Tick(const XINPUT_GAMEPAD& pad, const GamepadProfile& profile, bool skipDpad) {
+        if (profile.layered.enabled) {
+            const bool wasActive = layered.active;
+            UpdateLayeredMode(profile, pad);
+            if (!layered.active) {
+                // layer 未作用：不送出映射。剛從作用切回未作用時釋放壓著狀態；
+                // 維持輸入基準（prevButtons 等）為現值，避免 layer 重新作用時誤判邊緣。
+                if (wasActive) ReleaseHeldInputs();
+                prevButtons = pad.wButtons;
+                prevLT      = pad.bLeftTrigger;
+                prevRT      = pad.bRightTrigger;
+                return;
+            }
+            // layer 作用中：套用映射，但 triggerKey 保留作切換用，其映射不送出
+            Bindings b = profile.bindings;
+            At(b, profile.layered.triggerKey) = ActNone();
+            RunBindings(pad, b, profile.cursorSpeedPercent, skipDpad, profile.dpadAutoRepeat);
+            return;
+        }
+        RunBindings(pad, profile.bindings, profile.cursorSpeedPercent, skipDpad, profile.dpadAutoRepeat);
     }
 
     void Reset() {
-        cursorAccumX = cursorAccumY = 0.0f;
-        wheelAccumX  = wheelAccumY  = 0.0f;
+        ReleaseHeldInputs();
         prevButtons = 0;
         prevLT = prevRT = 0;
-        // 釋放所有「壓著」狀態
-        for (auto& h : heldButton) {
-            if (h.active && h.vk) SendVKDownUp(h.vk, false);
-            h = {};
-        }
-        for (int g = 0; g < RG_Count; ++g)
-            for (int i = 0; i < 4; ++i) {
-                DirectionalState& s = directionalState[g][i];
-                // 方向鍵與 WASD 兩組對應到 4 個 vk，都送 keyup
-                if (s.active) {
-                    SendVKDownUp(kArrowVks[i], false);
-                    SendVKDownUp(kWasdVks[i],  false);
-                }
-                s = {};
-            }
+        layered = {};
     }
 
 }  // namespace MouseMode

@@ -857,6 +857,9 @@
   <data name="GamepadMappingTitle.Text" xml:space="preserve">
     <value>貓又</value>
   </data>
+  <data name="GamepadProfileBadge_Default" xml:space="preserve">
+    <value>預設</value>
+  </data>
   <data name="GamepadMappingDescription.Text" xml:space="preserve">
     <value>貓又願意為你的手把施一道咒，為每個程式召喚出最順手的設定。</value>
   </data>

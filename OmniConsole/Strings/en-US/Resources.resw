@@ -857,6 +857,9 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   <data name="GamepadMappingTitle.Text" xml:space="preserve">
     <value>Nekomata</value>
   </data>
+  <data name="GamepadProfileBadge_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
   <data name="GamepadMappingDescription.Text" xml:space="preserve">
     <value>Nekomata will weave a charm for your gamepad, conjuring the perfect bindings for each app.</value>
   </data>

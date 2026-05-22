@@ -108,6 +108,9 @@ namespace OmniConsole
                 SettingsService.SyncPhantomKeyStore();
             }
 
+            // 確保手把映射 profile 檔存在（含三個內建 profile），供 PhantomKey 讀取
+            GamepadProfileStore.EnsureInitialized();
+
             // 待續更新優先：偵測到中斷的更新時跳過整段 FSE 引導（不彈系統「重新啟動以提升效能」對話方塊），
             // 直接開設定頁並彈出「是否繼續更新？」對話方塊。
             var pending = UpdateCheckService.GetPendingUpdateState();

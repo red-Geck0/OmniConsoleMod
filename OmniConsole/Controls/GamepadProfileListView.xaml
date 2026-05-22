@@ -32,18 +32,30 @@
                           Background="Transparent">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="local:GamepadProfileRow">
-                            <Grid Padding="8,4">
+                            <Grid Padding="8,6">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
-                                    <TextBlock Text="{x:Bind DisplayName}" FontSize="16" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text="{x:Bind SubText}" FontSize="12" FontFamily="Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                                <Button Grid.Column="1"
+                                <TextBlock Grid.Column="0"
+                                           Text="{x:Bind Name}"
+                                           FontSize="16"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <Border Grid.Column="1"
+                                        Visibility="{x:Bind BadgeVisibility}"
+                                        Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                        CornerRadius="4"
+                                        Padding="8,2"
+                                        Margin="8,0"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind Badge}" FontSize="12"/>
+                                </Border>
+                                <Button Grid.Column="2"
                                         Click="DeleteItemButton_Click"
-                                        Tag="{x:Bind AppId}"
+                                        Tag="{x:Bind Id}"
+                                        Visibility="{x:Bind DeleteVisibility}"
                                         Background="Transparent"
                                         BorderThickness="0"
                                         Padding="8">
@@ -54,29 +66,6 @@
                     </ListView.ItemTemplate>
                 </ListView>
             </Border>
-
-            <StackPanel x:Name="EmptyState"
-                        Spacing="16"
-                        HorizontalAlignment="Center"
-                        Visibility="Collapsed"
-                        SizeChanged="EmptyState_SizeChanged">
-                <Border x:Name="MascotBorder"
-                        CornerRadius="24"
-                        HorizontalAlignment="Center"
-                        Visibility="Collapsed">
-                    <Image x:Name="MascotImage"
-                           Stretch="Fill"
-                           HorizontalAlignment="Stretch"
-                           VerticalAlignment="Stretch"/>
-                </Border>
-                <TextBlock x:Name="EmptyHint"
-                           x:Uid="GamepadMappingEmptyHint"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           FontSize="14"
-                           TextWrapping="Wrap"
-                           TextAlignment="Center"
-                           HorizontalAlignment="Center"/>
-            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

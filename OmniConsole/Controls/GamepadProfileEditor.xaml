@@ -18,8 +18,9 @@
                        TextWrapping="Wrap"
                        Visibility="Collapsed"/>
 
-            <!-- 可編輯區：唯讀 profile 時整區 IsEnabled=false -->
-            <StackPanel x:Name="EditorRoot" Spacing="16">
+            <!-- 可編輯區：唯讀 profile 時整區 IsEnabled=false（ContentControl 才有 IsEnabled） -->
+            <ContentControl x:Name="EditorRoot" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <StackPanel Spacing="16">
 
                 <!-- 頁首：profile 名稱 -->
                 <StackPanel Spacing="4">
@@ -370,6 +371,7 @@
             </Border>
 
             </StackPanel>
+            </ContentControl>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

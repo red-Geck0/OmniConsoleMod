@@ -80,9 +80,8 @@ namespace OmniConsole.Pages
 
         private const int SW_HIDE = 0;
 
-        // 手把映射編輯器待辦：從 Protocol 進來時暫存 appId / displayName，ShowSettings 取出
-        private OmniConsole.Models.AppId? _pendingEditAppId;
-        private string _pendingEditDisplayName = string.Empty;
+        // 手把映射編輯器待辦：從 Protocol 進來時暫存 profileId，ShowSettings 取出
+        private string? _pendingEditProfileId;
 
         public SettingsPage()
         {
@@ -103,7 +102,7 @@ namespace OmniConsole.Pages
         /// <summary>掛 GamepadProfileListView / GamepadProfileEditor 的事件路由（編輯／關閉／刪除／子對話方塊通知）。</summary>
         private void WireGamepadMappingControls()
         {
-            GamepadProfileList.EditRequested += (s, appId) => OpenEditorFor(appId, string.Empty);
+            GamepadProfileList.EditRequested += (s, profileId) => OpenEditorFor(profileId);
             GamepadProfileEditor.Closed += (s, e) => CloseEditor();
             GamepadProfileEditor.Deleted += (s, e) => CloseEditor();
 
@@ -116,10 +115,10 @@ namespace OmniConsole.Pages
             GamepadProfileList.DialogActiveChanged += onDialogActive;
         }
 
-        /// <summary>從 LocalSettings 取 Protocol 進來時暫存的 appId / displayName；取出後立刻刪除。</summary>
+        /// <summary>從 LocalSettings 取 Protocol 進來時暫存的 profileId；取出後立刻刪除。</summary>
         private void ConsumePendingEditProfileRequest()
         {
-            PendingEditProfileService.TryConsume(out _pendingEditAppId, out _pendingEditDisplayName);
+            _pendingEditProfileId = PendingEditProfileService.TryConsume();
         }
 
         /// <summary>進入手把映射分頁的初始化：更新清單 → 若有 Protocol 帶入則直接開編輯器、否則顯清單。</summary>
@@ -127,13 +126,11 @@ namespace OmniConsole.Pages
         {
             try { GamepadProfileList.Refresh(); } catch { }
 
-            if (_pendingEditAppId != null && !OmniConsole.Services.GamepadProfileStore.IsBlacklisted(_pendingEditAppId))
+            if (!string.IsNullOrEmpty(_pendingEditProfileId))
             {
-                var id = _pendingEditAppId;
-                var name = _pendingEditDisplayName;
-                _pendingEditAppId = null;
-                _pendingEditDisplayName = string.Empty;
-                OpenEditorFor(id, name);
+                var id = _pendingEditProfileId;
+                _pendingEditProfileId = null;
+                OpenEditorFor(id);
                 return;
             }
 
@@ -142,12 +139,12 @@ namespace OmniConsole.Pages
             GamepadProfileList.FocusList();
         }
 
-        /// <summary>切到編輯器：載入目標 profile（不存在則新建套 OmniNav）→ 切 VSM → 更新提示按鈕。</summary>
-        private void OpenEditorFor(OmniConsole.Models.AppId appId, string displayName)
+        /// <summary>切到編輯器：載入目標 profile（profileId 為 null 則新建）→ 切 VSM → 更新提示按鈕。</summary>
+        private void OpenEditorFor(string? profileId)
         {
             try
             {
-                GamepadProfileEditor.Load(appId, displayName);
+                GamepadProfileEditor.Load(profileId);
                 VisualStateManager.GoToState(this, "GamepadMappingEditorVisible", false);
                 UpdateGamepadHints();
             }
@@ -334,9 +331,9 @@ namespace OmniConsole.Pages
 
             StartGamepadPolling();
 
-            // 由 Protocol 帶入待編輯 appId 時，把 NavigationView 切到「手把映射」分頁
-            //（SelectionChanged → InitGamepadMappingPage 會處理 _pendingEditAppId 開編輯器）
-            if (_pendingEditAppId != null)
+            // 由 Protocol 帶入待編輯 profileId 時，把 NavigationView 切到「手把映射」分頁
+            //（SelectionChanged → InitGamepadMappingPage 會處理 _pendingEditProfileId 開編輯器）
+            if (!string.IsNullOrEmpty(_pendingEditProfileId))
             {
                 foreach (var item in SettingsNav.MenuItems)
                 {
@@ -1507,6 +1504,12 @@ namespace OmniConsole.Pages
         /// </summary>
         private void OnGamepadYButtonPressed()
         {
+            // 手把映射清單頁的 Y 鍵 = 新建 profile
+            if (_currentNavTag == "GamepadMapping")
+            {
+                if (IsGamepadMappingListVisible) OpenEditorFor(null);
+                return;
+            }
             if (_currentNavTag != "General") return;
             if (_currentCategoryTag == "User" && SettingsService.GetCustomPlatformConsentAccepted())
                 _ = ShowPlatformEditDialogAsync(null);

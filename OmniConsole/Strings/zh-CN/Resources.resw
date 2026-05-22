@@ -860,6 +860,12 @@
   <data name="GamepadProfileBadge_Default" xml:space="preserve">
     <value>默认</value>
   </data>
+  <data name="GamepadActivation_HoldRelease" xml:space="preserve">
+    <value>按住启用</value>
+  </data>
+  <data name="GamepadActivation_DoubleTap" xml:space="preserve">
+    <value>双击切换</value>
+  </data>
   <data name="GamepadMappingDescription.Text" xml:space="preserve">
     <value>猫又愿意为你的手柄施一道咒，为每个应用召唤出最顺手的设置。</value>
   </data>

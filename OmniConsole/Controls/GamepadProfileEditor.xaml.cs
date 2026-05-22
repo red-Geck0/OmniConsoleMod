@@ -12,7 +12,8 @@ using Windows.ApplicationModel.Resources;
 namespace OmniConsole.Controls
 {
     /// <summary>
-    /// 玩家 per-App 手把 profile 編輯器（16 個 XInput 輸入位 → 動作）。DPad 4 子列依主行選擇條件展開。
+    /// 手把 profile 編輯器：profile 層級設定（名稱 / 游標速度 / D-pad 重複 / Layered）
+    /// ＋ 16 個 XInput 輸入位 → 動作。DPad 4 子列依主行選擇條件展開。
     /// </summary>
     public sealed partial class GamepadProfileEditor : UserControl
     {
@@ -52,6 +53,19 @@ namespace OmniConsole.Controls
             GamepadInputId.DPadLeft, GamepadInputId.DPadRight
         };
 
+        // Layered trigger 可選的輸入位（搖桿擺動類不可作 trigger）
+        private static readonly GamepadInputId[] kTriggerKeys =
+        {
+            GamepadInputId.A, GamepadInputId.B, GamepadInputId.X, GamepadInputId.Y,
+            GamepadInputId.LB, GamepadInputId.RB, GamepadInputId.LT, GamepadInputId.RT,
+            GamepadInputId.LS, GamepadInputId.RS,
+            GamepadInputId.DPadUp, GamepadInputId.DPadDown,
+            GamepadInputId.DPadLeft, GamepadInputId.DPadRight
+        };
+
+        // 游標速度可選百分比
+        private static readonly int[] kCursorSpeeds = { 25, 50, 75, 100, 125, 150, 175, 200 };
+
         // 玩家手動切到「自訂」後即使 4 子列湊巧等價於某預設組合，主行維持「自訂」
         private bool _dpadEditingCustom = false;
 
@@ -69,14 +83,15 @@ namespace OmniConsole.Controls
         /// <summary>子對話方塊開啟前 true、關閉後 false（宿主據此 Stop/StartGamepadPolling）。</summary>
         public event EventHandler<bool>? DialogActiveChanged;
 
-        /// <summary>建構子：建立 row 對照表並對每個 ComboBox 填入合法動作選項。</summary>
+        /// <summary>建構子：建立 row 對照表並填入各 ComboBox 的選項。</summary>
         public GamepadProfileEditor()
         {
             InitializeComponent();
             BuildRows();
+            PopulateProfileSettingsCombos();
         }
 
-        /// <summary>建 _rows 對照表：14 個按鈕類列 + 2 個搖桿列 = 16 個（DPad 4 子列各帶 KeyBtn）；DPad 主行 ComboDPad 另外處理。</summary>
+        /// <summary>建 _rows 對照表：14 個按鈕類列 + 2 個搖桿列 = 16 個；DPad 主行 ComboDPad 另外處理。</summary>
         private void BuildRows()
         {
             _rows = new Dictionary<GamepadInputId, (ComboBox, Button?)>
@@ -101,7 +116,6 @@ namespace OmniConsole.Controls
             foreach (var kv in _rows)
                 PopulateActionCombo(kv.Value.combo, kv.Key);
 
-            // DPad 主行 ComboBox 另外填預設組合選項
             PopulateDPadMainCombo();
         }
 
@@ -120,7 +134,7 @@ namespace OmniConsole.Controls
                     Add(combo, ActionOption.None, "GamepadAction_None");
                     break;
                 default:
-                    // 按鈕類（A..RS + DPad 4 子列）：KeyTap / KeyCombo / Mouse（三種）/ Wheel（四向）/ None
+                    // 按鈕類（A..RS + DPad 4 子列）：KeyTap / KeyCombo / Mouse / Wheel / None
                     Add(combo, ActionOption.KeyTap, "GamepadAction_KeyTap");
                     Add(combo, ActionOption.KeyCombo, "GamepadAction_KeyCombo");
                     Add(combo, ActionOption.MouseLeft, "GamepadAction_MouseLeft");
@@ -146,6 +160,22 @@ namespace OmniConsole.Controls
             Add(ComboDPad, ActionOption.None, "GamepadAction_None");
         }
 
+        /// <summary>填入 profile 層級設定的 ComboBox（游標速度 / Layered trigger / Layered 啟用方式）。</summary>
+        private void PopulateProfileSettingsCombos()
+        {
+            CursorSpeedCombo.Items.Clear();
+            foreach (int pct in kCursorSpeeds)
+                CursorSpeedCombo.Items.Add(new ComboBoxItem { Content = pct + "%", Tag = pct });
+
+            LayeredTriggerCombo.Items.Clear();
+            foreach (var id in kTriggerKeys)
+                LayeredTriggerCombo.Items.Add(new ComboBoxItem { Content = Loc("GamepadInput_" + id), Tag = id });
+
+            LayeredModeCombo.Items.Clear();
+            LayeredModeCombo.Items.Add(new ComboBoxItem { Content = Loc("GamepadActivation_HoldRelease"), Tag = ProfileActivationMode.HoldRelease });
+            LayeredModeCombo.Items.Add(new ComboBoxItem { Content = Loc("GamepadActivation_DoubleTap"), Tag = ProfileActivationMode.DoubleTapToggle });
+        }
+
         /// <summary>對 ComboBox 加一個動作選項（Tag=ActionOption、Content=resw 顯示名稱）。</summary>
         private void Add(ComboBox combo, ActionOption opt, string reswKey)
         {
@@ -158,55 +188,97 @@ namespace OmniConsole.Controls
 
         // ── 對外狀態 ────────────────────────────────────────────────────────
 
-        /// <summary>是否可刪除（既有 profile = true；新建中 = false）。</summary>
-        public bool CanDelete => _editing != null && !_isNew;
+        /// <summary>是否可刪除（既有且非內建 profile = true；新建中或內建 = false）。</summary>
+        public bool CanDelete => _editing != null && !_isNew && !_editing.IsBuiltIn;
 
         // ── 載入 / 重新整理 ───────────────────────────────────────────────
 
-        /// <summary>載入或新建某 App 的 profile：既有 → 拷貝；新建 → 套 OmniNav 當底。</summary>
-        public void Load(AppId appId, string displayName)
+        /// <summary>
+        /// 載入既有 profile 或新建一個。profileId 為空 / 找不到 → 新建（OmniNav 當底、產生 GUID）。
+        /// 唯讀 profile（OmniNav / Classic）以 EditorRoot.IsEnabled=false 設為僅供檢視。
+        /// </summary>
+        public void Load(string? profileId)
         {
-            var existing = GamepadProfileStore.Find(appId);
+            var data = GamepadProfileStore.Load();
+            GamepadProfile? existing = string.IsNullOrEmpty(profileId)
+                ? null
+                : data.Profiles.FirstOrDefault(p => p.Id == profileId);
             _isNew = existing == null;
             _editing = existing?.Clone() ?? new GamepadProfile
             {
-                AppId = new AppId { Kind = appId.Kind, Value = appId.Value, FullPath = appId.FullPath },
-                DisplayName = displayName,
+                Id = Guid.NewGuid().ToString("N"),
+                Name = MakeNewProfileName(data),
+                IsBuiltIn = false,
+                IsReadOnly = false,
+                CursorSpeedPercent = 100,
+                DpadAutoRepeat = true,
+                Layered = new ProfileLayered(),
                 Bindings = GamepadBuiltInLayouts.OmniNav()
             };
-            if (!_isNew && !string.IsNullOrEmpty(displayName))
-                _editing.DisplayName = displayName;
-
-            // protocol / widget 帶進來的 path 寫入未綁定路徑的 _editing；已 path-bound profile 不被覆寫
-            if (appId.Kind == IdKind.Process
-                && !string.IsNullOrEmpty(appId.FullPath)
-                && string.IsNullOrEmpty(_editing.AppId.FullPath))
-            {
-                _editing.AppId.FullPath = appId.FullPath;
-            }
-
-            AppNameText.Text = !string.IsNullOrEmpty(_editing.DisplayName) ? _editing.DisplayName : (_editing.AppId.Value ?? string.Empty);
-            AppIdText.Text = AppIdSubtitle(_editing.AppId);
-
-            RefreshPathDisplay();
-
-            // CopyFrom 只在有其他 profile 時 enable（撞名不同 path 視為不同 profile，仍可互相 CopyFrom）
-            try
-            {
-                var others = GamepadProfileStore.Load().Where(p => !IsSameProfileSlot(p.AppId, _editing.AppId)).ToList();
-                CopyFromButton.IsEnabled = others.Count > 0;
-            }
-            catch
-            {
-                CopyFromButton.IsEnabled = false;
-            }
 
             if (_rows.Count == 0) BuildRows();
+
+            EditorRoot.IsEnabled = !_editing.IsReadOnly;
+            ReadOnlyNote.Visibility = _editing.IsReadOnly ? Visibility.Visible : Visibility.Collapsed;
+
+            SyncProfileSettingsToUi();
+
+            // CopyFrom 只在有其他 profile 時 enable
+            CopyFromButton.IsEnabled = data.Profiles.Any(p => p.Id != _editing.Id);
 
             // 載入既存 profile：依 model 偵測主行 DPad 模式，Custom 則自動展開
             _dpadEditingCustom = (DetectDPadModeFromModel() == ActionOption.DpadCustom);
 
             RefreshAllRows();
+        }
+
+        /// <summary>為新 profile 產生不撞名的預設名稱。</summary>
+        private static string MakeNewProfileName(GamepadProfileData data)
+        {
+            const string baseName = "New Profile";
+            string name = baseName;
+            int n = 2;
+            while (data.Profiles.Any(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)))
+                name = baseName + " " + n++;
+            return name;
+        }
+
+        /// <summary>把 _editing 的 profile 層級設定同步回 UI（過程中暫時解除事件處理器）。</summary>
+        private void SyncProfileSettingsToUi()
+        {
+            if (_editing == null) return;
+
+            NameBox.TextChanged -= NameBox_TextChanged;
+            NameBox.Text = _editing.Name ?? string.Empty;
+            NameBox.TextChanged += NameBox_TextChanged;
+
+            CursorSpeedCombo.SelectionChanged -= CursorSpeedCombo_SelectionChanged;
+            SelectComboByTag(CursorSpeedCombo, _editing.CursorSpeedPercent);
+            CursorSpeedCombo.SelectionChanged += CursorSpeedCombo_SelectionChanged;
+
+            DpadRepeatSwitch.Toggled -= DpadRepeatSwitch_Toggled;
+            DpadRepeatSwitch.IsOn = _editing.DpadAutoRepeat;
+            DpadRepeatSwitch.Toggled += DpadRepeatSwitch_Toggled;
+
+            LayeredSwitch.Toggled -= LayeredSwitch_Toggled;
+            LayeredSwitch.IsOn = _editing.Layered.Enabled;
+            LayeredSwitch.Toggled += LayeredSwitch_Toggled;
+
+            LayeredTriggerCombo.SelectionChanged -= LayeredTriggerCombo_SelectionChanged;
+            SelectComboByTag(LayeredTriggerCombo, _editing.Layered.TriggerKey);
+            LayeredTriggerCombo.SelectionChanged += LayeredTriggerCombo_SelectionChanged;
+
+            LayeredModeCombo.SelectionChanged -= LayeredModeCombo_SelectionChanged;
+            SelectComboByTag(LayeredModeCombo, _editing.Layered.ActivationMode);
+            LayeredModeCombo.SelectionChanged += LayeredModeCombo_SelectionChanged;
+        }
+
+        /// <summary>在 ComboBox 內選取 Tag 等於 tag 的項；找不到則選第一項。</summary>
+        private static void SelectComboByTag(ComboBox combo, object tag)
+        {
+            for (int i = 0; i < combo.Items.Count; i++)
+                if (combo.Items[i] is ComboBoxItem item && Equals(item.Tag, tag)) { combo.SelectedIndex = i; return; }
+            if (combo.Items.Count > 0) combo.SelectedIndex = 0;
         }
 
         /// <summary>把 _editing 的所有 binding 同步回 UI（ComboBox 選項 + KeyBtn 顯示）。</summary>
@@ -218,18 +290,53 @@ namespace OmniConsole.Controls
             SyncDPadMainFromModel();
         }
 
+        // ── profile 層級設定事件 ────────────────────────────────────────────
+
+        private void NameBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_editing != null) _editing.Name = NameBox.Text;
+        }
+
+        private void CursorSpeedCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_editing != null && CursorSpeedCombo.SelectedItem is ComboBoxItem it && it.Tag is int v)
+                _editing.CursorSpeedPercent = v;
+        }
+
+        private void DpadRepeatSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_editing != null) _editing.DpadAutoRepeat = DpadRepeatSwitch.IsOn;
+        }
+
+        private void LayeredSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_editing != null) _editing.Layered.Enabled = LayeredSwitch.IsOn;
+        }
+
+        private void LayeredTriggerCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_editing != null && LayeredTriggerCombo.SelectedItem is ComboBoxItem it && it.Tag is GamepadInputId id)
+                _editing.Layered.TriggerKey = id;
+        }
+
+        private void LayeredModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_editing != null && LayeredModeCombo.SelectedItem is ComboBoxItem it && it.Tag is ProfileActivationMode m)
+                _editing.Layered.ActivationMode = m;
+        }
+
+        // ── DPad 主行 ───────────────────────────────────────────────────────
+
         /// <summary>偵測 4 個 DPad KeyId 的 VK 是否等價於某預設組合，回對應主行 ActionOption。</summary>
         private ActionOption DetectDPadModeFromModel()
         {
             if (_editing == null) return ActionOption.DpadArrows;
 
-            // 全部 None → 主行顯示 None
             bool allNone = true;
             for (int i = 0; i < 4; i++)
                 if (_editing.Get(kDpadKeys[i]).Kind != GamepadActionKind.None) { allNone = false; break; }
             if (allNone) return ActionOption.None;
 
-            // 比對三組預設：4 鍵都 KeyTap 且 vk 逐位相符
             if (MatchDpadVks(kDpadArrowsVks)) return ActionOption.DpadArrows;
             if (MatchDpadVks(kDpadWasdVks)) return ActionOption.DpadWasd;
             if (MatchDpadVks(kDpadNumpadVks)) return ActionOption.DpadNumpad;
@@ -250,12 +357,11 @@ namespace OmniConsole.Controls
             return true;
         }
 
-        /// <summary>把 model 內 DPad 4 鍵的目前狀態同步到主行 ComboBox + 子列 Visibility（過程中暫時解除 SelectionChanged 事件處理器）。</summary>
+        /// <summary>把 model 內 DPad 4 鍵的目前狀態同步到主行 ComboBox + 子列 Visibility。</summary>
         private void SyncDPadMainFromModel()
         {
             if (_editing == null) return;
             var detected = DetectDPadModeFromModel();
-
             ActionOption opt = _dpadEditingCustom ? ActionOption.DpadCustom : detected;
 
             int idx = FindOptionIndex(ComboDPad, opt);
@@ -294,7 +400,6 @@ namespace OmniConsole.Controls
                 case ActionOption.DpadCustom: ApplyDPadAllNone(); _dpadEditingCustom = true; break;
             }
 
-            // 4 子列 model 變了 → 同步 UI；主行自身依目前狀態切展開
             foreach (var k in kDpadKeys)
                 if (_rows.TryGetValue(k, out var pair))
                     SyncRowFromModel(k, pair.combo, pair.keyBtn);
@@ -309,7 +414,7 @@ namespace OmniConsole.Controls
                 _editing.Bindings[kDpadKeys[i]] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = vks[i] };
         }
 
-        /// <summary>把 4 個 DPad KeyId 全部清為 None（自訂模式起點、主行選 None 時亦走此路徑）。</summary>
+        /// <summary>把 4 個 DPad KeyId 全部清為 None。</summary>
         private void ApplyDPadAllNone()
         {
             if (_editing == null) return;
@@ -373,7 +478,6 @@ namespace OmniConsole.Controls
             var newAction = OptionToAction(opt, prev);
             _editing.Bindings[id] = newAction;
 
-            // 同步該列的 KeyBtn
             if (_rows.TryGetValue(id, out var pair))
                 UpdateKeyButton(id, opt, pair.keyBtn);
         }
@@ -388,7 +492,6 @@ namespace OmniConsole.Controls
                     return new GamepadAction { Kind = GamepadActionKind.None };
                 case ActionOption.KeyTap:
                     {
-                        // 保留 KeyTap / KeyHold 的 Kind / Vk；其他切過來時補 VK_RETURN
                         if (prev.Kind == GamepadActionKind.KeyTap || prev.Kind == GamepadActionKind.KeyHold)
                             return new GamepadAction { Kind = prev.Kind, Vk = prev.Vk == 0 ? VK_RETURN : prev.Vk };
                         return new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_RETURN };
@@ -446,7 +549,7 @@ namespace OmniConsole.Controls
             }
         }
 
-        // ── 改鍵 / 重設 / 從其他程式讀入 ────────────────────────────────────
+        // ── 改鍵 / 重設 / 從其他 profile 讀入 ───────────────────────────────
 
         /// <summary>「改鍵」按鈕：開 ChangeKeyDialog，回來後寫回 _editing 並重新整理該列。</summary>
         private async void ChangeKey_Click(object sender, RoutedEventArgs e)
@@ -464,7 +567,6 @@ namespace OmniConsole.Controls
                 if (_rows.TryGetValue(id, out var pair))
                     UpdateKeyButton(id, ToOption(dlg.Result, id), pair.keyBtn);
             }
-            // 焦點回原「改鍵」按鈕（避免跳到漢堡按鈕）
             btn.Focus(FocusState.Programmatic);
         }
 
@@ -528,7 +630,7 @@ namespace OmniConsole.Controls
             originBtn?.Focus(FocusState.Programmatic);
         }
 
-        /// <summary>「從其他程式讀入」：開 CopyFromProfileDialog，回來後 deep clone 其 bindings。</summary>
+        /// <summary>「從其他 profile 讀入」：開 CopyFromProfileDialog，回來後 deep clone 其 bindings。</summary>
         private async void CopyFromButton_Click(object sender, RoutedEventArgs e)
         {
             Button? originBtn = sender as Button;
@@ -536,16 +638,16 @@ namespace OmniConsole.Controls
             List<GamepadProfile> others;
             try
             {
-                others = GamepadProfileStore.Load().Where(p => !IsSameProfileSlot(p.AppId, _editing.AppId)).ToList();
+                others = GamepadProfileStore.Load().Profiles.Where(p => p.Id != _editing.Id).ToList();
             }
             catch { return; }
             if (others.Count == 0) return;
 
             var dlg = new CopyFromProfileDialog(XamlRoot, _resw, others);
             await ShowDialogAsync(dlg);
-            if (dlg.SelectedAppId != null)
+            if (!string.IsNullOrEmpty(dlg.SelectedProfileId))
             {
-                var src = GamepadProfileStore.Find(dlg.SelectedAppId);
+                var src = GamepadProfileStore.GetProfileById(dlg.SelectedProfileId);
                 if (src != null)
                 {
                     var newBindings = new Dictionary<GamepadInputId, GamepadAction>();
@@ -561,10 +663,14 @@ namespace OmniConsole.Controls
 
         // ── 對外操作 ────────────────────────────────────────────────────────
 
-        /// <summary>給宿主 X 鍵呼叫：刪除目前編輯的 profile（彈確認 → GamepadProfileStore.Delete → Deleted）。</summary>
+        /// <summary>給宿主 X 鍵呼叫：刪除目前編輯的 profile（內建或新建中則直接關閉）。</summary>
         public async void DeleteCurrent()
         {
-            if (_editing == null || _isNew) { Closed?.Invoke(this, EventArgs.Empty); return; }
+            if (_editing == null || _isNew || _editing.IsBuiltIn)
+            {
+                Closed?.Invoke(this, EventArgs.Empty);
+                return;
+            }
             var dlg = new GamepadMessageDialog(XamlRoot,
                 Loc("GamepadMappingDeleteConfirmTitle"),
                 Loc("GamepadMappingDeleteConfirmBody"),
@@ -573,57 +679,25 @@ namespace OmniConsole.Controls
             await ShowDialogAsync(dlg);
             if (dlg.Result)
             {
-                GamepadProfileStore.Delete(_editing.AppId);
+                GamepadProfileStore.DeleteProfile(_editing.Id);
                 Deleted?.Invoke(this, EventArgs.Empty);
             }
         }
 
         /// <summary>
         /// 給宿主 B 鍵呼叫：存檔並關閉。
-        /// 分支：
-        ///   - 黑名單 → 顯提示不關閉
-        ///   - 全 None：等同於沒有自訂配置 → 彈「移除此程式的自訂配置？」確認；確認後既有 profile 走 Delete + Deleted 事件、新建中直接 Closed（不寫入 store）
-        ///   - 其他 → Upsert + Closed
+        /// 唯讀 profile（OmniNav / Classic）不寫入，直接關閉。名稱空白時補預設名。
         /// </summary>
-        public async void Save()
+        public void Save()
         {
             if (_editing == null) { Closed?.Invoke(this, EventArgs.Empty); return; }
 
-            if (GamepadProfileStore.IsBlacklisted(_editing.AppId))
+            if (!_editing.IsReadOnly)
             {
-                var dlg = new GamepadMessageDialog(XamlRoot,
-                    Loc("GamepadMappingBlacklistedTitle"),
-                    Loc("GamepadMappingBlacklistedBody"),
-                    Loc("GamepadKeyPickerOk"),
-                    null);
-                await ShowDialogAsync(dlg);
-                return;
+                if (string.IsNullOrWhiteSpace(_editing.Name))
+                    _editing.Name = "Profile";
+                GamepadProfileStore.UpsertProfile(_editing);
             }
-
-            if (_editing.IsEffectivelyEmpty())
-            {
-                var dlg = new GamepadMessageDialog(XamlRoot,
-                    Loc("GamepadMappingEmptyRemoveTitle"),
-                    Loc("GamepadMappingEmptyRemoveBody"),
-                    Loc("GamepadMappingEmptyRemoveYes"),
-                    Loc("GamepadKeyPickerCancel"));
-                await ShowDialogAsync(dlg);
-                if (!dlg.Result) return;
-
-                // 確認後：既有 profile 從 store 刪掉、新建中直接放棄
-                if (!_isNew)
-                {
-                    GamepadProfileStore.Delete(_editing.AppId);
-                    Deleted?.Invoke(this, EventArgs.Empty);
-                }
-                else
-                {
-                    Closed?.Invoke(this, EventArgs.Empty);
-                }
-                return;
-            }
-
-            GamepadProfileStore.Upsert(_editing);
             Closed?.Invoke(this, EventArgs.Empty);
         }
 
@@ -665,45 +739,7 @@ namespace OmniConsole.Controls
             return string.Join("+", parts);
         }
 
-        /// <summary>
-        /// 判定兩個 AppId 是否指向同一個 profile 槽（Editor CopyFrom 排除自己用）。
-        /// Aumid 類：Kind + Value 相同（PFN 已唯一）。
-        /// Process 類：Kind + Value + FullPath 正規化後相同（含兩邊都 null）。同名不同 path 視為不同 profile。
-        /// </summary>
-        private static bool IsSameProfileSlot(AppId a, AppId b)
-        {
-            if (a == null || b == null) return false;
-            if (!a.Matches(b)) return false;
-            if (a.Kind == IdKind.Aumid) return true;
-            string? pa = AppId.NormalizePath(a.FullPath);
-            string? pb = AppId.NormalizePath(b.FullPath);
-            return string.Equals(pa, pb, StringComparison.Ordinal);
-        }
-
-        /// <summary>顯示 path-bound profile 的路徑副標；Aumid 類或 FullPath 空時整區隱藏。</summary>
-        private void RefreshPathDisplay()
-        {
-            if (_editing == null) { PathDisplayPanel.Visibility = Visibility.Collapsed; return; }
-            if (_editing.AppId.Kind != IdKind.Process || string.IsNullOrEmpty(_editing.AppId.FullPath))
-            {
-                PathDisplayPanel.Visibility = Visibility.Collapsed;
-                return;
-            }
-            PathDisplayPanel.Visibility = Visibility.Visible;
-            PathHintText.Text = _editing.AppId.FullPath ?? string.Empty;
-        }
-
-        /// <summary>appId 副文字（在地化 prefix + 完整識別值；Win32 → 「行程: <name>」、packaged → 「AUMID: <full>」）。</summary>
-        private string AppIdSubtitle(AppId appId)
-        {
-            if (appId == null) return string.Empty;
-            string prefix = appId.Kind == IdKind.Aumid
-                ? Loc("AppIdAumidPrefix")
-                : Loc("AppIdProcessPrefix");
-            return prefix + (appId.Value ?? string.Empty);
-        }
-
-        /// <summary>resw 查詢；依 key 本身 / .Text / .Content 三候選試查，皆查不到時回 key 字面，try/catch 包住例外。</summary>
+        /// <summary>resw 查詢；依 key 本身 / .Text / .Content 三候選試查，皆查不到時回 key 字面。</summary>
         private string Loc(string key)
         {
             string[] candidates = { key, key + "/Text", key + "/Content" };

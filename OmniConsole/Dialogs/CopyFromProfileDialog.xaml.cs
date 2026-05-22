@@ -13,8 +13,8 @@ namespace OmniConsole.Dialogs
         private readonly ResourceLoader _resw;
         private GamepadNavigationService? _gamepadNav;
 
-        /// <summary>使用者選到的來源 profile AppId；取消為 null。</summary>
-        public AppId? SelectedAppId { get; private set; }
+        /// <summary>使用者選到的來源 profile Id；取消為 null。</summary>
+        public string? SelectedProfileId { get; private set; }
 
         /// <summary>建立讀入對話方塊；others 為「除了目前 profile 外」的其餘 profile 集合。</summary>
         public CopyFromProfileDialog(XamlRoot xamlRoot, ResourceLoader resw, IEnumerable<GamepadProfile> others)
@@ -30,15 +30,11 @@ namespace OmniConsole.Dialogs
 
             foreach (var p in others)
             {
-                string label = !string.IsNullOrEmpty(p.DisplayName) ? p.DisplayName : (p.AppId?.Value ?? string.Empty);
-                // path-bound profile 後綴接資料夾名稱
-                if (p.AppId != null && p.AppId.Kind == IdKind.Process && !string.IsNullOrEmpty(p.AppId.FullPath))
+                ProfileCombo.Items.Add(new ComboBoxItem
                 {
-                    string folder = AppId.ExtractFolderName(p.AppId.FullPath);
-                    if (!string.IsNullOrEmpty(folder))
-                        label = label + " · " + folder;
-                }
-                ProfileCombo.Items.Add(new ComboBoxItem { Content = label, Tag = p.AppId });
+                    Content = string.IsNullOrEmpty(p.Name) ? p.Id : p.Name,
+                    Tag = p.Id
+                });
             }
             if (ProfileCombo.Items.Count > 0) ProfileCombo.SelectedIndex = 0;
 
@@ -50,9 +46,9 @@ namespace OmniConsole.Dialogs
         /// <summary>確定鈕：取選到的 AppId 寫入 SelectedAppId；未選則取消提交。</summary>
         private void OnPrimary(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
-            if (ProfileCombo.SelectedItem is ComboBoxItem item && item.Tag is AppId id)
+            if (ProfileCombo.SelectedItem is ComboBoxItem item && item.Tag is string id)
             {
-                SelectedAppId = id;
+                SelectedProfileId = id;
             }
             else
             {

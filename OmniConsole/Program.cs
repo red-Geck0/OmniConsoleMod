@@ -45,12 +45,50 @@ namespace OmniConsole
                             isSettingsEntry = true;
                             DebugLogger.Log("→ show-settings matched");
                         }
-                        // PhantomLink widget「自訂此 App」走此 URI；視為設定入口並暫存待編輯的 appId / displayName
+                        // PhantomLink widget「編輯 profile」走此 URI；視為設定入口並暫存待編輯的 profileId
                         else if (protocolArgs.Uri.Host == "edit-gamepad-profile")
                         {
                             isSettingsEntry = true;
                             PendingEditProfileService.Stash(protocolArgs.Uri);
                             DebugLogger.Log("→ edit-gamepad-profile matched");
+                        }
+                        // PhantomLink widget 指派前景 App 到 profile：無視窗套用後直接退出
+                        else if (protocolArgs.Uri.Host == "assign-gamepad-profile")
+                        {
+                            DebugLogger.Log("→ assign-gamepad-profile matched");
+                            try
+                            {
+                                string q = protocolArgs.Uri.Query ?? string.Empty;
+                                if (q.StartsWith("?")) q = q.Substring(1);
+                                string appIdStr = "", profileId = "", fullPath = "";
+                                foreach (var pair in q.Split('&'))
+                                {
+                                    int eq = pair.IndexOf('=');
+                                    if (eq <= 0) continue;
+                                    string k = pair.Substring(0, eq);
+                                    string v = Uri.UnescapeDataString(pair.Substring(eq + 1).Replace('+', ' '));
+                                    if (k.Equals("appId", StringComparison.OrdinalIgnoreCase)) appIdStr = v;
+                                    else if (k.Equals("profileId", StringComparison.OrdinalIgnoreCase)) profileId = v;
+                                    else if (k.Equals("fullPath", StringComparison.OrdinalIgnoreCase)) fullPath = v;
+                                }
+                                var appId = OmniConsole.Models.AppId.Parse(appIdStr);
+                                if (appId != null && !string.IsNullOrEmpty(profileId))
+                                {
+                                    if (appId.Kind == OmniConsole.Models.IdKind.Process
+                                        && !string.IsNullOrWhiteSpace(fullPath)
+                                        && OmniConsole.Models.AppId.IsValidFullPath(fullPath))
+                                    {
+                                        appId.FullPath = fullPath;
+                                    }
+                                    bool ok = GamepadProfileStore.SetAssignment(appId, profileId);
+                                    DebugLogger.Log($"→ assign {appIdStr} → {profileId}: {(ok ? "ok" : "failed")}");
+                                }
+                            }
+                            catch (Exception assignEx)
+                            {
+                                DebugLogger.Log("→ assign EXCEPTION: " + assignEx.Message);
+                            }
+                            return 0;
                         }
                         // Game Bar 媒體櫃按鈕
                         else if (uriStr.Equals("windows.gaming:///library", StringComparison.OrdinalIgnoreCase))

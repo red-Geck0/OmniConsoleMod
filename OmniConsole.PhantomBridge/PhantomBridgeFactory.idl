@@ -44,8 +44,9 @@ namespace PhantomBridge
         // （omniconsole://edit-gamepad-profile?profileId=...）。
         void OpenProfileEditor(String profileId);
 
-        // 將前景 App 指派到某 profile（omniconsole://assign-gamepad-profile?appId=...&profileId=...）。
+        // 將前景 App 指派到某 profile（omniconsole://assign-gamepad-profile?appId=...&profileId=...&fullPath=...）。
+        // fullPath 為 Win32 process 的完整路徑（packaged app 傳空字串）。
         // 主程式以無視窗方式處理該 protocol，套用後不顯示設定視窗。
-        void SetProfileAssignment(String appId, String profileId);
+        void SetProfileAssignment(String appId, String profileId, String fullPath);
     }
 }

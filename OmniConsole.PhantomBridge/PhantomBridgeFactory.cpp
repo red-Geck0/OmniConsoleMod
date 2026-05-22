@@ -575,7 +575,7 @@ namespace winrt::PhantomBridge::implementation
     // 將前景 App 指派到某 profile。主程式收 omniconsole://assign-gamepad-profile
     // 後以無視窗方式套用（GamepadProfileStore.SetAssignment）；不收 Game Bar、不搶前景，
     // 指派為背景動作。
-    void PhantomBridgeFactory::SetProfileAssignment(winrt::hstring const& appId, winrt::hstring const& profileId)
+    void PhantomBridgeFactory::SetProfileAssignment(winrt::hstring const& appId, winrt::hstring const& profileId, winrt::hstring const& fullPath)
     {
         TryInstallClientWatchdog();
 
@@ -583,6 +583,11 @@ namespace winrt::PhantomBridge::implementation
         uriStr += std::wstring{ PercentEncode(appId) };
         uriStr += L"&profileId=";
         uriStr += std::wstring{ PercentEncode(profileId) };
+        if (!fullPath.empty())
+        {
+            uriStr += L"&fullPath=";
+            uriStr += std::wstring{ PercentEncode(fullPath) };
+        }
         ::ShellExecuteW(nullptr, L"open", uriStr.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     }
 }

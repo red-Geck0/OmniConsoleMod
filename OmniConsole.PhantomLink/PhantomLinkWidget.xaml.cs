@@ -12,20 +12,20 @@ using Windows.UI.Xaml.Media;
 namespace OmniConsole.PhantomLink
 {
     /// <summary>
-    /// PhantomLink Game Bar widget 主面板：顯示前景程式資訊、Quick Actions、Mouse Mode / Layout / CursorSpeed 設定。
-    /// 設定值透過 PhantomKeyStore 寫入 Shared.ini，動作委派給 PhantomBridge Full Trust COM Server 執行。
+    /// PhantomLink Game Bar widget 主面板：前景程式 + profile 指派、Quick Actions、
+    /// Steam In-Game Overlay、Mouse Mode On/Off。
+    /// 設定值透過 PhantomKeyStore 寫入 Shared.ini，動作委派給 PhantomBridge COM server。
     /// </summary>
     public sealed partial class PhantomLinkWidget : Page
     {
         private bool _loading;
         private bool _builtInMapping;
 
-        // 前景程式狀態：顯示文字 + 「自訂此 App」按鈕傳給 PhantomBridge.OpenProfileEditor 的 appId / name
-        private string _foregroundAppId;     // "process:xxx" / "aumid:xxx"；null=取不到或在黑名單
-        private string _foregroundAppName;   // 顯示用 title（PhantomBridge 端做 URL 編碼）
-        private string _foregroundFullPath;  // 前景 exe 完整路徑（Win32 桌面 process 才有，packaged 為空字串）；用於建 profile 時帶入 AppId.FullPath
+        // 前景程式狀態：appId（"process:xxx" / "aumid:xxx"；null=取不到或黑名單）與其完整路徑
+        private string _foregroundAppId;
+        private string _foregroundFullPath;  // Win32 桌面 process 才有，packaged 為空字串
 
-        // 焦點剛從外部進入 Widget → 吞掉緊接著的一顆 D-pad Down，避免雙跳（OnGettingFocus 把焦點重導到選中態按鈕 + OnPreviewKeyDown 又推進一 section）
+        // 焦點剛從外部進入 Widget → 吞掉緊接著的一顆 D-pad Down，避免雙跳
         private DateTime _swallowNextDownUntil;
 
         // ── 生命週期與初始化 ─────────────────────────────────────────────────
@@ -47,11 +47,9 @@ namespace OmniConsole.PhantomLink
 
                 SyncThemeFromGameBar();
 
-                // Widget 從背景返回前景時重新讀設定（外部 OmniConsole 主程式可能改過），由 LeavingBackground 觸發
                 try { Application.Current.LeavingBackground += OnLeavingBackground; }
                 catch (Exception ex) { DebugLogger.Log("[Widget] Hook LeavingBackground FAIL: " + ex); }
 
-                // Game Bar 主題變更事件：Light/Dark 切換時同步更新
                 var w = App.CurrentWidget;
                 if (w != null)
                 {
@@ -81,9 +79,7 @@ namespace OmniConsole.PhantomLink
             this.RequestedTheme = w.RequestedTheme;
         }
 
-        /// <summary>
-        /// Game Bar 主題變更事件：marshal 回 UI 執行緒套用 SyncThemeFromGameBar。
-        /// </summary>
+        /// <summary>Game Bar 主題變更事件：marshal 回 UI 執行緒套用 SyncThemeFromGameBar。</summary>
         private async void OnGameBarThemeChanged(Microsoft.Gaming.XboxGameBar.XboxGameBarWidget sender, object args)
         {
             await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, SyncThemeFromGameBar);
@@ -91,9 +87,7 @@ namespace OmniConsole.PhantomLink
 
         // ── 設定重新載入 ─────────────────────────────────────────────────────
 
-        /// <summary>
-        /// 從背景返回前景時重新讀取設定，反映外部行程（OmniConsole 主程式）的變更。
-        /// </summary>
+        /// <summary>從背景返回前景時重新讀取設定，反映外部行程（OmniConsole 主程式）的變更。</summary>
         private void OnLeavingBackground(object sender, Windows.ApplicationModel.LeavingBackgroundEventArgs e)
         {
             DebugLogger.Log("[Widget] LeavingBackground → reload");
@@ -104,27 +98,21 @@ namespace OmniConsole.PhantomLink
         // ── 焦點進入偵測：重導至選中態按鈕 + 吞掉進入時的 D-pad Down ─────────
 
         /// <summary>
-        /// 焦點從 Widget 外部進入（A 或 D-pad）→ 重導到第一 section 的選中態按鈕（checked），
-        /// 並開啟 150ms 吞 Down 窗。A 鍵進入無 Down 事件，窗自然過期；D-pad Down 進入時，
-        /// 同一顆 Down 會被窗吃掉，避免「系統送焦點進按鈕 + OnPreviewKeyDown 又推進下一 section」雙跳。
+        /// 焦點從 Widget 外部進入 → 重導到第一 section 的落點控制項，並開啟 150ms 吞 Down 窗。
         /// </summary>
         private void OnGettingFocus(UIElement sender, GettingFocusEventArgs args)
         {
             var oldFE = args.OldFocusedElement as DependencyObject;
             if (!IsDescendant(oldFE))
             {
-                // 已知 Game Bar 冷啟動後首次 D-pad Down 進 Widget 的行為是 Game Bar 自身的 quirk：
-                // 焦點會落在第一組第一顆按鈕但無 focus ring，再按一次 Down 才正確顯示第二組的
-                // 選中態。無法從 Widget 這邊修正（Game Bar 側的焦點渲染問題），Widget 已 loaded
-                // 後再進入就正常。
                 _swallowNextDownUntil = DateTime.UtcNow.AddMilliseconds(150);
-                var target = PickFocusTarget(QuickActionsSection);
+                var target = PickFocusTarget(ForegroundAppSection);
                 if (target != null && !ReferenceEquals(target, args.NewFocusedElement))
                 {
                     try { args.TrySetNewFocusedElement(target); }
                     catch (Exception ex) { DebugLogger.Log("[Widget] TrySetNewFocusedElement FAIL: " + ex); }
                 }
-                DebugLogger.Log("[Widget] focus re-entered → redirect to checked + arm swallow-Down");
+                DebugLogger.Log("[Widget] focus re-entered → redirect + arm swallow-Down");
             }
         }
 
@@ -141,11 +129,7 @@ namespace OmniConsole.PhantomLink
 
         // ── 跨 Section D-pad 導航 ───────────────────────────────────────────
 
-        /// <summary>
-        /// 跨 section D-pad 導航：落點挑選中態的 ToggleButton 或 Slider / ComboBox —
-        /// 通用規則，未來新增 section 不需改程式。初始焦點由 OnGettingFocus 重導到選中態按鈕，
-        /// 外部進入時緊接著的 D-pad Down 由 _swallowNextDownUntil 吃掉，避免雙跳。
-        /// </summary>
+        /// <summary>跨 section D-pad 導航：落點挑選中態的控制項。</summary>
         private void OnPreviewKeyDown(object sender, KeyRoutedEventArgs e)
         {
             bool down = e.Key == VirtualKey.GamepadDPadDown || e.Key == VirtualKey.Down;
@@ -175,9 +159,7 @@ namespace OmniConsole.PhantomLink
             }
         }
 
-        /// <summary>
-        /// 走到 RootPanel 的直屬子元素，作為「section」代表。
-        /// </summary>
+        /// <summary>走到 RootPanel 的直屬子元素，作為「section」代表。</summary>
         private FrameworkElement FindSection(DependencyObject node)
         {
             while (node != null)
@@ -190,8 +172,8 @@ namespace OmniConsole.PhantomLink
         }
 
         /// <summary>
-        /// Section 內挑焦點目標：checked ToggleButton > 第一顆 ToggleButton > Slider > ComboBox > Button。
-        /// Button 回退 供 Quick Actions 等只含一次性動作按鈕的 section 使用（無 checked 狀態）。
+        /// Section 內挑焦點目標：checked ToggleButton &gt; 第一顆 ToggleButton &gt; ToggleSwitch
+        /// &gt; Slider &gt; ComboBox &gt; Button。
         /// </summary>
         private Control PickFocusTarget(FrameworkElement section)
         {
@@ -199,6 +181,8 @@ namespace OmniConsole.PhantomLink
             var toggles = FindDescendants<ToggleButton>(section).Where(t => t.IsEnabled).ToList();
             if (toggles.Count > 0)
                 return toggles.FirstOrDefault(t => t.IsChecked == true) ?? toggles[0];
+            var toggleSwitch = FindDescendants<ToggleSwitch>(section).FirstOrDefault(s => s.IsEnabled);
+            if (toggleSwitch != null) return toggleSwitch;
             var slider = FindDescendants<Slider>(section).FirstOrDefault(s => s.IsEnabled);
             if (slider != null) return slider;
             var combo = FindDescendants<ComboBox>(section).FirstOrDefault(c => c.IsEnabled);
@@ -213,9 +197,7 @@ namespace OmniConsole.PhantomLink
             return target != null && target.Focus(FocusState.Keyboard);
         }
 
-        /// <summary>
-        /// 遞迴走訪視覺樹，列舉所有指定型別的子元素。
-        /// </summary>
+        /// <summary>遞迴走訪視覺樹，列舉所有指定型別的子元素。</summary>
         private static IEnumerable<T> FindDescendants<T>(DependencyObject root) where T : DependencyObject
         {
             int count = VisualTreeHelper.GetChildrenCount(root);
@@ -231,7 +213,7 @@ namespace OmniConsole.PhantomLink
 
         /// <summary>
         /// 從 Shared.ini 讀值並同步所有 UI 控制項狀態。
-        /// _loading 旗標避免同步過程觸發 Click/ValueChanged 回寫造成遞迴。
+        /// _loading 旗標避免同步過程觸發 Toggled/SelectionChanged 回寫造成遞迴。
         /// </summary>
         private void ReloadFromStore()
         {
@@ -241,12 +223,7 @@ namespace OmniConsole.PhantomLink
                 PhantomKeyStore.EnsureDefaultsIfMissing();
                 _builtInMapping = HardwareDetection.HasBuiltInGamepadMapping();
 
-                // SteamInGameOverlay 觸發按鈕條件可見性（夾於 [Off] [Trigger] [On] 中央）
-                // 條件：FSE 模式 + DefaultPlatform=SteamBigPicture
-                //   - 桌面模式不顯示
-                //   - 非 SteamBigPicture 平台不顯示
-                // 不可見時 StackPanel 會收合該位置，Off/On 視覺上相鄰；
-                // 此時水平 XYFocus 改讓 Off/On 直接相連，避免 D-pad 走入隱藏按鈕。
+                // SteamInGameOverlay 觸發按鈕條件可見性（FSE 模式 + DefaultPlatform=SteamBigPicture）
                 string defaultPlatform = PhantomKeyStore.GetDefaultPlatform();
                 bool steamBtnVisible =
                     FseStatus.IsActive() &&
@@ -257,36 +234,20 @@ namespace OmniConsole.PhantomLink
                     steamBtnVisible ? (DependencyObject)TriggerSteamInGameOverlayBtn : SteamInGameOverlayOnBtn;
                 SteamInGameOverlayOnBtn.XYFocusLeft =
                     steamBtnVisible ? (DependencyObject)TriggerSteamInGameOverlayBtn : SteamInGameOverlayOffBtn;
-                // StackPanel.Spacing 不跳過 Collapsed 子元素：三顆全顯時 Off-Trigger-On 兩段 6px 共 12px；
-                // Trigger 隱藏時若仍為 6，Off-On 之間仍累計 12px（兩段 spacing 都還在），與下方 Mode
-                // 區塊「三顆兩段 12px」失去一致性（Mode 是三顆全顯）。隱藏時改 3，使 Off-On 視覺間距
-                // 收斂為單段 6px，與其它區塊「相鄰兩顆按鈕」的間距一致。
                 SteamInGameOverlayButtonRow.Spacing = steamBtnVisible ? 6 : 3;
 
-                // Steam In-Game Overlay（獨立於 Mouse Mode，不受 _builtInMapping 影響）
+                // Steam In-Game Overlay（獨立於 Mouse Mode）
                 bool overlay = PhantomKeyStore.GetSteamInGameOverlayEnabled();
                 SteamInGameOverlayOnBtn.IsChecked = overlay;
                 SteamInGameOverlayOffBtn.IsChecked = !overlay;
 
-                // Mouse Mode
-                string mode = PhantomKeyStore.GetMouseMode();
-                ModeOffBtn.IsChecked = mode == PhantomKeyStore.MouseModeOff;
-                ModeAutoBtn.IsChecked = mode == PhantomKeyStore.MouseModeAuto;
-                ModeForceOnBtn.IsChecked = mode == PhantomKeyStore.MouseModeForceOn;
+                // Mouse Mode On/Off
+                ModeSwitch.IsOn = PhantomKeyStore.GetMouseModeEnabled();
 
-                // Layout
-                string layout = PhantomKeyStore.GetMouseModeLayout();
-                LayoutNavBtn.IsChecked = layout == PhantomKeyStore.LayoutOmniNav;
-                LayoutClassicBtn.IsChecked = layout == PhantomKeyStore.LayoutClassic;
+                // profile 下拉清單
+                PopulateProfileCombo();
 
-                // Cursor Speed
-                int pct = PhantomKeyStore.GetCursorSpeedPercent();
-                int idx = Array.IndexOf(PhantomKeyStore.ValidCursorSpeedPercents, pct);
-                if (idx < 0) idx = 3; // 100%
-                CursorSpeedSlider.Value = idx;
-                CursorSpeedValueText.Text = $"{pct}%";
-
-                ApplyEnabledState(mode);
+                ApplyEnabledState();
 
                 // 前景程式區塊（每次 reload 同步重抓一次）
                 RefreshForegroundApp();
@@ -297,10 +258,26 @@ namespace OmniConsole.PhantomLink
             }
         }
 
+        /// <summary>從 Shared.ini [Profiles] 區段填入 profile 下拉清單（Tag=profile id）。</summary>
+        private void PopulateProfileCombo()
+        {
+            ProfileCombo.Items.Clear();
+            try
+            {
+                foreach (var (id, name) in PhantomKeyStore.GetProfileList())
+                    ProfileCombo.Items.Add(new ComboBoxItem { Content = name, Tag = id });
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.Log("[Widget] PopulateProfileCombo FAIL: " + ex);
+            }
+            UpdateEditProfileEnabled();
+        }
+
         /// <summary>
-        /// 呼叫 PhantomBridge.GetForegroundAppInfo 取前景 title / proc / aumid / displayName / isElevated，
-        /// 更新 ForegroundAppLineText 與 _foregroundAppId / _foregroundAppName，並依黑名單、內建廠商映射、
-        /// elevated 狀態決定 CustomizeAppBtn 與 CustomizeAppNoteText 的可見性與啟用狀態。
+        /// 呼叫 PhantomBridge.GetForegroundAppInfo 取前景資訊，更新 ForegroundAppLineText
+        /// 與 _foregroundAppId / _foregroundFullPath；依黑名單、內建廠商映射、elevated 狀態
+        /// 決定 ProfileCombo 是否可用於指派與 CustomizeAppNoteText 的可見性。
         /// </summary>
         private void RefreshForegroundApp()
         {
@@ -321,14 +298,12 @@ namespace OmniConsole.PhantomLink
                 DebugLogger.Log("[Widget] GetForegroundAppInfo failed: " + ex.Message);
                 ForegroundAppLineText.Text = LocSafe(resw, "Widget_ForegroundApp_None", "Current: —");
                 _foregroundAppId = null;
-                _foregroundAppName = string.Empty;
                 _foregroundFullPath = string.Empty;
-                CustomizeAppBtn.IsEnabled = false;
                 CustomizeAppNoteText.Visibility = Visibility.Collapsed;
+                UpdateEditProfileEnabled();
                 return;
             }
 
-            // 一行式顯示「目前: <displayName> (<proc>)」；displayName 為空回退 proc，與 proc 相等或 proc 為空時改走 NoDesc 格式
             string identifier = !string.IsNullOrEmpty(displayName) ? displayName : (!string.IsNullOrEmpty(proc) ? proc : "—");
             string desc = proc ?? string.Empty;
 
@@ -374,13 +349,22 @@ namespace OmniConsole.PhantomLink
                 _foregroundAppId = "process:" + proc;
             else
                 _foregroundAppId = null;
-            _foregroundAppName = !string.IsNullOrEmpty(displayName) ? displayName : (title ?? string.Empty);
-            // packaged 行程或 blocked 時 fullPath 不適用（packaged 走 aumid 主鍵；blocked 不會建 profile）
+            // packaged 行程或 blocked 時 fullPath 不適用
             _foregroundFullPath = (!blocked && !isUwp) ? (fullPath ?? string.Empty) : string.Empty;
 
-            CustomizeAppBtn.IsEnabled = _foregroundAppId != null && !_builtInMapping && !isElevated;
             CustomizeAppNoteText.Visibility =
                 (isElevated && _foregroundAppId != null) ? Visibility.Visible : Visibility.Collapsed;
+
+            UpdateEditProfileEnabled();
+        }
+
+        /// <summary>是否可把目前前景 App 指派到 profile（有有效 appId、無內建廠商映射）。</summary>
+        private bool CanAssignForeground => _foregroundAppId != null && !_builtInMapping;
+
+        /// <summary>EditProfileBtn 啟用條件：下拉清單已選一個 profile。</summary>
+        private void UpdateEditProfileEnabled()
+        {
+            EditProfileBtn.IsEnabled = ProfileCombo.SelectedItem is ComboBoxItem;
         }
 
         /// <summary>resw 安全查詢：不存在或擲例外時回退到 `fallback` 參數值。</summary>
@@ -394,19 +378,12 @@ namespace OmniConsole.PhantomLink
             catch { return fallback; }
         }
 
-        /// <summary>
-        /// 行程名稱比對（大小寫不敏感）是否為 IsBlacklisted 條目 (a)/(b) 涵蓋的程式。
-        /// 跟 OmniConsole/Services/GamepadProfileStore 同一份名單。
-        /// </summary>
+        /// <summary>行程名稱比對（大小寫不敏感）是否為系統黑名單 Tier-1 程式。</summary>
         private static bool IsBlacklistedProcess(string proc)
         {
             string[] names =
             {
-                // (a) 自家 / 內建手把導覽
                 "OmniConsole", "Playnite.FullscreenApp", "steamwebhelper",
-                // (b) Mouse Mode Auto 白名單
-                "msedge", "chrome", "firefox", "opera", "brave",
-                "EpicGamesLauncher", "Discord", "explorer",
             };
             foreach (var n in names)
                 if (string.Equals(proc, n, StringComparison.OrdinalIgnoreCase)) return true;
@@ -414,49 +391,15 @@ namespace OmniConsole.PhantomLink
         }
 
         /// <summary>
-        /// 「自訂此 App 的手把映射」按鈕：透過 PhantomBridge.OpenProfileEditor 喚起主程式
-        /// （Win+G 收 Game Bar → omniconsole://edit-gamepad-profile?appId=...&displayName=...）。
+        /// 套用 IsEnabled 規則：內建廠商手把映射存在（ROG Ally 等）→ Mouse Mode 開關停用、顯示說明。
         /// </summary>
-        private void CustomizeAppBtn_Click(object sender, RoutedEventArgs e)
+        private void ApplyEnabledState()
         {
-            if (string.IsNullOrEmpty(_foregroundAppId)) return;
-            DebugLogger.Log("[Widget] CustomizeAppBtn_Click → PhantomBridge.OpenProfileEditor: " + _foregroundAppId);
-            try
-            {
-                var bridge = PhantomBridgeHelper.CreateFactory();
-                bridge.OpenProfileEditor(_foregroundAppId, _foregroundAppName ?? string.Empty, _foregroundFullPath ?? string.Empty);
-            }
-            catch (Exception ex)
-            {
-                DebugLogger.Log("[Widget] OpenProfileEditor failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// 套用 IsEnabled 規則：
-        ///   - 內建廠商手把映射存在（ROG Ally 等）→ Mode 三顆全部停用、顯示說明
-        ///   - Mode=Off → Layout / CursorSpeed 停用
-        /// </summary>
-        private void ApplyEnabledState(string mode)
-        {
-            bool mouseOn = !_builtInMapping && mode != PhantomKeyStore.MouseModeOff;
-
-            ModeOffBtn.IsEnabled = !_builtInMapping;
-            ModeAutoBtn.IsEnabled = !_builtInMapping;
-            ModeForceOnBtn.IsEnabled = !_builtInMapping;
-
-            LayoutNavBtn.IsEnabled = mouseOn;
-            LayoutClassicBtn.IsEnabled = mouseOn;
-            CursorSpeedSlider.IsEnabled = mouseOn;
-
+            ModeSwitch.IsEnabled = !_builtInMapping;
             BuiltInMappingNote.Visibility = _builtInMapping ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        // ── Quick Actions：一次性動作按鈕 ────────────────────────────────────
-        //
-        // 委派給 PhantomBridge Full Trust COM Server 執行；Widget 受 UWP AppContainer 限制，
-        // SendInput 會被靜默封鎖，LaunchUriAsync 跨套件 protocol 不可靠。
-        // Bridge 為獨立的 full trust 桌面行程，Windows 於 CoCreateInstance 時按需啟動。
+        // ── Quick Actions：一次性動作按鈕（委派給 PhantomBridge COM server） ─────
 
         /// <summary>透過 PhantomBridge 送 Win+Tab 開啟 Windows 工作檢視。</summary>
         private void TaskViewBtn_Click(object sender, RoutedEventArgs e)
@@ -466,11 +409,7 @@ namespace OmniConsole.PhantomLink
             catch (Exception ex) { DebugLogger.Log("[Widget] TaskView FAIL: " + ex); }
         }
 
-        /// <summary>
-        /// 透過 PhantomBridge 觸發 Steam In-Game Overlay。快捷鍵字串從 Shared.ini 讀取
-        /// （PhantomKey 從 Steam VDF 解析後寫入），確保符合使用者在 Steam 自訂的快捷鍵。
-        /// 僅在 DefaultPlatform=SteamBigPicture 時可見，避免對非 Steam 遊戲送 Shift+Tab 造成意外。
-        /// </summary>
+        /// <summary>透過 PhantomBridge 觸發 Steam In-Game Overlay。</summary>
         private void TriggerSteamInGameOverlayBtn_Click(object sender, RoutedEventArgs e)
         {
             string shortcut = PhantomKeyStore.GetSteamInGameOverlayShortcut();
@@ -479,10 +418,7 @@ namespace OmniConsole.PhantomLink
             catch (Exception ex) { DebugLogger.Log("[Widget] TriggerSteamInGameOverlay FAIL: " + ex); }
         }
 
-        /// <summary>
-        /// 透過 PhantomBridge 啟動 xbox://library（Xbox 媒體櫃）。
-        /// 全域可見：補回 Game Bar Library 原本啟動 xbox://library 的功能（被 OmniConsole 接管後遺漏）。
-        /// </summary>
+        /// <summary>透過 PhantomBridge 啟動 xbox://library（Xbox 媒體櫃）。</summary>
         private void XboxLibraryBtn_Click(object sender, RoutedEventArgs e)
         {
             DebugLogger.Log("[Widget] XboxLibraryBtn_Click → PhantomBridge.OpenXboxLibrary");
@@ -490,22 +426,10 @@ namespace OmniConsole.PhantomLink
             catch (Exception ex) { DebugLogger.Log("[Widget] OpenXboxLibrary FAIL: " + ex); }
         }
 
-        /*
-        // SettingsBtn 暫時註解保留 —— 使用者可從 Game Bar Library 入口替代。日後研究後再啟用。
-        /// <summary>透過 PhantomBridge 喚起 OmniConsole 主程式設定頁。</summary>
-        private void SettingsBtn_Click(object sender, RoutedEventArgs e)
-        {
-            DebugLogger.Log("[Widget] SettingsBtn_Click → PhantomBridge.OpenSettings");
-            try { PhantomBridgeHelper.CreateFactory().OpenSettings(); }
-            catch (Exception ex) { DebugLogger.Log("[Widget] Settings FAIL: " + ex); }
-        }
-        */
-
         // ── UI 事件處理 ─────────────────────────────────────────────────────
 
         /// <summary>
         /// Steam In-Game Overlay 兩顆 ToggleButton 共用 Click：On/Off 互斥切換、寫入 Store。
-        /// 獨立於 Mouse Mode —— 不受 _builtInMapping 或 mode=Off 影響，永遠可操作。
         /// </summary>
         private void SteamInGameOverlayBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -525,67 +449,46 @@ namespace OmniConsole.PhantomLink
             PhantomKeyStore.SetSteamInGameOverlayEnabled(enabled);
         }
 
-        /// <summary>
-        /// Mouse Mode 三顆 ToggleButton 共用 Click：依 Tag 決定模式、互斥勾選狀態、寫入 Store 並更新 IsEnabled。
-        /// </summary>
-        private void ModeBtn_Click(object sender, RoutedEventArgs e)
+        /// <summary>Mouse Mode On/Off 開關：寫入 Store。</summary>
+        private void ModeSwitch_Toggled(object sender, RoutedEventArgs e)
         {
             if (_loading) return;
-            if (!(sender is ToggleButton btn)) return;
-
-            string mode = btn.Tag as string ?? PhantomKeyStore.MouseModeAuto;
-
-            // 三顆 ToggleButton 互斥：選中一顆時取消其餘兩顆
-            _loading = true;
-            try
-            {
-                ModeOffBtn.IsChecked = mode == PhantomKeyStore.MouseModeOff;
-                ModeAutoBtn.IsChecked = mode == PhantomKeyStore.MouseModeAuto;
-                ModeForceOnBtn.IsChecked = mode == PhantomKeyStore.MouseModeForceOn;
-            }
-            finally { _loading = false; }
-
-            PhantomKeyStore.SetMouseMode(mode);
-            ApplyEnabledState(mode);
+            PhantomKeyStore.SetMouseModeEnabled(ModeSwitch.IsOn);
         }
 
         /// <summary>
-        /// Layout 兩顆 ToggleButton 共用 Click：依 Tag 決定配置、互斥勾選狀態、寫入 Store。
+        /// profile 下拉選擇變更：把目前前景 App 指派到所選 profile（委派 PhantomBridge COM）。
+        /// 前景無有效 appId（黑名單 / 內建廠商映射）時僅更新編輯鈕狀態，不指派。
         /// </summary>
-        private void LayoutBtn_Click(object sender, RoutedEventArgs e)
+        private void ProfileCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            UpdateEditProfileEnabled();
             if (_loading) return;
-            if (!(sender is ToggleButton btn)) return;
+            if (!(ProfileCombo.SelectedItem is ComboBoxItem item) || !(item.Tag is string profileId)) return;
+            if (!CanAssignForeground) return;
 
-            string layout = btn.Tag as string ?? PhantomKeyStore.LayoutOmniNav;
-
-            // 兩顆 ToggleButton 互斥
-            _loading = true;
+            DebugLogger.Log($"[Widget] assign foreground [{_foregroundAppId}] → profile [{profileId}]");
             try
             {
-                LayoutNavBtn.IsChecked = layout == PhantomKeyStore.LayoutOmniNav;
-                LayoutClassicBtn.IsChecked = layout == PhantomKeyStore.LayoutClassic;
+                PhantomBridgeHelper.CreateFactory().SetProfileAssignment(
+                    _foregroundAppId, profileId, _foregroundFullPath ?? string.Empty);
             }
-            finally { _loading = false; }
-
-            PhantomKeyStore.SetMouseModeLayout(layout);
+            catch (Exception ex)
+            {
+                DebugLogger.Log("[Widget] SetProfileAssignment FAIL: " + ex.Message);
+            }
         }
 
         /// <summary>
-        /// Slider 值（0..7）映射為百分比（25/50/75/100/125/150/175/200），更新顯示並寫入 Store。
+        /// 編輯 profile 按鈕：對下拉清單目前所選 profile 開啟主程式手把映射編輯器
+        /// （委派 PhantomBridge COM → omniconsole://edit-gamepad-profile?profileId=...）。
         /// </summary>
-        private void CursorSpeedSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        private void EditProfileBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (_loading) return;
-
-            int idx = (int)Math.Round(e.NewValue);
-            if (idx < 0) idx = 0;
-            if (idx >= PhantomKeyStore.ValidCursorSpeedPercents.Length)
-                idx = PhantomKeyStore.ValidCursorSpeedPercents.Length - 1;
-
-            int pct = PhantomKeyStore.ValidCursorSpeedPercents[idx];
-            CursorSpeedValueText.Text = $"{pct}%";
-            PhantomKeyStore.SetCursorSpeedPercent(pct);
+            if (!(ProfileCombo.SelectedItem is ComboBoxItem item) || !(item.Tag is string profileId)) return;
+            DebugLogger.Log("[Widget] EditProfileBtn_Click → PhantomBridge.OpenProfileEditor: " + profileId);
+            try { PhantomBridgeHelper.CreateFactory().OpenProfileEditor(profileId); }
+            catch (Exception ex) { DebugLogger.Log("[Widget] OpenProfileEditor FAIL: " + ex.Message); }
         }
     }
 }

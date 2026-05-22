@@ -135,18 +135,10 @@ static bool DetectBuiltInGamepadMappingImpl() {
     return false;
 }
 
-static MouseModeState ParseMouseMode(const std::wstring& s) {
-    if (_wcsicmp(s.c_str(), L"Off") == 0)     return MouseModeState::Off;
-    if (_wcsicmp(s.c_str(), L"ForceOn") == 0) return MouseModeState::ForceOn;
-    return MouseModeState::Auto;
-}
-
-static const wchar_t* MouseModeToStr(MouseModeState m) {
-    switch (m) {
-        case MouseModeState::Off:     return L"Off";
-        case MouseModeState::ForceOn: return L"ForceOn";
-        default:                      return L"Auto";
-    }
+// MouseMode：新模型只有 On / Off。
+// 舊值相容：Auto / ForceOn 一律視為 On；只有明確 Off 才停用。
+static bool ParseMouseModeEnabled(const std::wstring& s) {
+    return _wcsicmp(s.c_str(), L"Off") != 0;
 }
 
 // ============================================================================
@@ -160,22 +152,12 @@ AppConfig ReadConfig() {
 
     cfg.steamOverlayEnabled = ReadInt(L"PhantomKey", L"SteamInGameOverlayEnabled", 1) != 0;
 
-    cfg.mouseMode = ParseMouseMode(ReadString(L"PhantomKey", L"MouseMode", L"Auto"));
-
-    std::wstring layout = ReadString(L"PhantomKey", L"MouseModeLayout", L"OmniNav");
-    if (_wcsicmp(layout.c_str(), L"Classic") != 0) layout = L"OmniNav";
-    cfg.mouseModeLayout = layout;
-
-    int rawPct = ReadInt(L"PhantomKey", L"CursorSpeedPercent", 100);
-    static const int kValidPercents[] = { 25, 50, 75, 100, 125, 150, 175, 200 };
-    cfg.cursorSpeedPercent = 100;
-    for (int p : kValidPercents) if (p == rawPct) { cfg.cursorSpeedPercent = p; break; }
+    cfg.mouseModeEnabled = ParseMouseModeEnabled(ReadString(L"PhantomKey", L"MouseMode", L"On"));
 
     cfg.hasBuiltInGamepadMapping = DetectBuiltInGamepadMapping();
 
-    Log(L"[Config] DefaultPlatform=%s, SteamOverlay=%d, MouseMode=%s, Layout=%s, CursorSpeed=%d%%, BuiltInMapping=%d",
+    Log(L"[Config] DefaultPlatform=%s, SteamOverlay=%d, MouseMode=%s, BuiltInMapping=%d",
         cfg.defaultPlatform.c_str(), (int)cfg.steamOverlayEnabled,
-        MouseModeToStr(cfg.mouseMode), cfg.mouseModeLayout.c_str(),
-        cfg.cursorSpeedPercent, (int)cfg.hasBuiltInGamepadMapping);
+        cfg.mouseModeEnabled ? L"On" : L"Off", (int)cfg.hasBuiltInGamepadMapping);
     return cfg;
 }

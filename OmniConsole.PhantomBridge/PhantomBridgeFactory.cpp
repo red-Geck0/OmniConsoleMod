@@ -560,21 +560,29 @@ namespace winrt::PhantomBridge::implementation
         return winrt::Windows::Foundation::Uri::EscapeComponent(s);
     }
 
-    void PhantomBridgeFactory::OpenProfileEditor(winrt::hstring const& appId, winrt::hstring const& name, winrt::hstring const& fullPath)
+    void PhantomBridgeFactory::OpenProfileEditor(winrt::hstring const& profileId)
     {
         TryInstallClientWatchdog();
         DismissGameBar(300);
 
-        std::wstring uriStr = L"omniconsole://edit-gamepad-profile?appId=";
-        uriStr += std::wstring{ PercentEncode(appId) };
-        uriStr += L"&displayName=";
-        uriStr += std::wstring{ PercentEncode(name) };
-        if (!fullPath.empty())
-        {
-            uriStr += L"&fullPath=";
-            uriStr += std::wstring{ PercentEncode(fullPath) };
-        }
-
+        std::wstring uriStr = L"omniconsole://edit-gamepad-profile?profileId=";
+        uriStr += std::wstring{ PercentEncode(profileId) };
         LaunchUriAsForeground(uriStr);
+    }
+
+    // ── 公開方法：SetProfileAssignment ───────────────────────────────────────
+    //
+    // 將前景 App 指派到某 profile。主程式收 omniconsole://assign-gamepad-profile
+    // 後以無視窗方式套用（GamepadProfileStore.SetAssignment）；不收 Game Bar、不搶前景，
+    // 指派為背景動作。
+    void PhantomBridgeFactory::SetProfileAssignment(winrt::hstring const& appId, winrt::hstring const& profileId)
+    {
+        TryInstallClientWatchdog();
+
+        std::wstring uriStr = L"omniconsole://assign-gamepad-profile?appId=";
+        uriStr += std::wstring{ PercentEncode(appId) };
+        uriStr += L"&profileId=";
+        uriStr += std::wstring{ PercentEncode(profileId) };
+        ::ShellExecuteW(nullptr, L"open", uriStr.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     }
 }

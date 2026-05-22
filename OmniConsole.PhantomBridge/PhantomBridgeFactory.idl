@@ -40,9 +40,12 @@ namespace PhantomBridge
         // UIPI 會靜默丟棄 SendInput 給高 IL 視窗（PhantomKey 按鍵送不到高 IL 視窗），故 Widget 收到 true 時要停用「自訂此 App」（自訂 profile 無效）。
         void GetForegroundAppInfo(out String title, out String processName, out String fullPath, out String aumid, out String displayName, out Boolean isElevated);
 
-        // 喚起 OmniConsole 主程式編輯器（omniconsole://edit-gamepad-profile?appId=...&displayName=...&fullPath=...）
-        // 流程：Win+G 收 Game Bar → ShellExecuteW（appId / displayName / fullPath 經 percent-encode）
-        // fullPath 留空字串時 URI 不附該 query param，主程式建 profile 時 FullPath=null（name-only 通配）。
-        void OpenProfileEditor(String appId, String name, String fullPath);
+        // 喚起 OmniConsole 主程式手把映射編輯器，編輯指定 profile
+        // （omniconsole://edit-gamepad-profile?profileId=...）。
+        void OpenProfileEditor(String profileId);
+
+        // 將前景 App 指派到某 profile（omniconsole://assign-gamepad-profile?appId=...&profileId=...）。
+        // 主程式以無視窗方式處理該 protocol，套用後不顯示設定視窗。
+        void SetProfileAssignment(String appId, String profileId);
     }
 }

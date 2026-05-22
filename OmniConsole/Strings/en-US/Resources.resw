@@ -334,6 +334,9 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   <data name="GamepadHint_Exit.Text" xml:space="preserve">
     <value>Exit</value>
   </data>
+  <data name="GamepadHint_OpenMenu.Text" xml:space="preserve">
+    <value>Open Menu</value>
+  </data>
   <data name="Nav_SystemPlatforms.Content" xml:space="preserve">
     <value>System</value>
   </data>

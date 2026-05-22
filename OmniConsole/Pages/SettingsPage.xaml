@@ -271,7 +271,7 @@
             </NavigationView.MenuItems>
 
             <NavigationView.Content>
-                <Grid Margin="64,24,64,80">
+                <Grid Margin="64,24,64,48">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -1144,8 +1144,23 @@
                     VerticalAlignment="Bottom"
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
-                    Margin="0,0,0,24" Spacing="32"
+                    Margin="0,0,0,8" Spacing="32"
                     IsHitTestVisible="True">
+            <!-- View 鍵開啟側邊選單提示（滑鼠可點選） -->
+            <Button x:Name="GamepadHintView"
+                    Click="ViewButtonHintButton_Click"
+                    Background="Transparent" BorderBrush="Transparent"
+                    Padding="0" MinWidth="0" MinHeight="0"
+                    IsTabStop="False">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xEE40;" FontSize="22"
+                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                              VerticalAlignment="Center"/>
+                    <TextBlock x:Uid="GamepadHint_OpenMenu" FontSize="14"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
             <!-- LB/RB 索引標籤切換提示 -->
             <StackPanel x:Name="GamepadHintLBRB" Orientation="Horizontal" Spacing="4" Visibility="Collapsed">
                 <FontIcon Glyph="&#xF10C;" FontSize="22"

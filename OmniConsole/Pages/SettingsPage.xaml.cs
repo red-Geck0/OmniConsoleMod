@@ -1542,6 +1542,12 @@ namespace OmniConsole.Pages
             SettingsNav.IsPaneOpen = !SettingsNav.IsPaneOpen;
         }
 
+        /// <summary>底部提示列「開啟選單」按鈕的滑鼠點選處理。</summary>
+        private void ViewButtonHintButton_Click(object sender, RoutedEventArgs e)
+        {
+            SettingsNav.IsPaneOpen = true;
+        }
+
         /// <summary>側邊選單展開：導覽項目恢復可聚焦，並把焦點移到目前選取項目。</summary>
         private void SettingsNav_PaneOpened(NavigationView sender, object args)
         {

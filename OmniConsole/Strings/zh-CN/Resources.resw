@@ -334,6 +334,9 @@
   <data name="GamepadHint_Exit.Text" xml:space="preserve">
     <value>退出</value>
   </data>
+  <data name="GamepadHint_OpenMenu.Text" xml:space="preserve">
+    <value>打开菜单</value>
+  </data>
   <data name="Nav_SystemPlatforms.Content" xml:space="preserve">
     <value>系统</value>
   </data>

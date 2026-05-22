@@ -48,11 +48,11 @@
                 <ActivateAfterInstall>true</ActivateAfterInstall>
                 <Window>
                   <Size>
-                    <Height>484</Height>
+                    <Height>560</Height>
                     <Width>464</Width>
-                    <MinHeight>484</MinHeight>
+                    <MinHeight>560</MinHeight>
                     <MinWidth>464</MinWidth>
-                    <MaxHeight>670</MaxHeight>
+                    <MaxHeight>800</MaxHeight>
                     <MaxWidth>464</MaxWidth>
                   </Size>
                   <ResizeSupported>

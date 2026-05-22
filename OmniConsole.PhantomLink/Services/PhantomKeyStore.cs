@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -15,19 +16,13 @@ namespace OmniConsole.PhantomLink.Services
         // ── 常數與有效值 ─────────────────────────────────────────────────────
 
         public const string MouseModeOff = "Off";
-        public const string MouseModeAuto = "Auto";
-        public const string MouseModeForceOn = "ForceOn";
-
-        public const string LayoutOmniNav = "OmniNav";
-        public const string LayoutClassic = "Classic";
+        public const string MouseModeOn = "On";
 
         // 預設平台 Id（與主程式 Models/PlatformCatalog.cs 一致）
         public const string PlatformSteamBigPicture = "SteamBigPicture";
 
         // Steam In-Game Overlay 預設快捷鍵；若 PhantomKey 尚未寫入 Shared.ini 則用此回退
         public const string DefaultSteamInGameOverlayShortcut = "Shift+Tab";
-
-        public static readonly int[] ValidCursorSpeedPercents = { 25, 50, 75, 100, 125, 150, 175, 200 };
 
         // ── 共用 INI 路徑（PublisherCacheFolder） ────────────────────────────
 
@@ -101,54 +96,24 @@ namespace OmniConsole.PhantomLink.Services
         {
             var path = SharedIniPath;
             if (string.IsNullOrEmpty(path) || File.Exists(path)) return;
-            Write("PhantomKey", "MouseMode", MouseModeAuto);
-            Write("PhantomKey", "MouseModeLayout", LayoutOmniNav);
-            Write("PhantomKey", "CursorSpeedPercent", "100");
+            Write("PhantomKey", "MouseMode", MouseModeOn);
             Write("PhantomKey", "SteamInGameOverlayEnabled", "1");
             DebugLogger.Log("[Store] Seeded default [PhantomKey] values.");
         }
 
         // ── 公開 API：Mouse Mode ─────────────────────────────────────────────
 
-        /// <summary>
-        /// 讀取 Mouse Mode（Off / Auto / ForceOn）；無效或缺失值回 Auto。
-        /// </summary>
-        public static string GetMouseMode()
+        /// <summary>讀取 Mouse Mode 是否啟用；"Off" 為停用，其餘（含舊值 Auto/ForceOn）視為啟用。</summary>
+        public static bool GetMouseModeEnabled()
         {
-            var s = Read("PhantomKey", "MouseMode", MouseModeAuto);
-            if (s == MouseModeOff || s == MouseModeAuto || s == MouseModeForceOn) return s;
-            return MouseModeAuto;
+            var s = Read("PhantomKey", "MouseMode", MouseModeOn);
+            return s != MouseModeOff;
         }
 
-        /// <summary>
-        /// 寫入 Mouse Mode；非預期值會回退成 Auto，避免下次讀取再做一次回退。
-        /// </summary>
-        public static void SetMouseMode(string mode)
+        /// <summary>寫入 Mouse Mode On/Off。</summary>
+        public static void SetMouseModeEnabled(bool enabled)
         {
-            if (mode != MouseModeOff && mode != MouseModeAuto && mode != MouseModeForceOn)
-                mode = MouseModeAuto;
-            Write("PhantomKey", "MouseMode", mode);
-        }
-
-        // ── 公開 API：Layout ─────────────────────────────────────────────────
-
-        /// <summary>
-        /// 讀取手把配置（OmniNav / Classic）；無效或缺失值回 OmniNav。
-        /// </summary>
-        public static string GetMouseModeLayout()
-        {
-            var s = Read("PhantomKey", "MouseModeLayout", LayoutOmniNav);
-            if (s == LayoutClassic) return LayoutClassic;
-            return LayoutOmniNav;
-        }
-
-        /// <summary>
-        /// 寫入手把配置；非預期值回退成 OmniNav。
-        /// </summary>
-        public static void SetMouseModeLayout(string layout)
-        {
-            if (layout != LayoutOmniNav && layout != LayoutClassic) layout = LayoutOmniNav;
-            Write("PhantomKey", "MouseModeLayout", layout);
+            Write("PhantomKey", "MouseMode", enabled ? MouseModeOn : MouseModeOff);
         }
 
         // ── 公開 API：Steam In-Game Overlay ──────────────────────────────────
@@ -171,31 +136,27 @@ namespace OmniConsole.PhantomLink.Services
             Write("PhantomKey", "SteamInGameOverlayEnabled", enabled ? "1" : "0");
         }
 
-        // ── 公開 API：Cursor Speed ──────────────────────────────────────────
+        // ── 公開 API：手把映射 profile 清單 ─────────────────────────────────
 
         /// <summary>
-        /// 讀取游標速度百分比；必須落在 ValidCursorSpeedPercents 範圍內，否則回 100。
+        /// 讀取手把映射 profile 清單（id + 名稱）。
+        /// 來源：PhantomKey 解析 GamepadProfiles.json 後寫入 [Profiles] Count / IdN / NameN。
+        /// 缺失或解析失敗回空清單。
         /// </summary>
-        public static int GetCursorSpeedPercent()
+        public static List<(string Id, string Name)> GetProfileList()
         {
-            var s = Read("PhantomKey", "CursorSpeedPercent", "100");
-            if (int.TryParse(s, out int pct))
+            var result = new List<(string, string)>();
+            var s = Read("Profiles", "Count", "0");
+            if (!int.TryParse(s, out int count) || count <= 0) return result;
+            if (count > 256) count = 256;  // 防呆上限
+            for (int i = 0; i < count; i++)
             {
-                foreach (var p in ValidCursorSpeedPercents)
-                    if (p == pct) return p;
+                string id = Read("Profiles", "Id" + i, string.Empty);
+                if (string.IsNullOrEmpty(id)) continue;
+                string name = Read("Profiles", "Name" + i, id);
+                result.Add((id, name));
             }
-            return 100;
-        }
-
-        /// <summary>
-        /// 寫入游標速度百分比；不在 ValidCursorSpeedPercents 範圍時回退成 100。
-        /// </summary>
-        public static void SetCursorSpeedPercent(int percent)
-        {
-            int valid = 100;
-            foreach (var p in ValidCursorSpeedPercents)
-                if (p == percent) { valid = p; break; }
-            Write("PhantomKey", "CursorSpeedPercent", valid.ToString());
+            return result;
         }
 
         // ── 公開 API：DefaultPlatform / SteamInGameOverlay 快捷鍵 ───────────

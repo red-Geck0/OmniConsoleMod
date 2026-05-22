@@ -1,5 +1,7 @@
 #pragma once
 #include <string>
+#include <vector>
+#include <utility>
 
 // ============================================================================
 // 共用設定讀取（PublisherCacheFolder\OmniConsoleShared\Shared.ini）
@@ -21,3 +23,8 @@ unsigned long long GetSharedIniLastWriteTime();
 // 內部以靜態快取比對，僅在值改變時實際寫檔，避免無謂 I/O 與 mtime 變動。
 // 用途：PhantomLink Widget 透過 PhantomKeyStore 讀取此鍵，傳給 PhantomBridge 觸發 overlay。
 void WriteSteamInGameOverlayShortcut(const std::wstring& shortcut);
+
+// 將手把映射 profile 清單寫入 Shared.ini [Profiles]（Count / IdN / NameN）。
+// 內部以靜態快取比對，僅在清單改變時實際寫檔。
+// 用途：PhantomLink Widget 透過 PhantomKeyStore 讀取此區段以填 profile 下拉選單。
+void WriteProfileList(const std::vector<std::pair<std::wstring, std::wstring>>& profiles);

@@ -77,6 +77,37 @@ void WriteSteamInGameOverlayShortcut(const std::wstring& shortcut) {
     }
 }
 
+// ── 手把映射 profile 清單寫入 ──────────────────────────────────────────────
+//
+// 靜態快取比對：清單未變則不寫，避免無謂 I/O 與 mtime 變動。
+void WriteProfileList(const std::vector<std::pair<std::wstring, std::wstring>>& profiles) {
+    auto path = GetSharedIniPath();
+    if (path.empty()) return;
+
+    static std::wstring lastSig;
+    std::wstring sig;
+    for (const auto& p : profiles) {
+        sig += p.first;  sig += L'\x01';
+        sig += p.second; sig += L'\x02';
+    }
+    if (sig == lastSig) return;
+    lastSig = sig;
+
+    // 先清整個 [Profiles] section（清掉上次殘留的 IdN/NameN），再重寫
+    WritePrivateProfileStringW(L"Profiles", nullptr, nullptr, path.c_str());
+
+    std::wstring count = std::to_wstring(profiles.size());
+    WritePrivateProfileStringW(L"Profiles", L"Count", count.c_str(), path.c_str());
+    for (size_t i = 0; i < profiles.size(); ++i) {
+        std::wstring idx = std::to_wstring(i);
+        std::wstring idKey   = L"Id"   + idx;
+        std::wstring nameKey = L"Name" + idx;
+        WritePrivateProfileStringW(L"Profiles", idKey.c_str(),   profiles[i].first.c_str(),  path.c_str());
+        WritePrivateProfileStringW(L"Profiles", nameKey.c_str(), profiles[i].second.c_str(), path.c_str());
+    }
+    Log(L"[Config] Wrote %d profile(s) to Shared.ini [Profiles].", (int)profiles.size());
+}
+
 // ── 小工具：讀 INI 字串 / 整數 ────────────────────────────────────────────
 
 static std::wstring ReadString(const wchar_t* section, const wchar_t* key,

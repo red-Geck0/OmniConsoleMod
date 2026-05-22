@@ -66,6 +66,12 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     // 載入手把映射 profile store（GamepadProfiles.json，與 Shared.ini 同目錄）
     GamepadProfileStore profileStore = LoadGamepadProfileStore();
     unsigned long long lastProfilesMTime = GetGamepadProfilesLastWriteTime();
+    // 把 profile id+名稱清單同步到 Shared.ini，供 PhantomLink Widget 讀取
+    {
+        std::vector<std::pair<std::wstring, std::wstring>> profileList;
+        for (const auto& p : profileStore.profiles) profileList.emplace_back(p.id, p.name);
+        WriteProfileList(profileList);
+    }
 
     // FSE 狀態查詢函式：載入成功時主迴圈會在偵測到 FSE 退出時結束 PhantomKey；
     // 載入失敗（API 不存在）時 pfnIsFseActive 為 nullptr，主迴圈跳過該檢查、繼續執行
@@ -165,6 +171,11 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             Log(L"[PhantomKey] GamepadProfiles.json changed, reloading profiles.");
             lastProfilesMTime = curProfilesMTime;
             profileStore = LoadGamepadProfileStore();
+            {
+                std::vector<std::pair<std::wstring, std::wstring>> profileList;
+                for (const auto& p : profileStore.profiles) profileList.emplace_back(p.id, p.name);
+                WriteProfileList(profileList);
+            }
             MouseMode::Reset();
         }
 

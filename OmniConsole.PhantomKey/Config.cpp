@@ -191,8 +191,25 @@ AppConfig ReadConfig() {
 
     cfg.hasBuiltInGamepadMapping = DetectBuiltInGamepadMapping();
 
-    Log(L"[Config] DefaultPlatform=%s, SteamOverlay=%d, MouseMode=%s, BuiltInMapping=%d",
+    cfg.widgetActive = ReadInt(L"Status", L"WidgetActive", 0) != 0;
+
+    Log(L"[Config] DefaultPlatform=%s, SteamOverlay=%d, MouseMode=%s, BuiltInMapping=%d, WidgetActive=%d",
         cfg.defaultPlatform.c_str(), (int)cfg.steamOverlayEnabled,
-        cfg.mouseModeEnabled ? L"On" : L"Off", (int)cfg.hasBuiltInGamepadMapping);
+        cfg.mouseModeEnabled ? L"On" : L"Off", (int)cfg.hasBuiltInGamepadMapping,
+        (int)cfg.widgetActive);
     return cfg;
+}
+
+// ── 目前 active profile id 寫入 ─────────────────────────────────────────────
+//
+// 靜態快取比對：相同值不寫，避免每 tick 觸發 mtime 變動。
+void WriteActiveProfileId(const std::wstring& profileId) {
+    auto path = GetSharedIniPath();
+    if (path.empty()) return;
+    static std::wstring lastWritten;
+    if (profileId == lastWritten) return;
+    if (WritePrivateProfileStringW(L"Status", L"ActiveProfileId", profileId.c_str(), path.c_str())) {
+        lastWritten = profileId;
+        Log(L"[Config] Wrote ActiveProfileId=\"%s\" to Shared.ini.", profileId.c_str());
+    }
 }

@@ -192,18 +192,24 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
 
         // Mouse Mode 決策順序（每 tick）：
         //   1. MouseMode 關閉 / 裝置內建廠商映射 → 不介入
-        //   2. IsMouseModeForceExcluded(P)       → 不介入（系統黑名單 Tier-1：
+        //   2. Widget 目前浮現（WidgetActive=1） → 不介入，讓 Game Bar 原生手把 UI 正常運作
+        //   3. IsMouseModeForceExcluded(P)       → 不介入（系統黑名單 Tier-1：
         //        OmniConsole 自己 / Playnite / SteamBigPicture / Xbox / Armoury /
         //        Windows 設定 / Microsoft Store / FSE Task View）
-        //   3. 否則 → 解析前景應套用的 profile（assignment 命中則用其 profile，
-        //             否則用 defaultProfileId 的 profile）→ 啟用，走 Tick
+        //   4. 否則 → 解析前景應套用的 profile（assignment 命中則用其 profile，
+        //             否則用 defaultProfileId 的 profile）→ 啟用，走 Tick；
+        //             同時將 activeProfileId 寫入 Shared.ini 供 Widget 預選
         bool mouseModeActive = false;
         const GamepadProfile* activeProfile = nullptr;
         if (config.mouseModeEnabled &&
             !config.hasBuiltInGamepadMapping &&
+            !config.widgetActive &&
             !IsMouseModeForceExcluded(currentFg)) {
             activeProfile = ResolveProfileForForeground(profileStore, currentFg, currentFgPath, GetForegroundHwnd());
-            if (activeProfile) mouseModeActive = true;
+            if (activeProfile) {
+                mouseModeActive = true;
+                WriteActiveProfileId(activeProfile->id);
+            }
         }
 
         // 自適應輪詢頻率

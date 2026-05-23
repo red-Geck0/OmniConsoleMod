@@ -50,6 +50,9 @@ namespace OmniConsole.PhantomLink
                 try { Application.Current.LeavingBackground += OnLeavingBackground; }
                 catch (Exception ex) { DebugLogger.Log("[Widget] Hook LeavingBackground FAIL: " + ex); }
 
+                try { Application.Current.EnteredBackground += OnEnteredBackground; }
+                catch (Exception ex) { DebugLogger.Log("[Widget] Hook EnteredBackground FAIL: " + ex); }
+
                 var w = App.CurrentWidget;
                 if (w != null)
                 {
@@ -61,6 +64,8 @@ namespace OmniConsole.PhantomLink
             this.Unloaded += (s, e) =>
             {
                 try { Application.Current.LeavingBackground -= OnLeavingBackground; } catch { }
+                try { Application.Current.EnteredBackground -= OnEnteredBackground; } catch { }
+                try { PhantomKeyStore.SetWidgetActive(false); } catch { }
                 var w = App.CurrentWidget;
                 if (w != null) { try { w.RequestedThemeChanged -= OnGameBarThemeChanged; } catch { } }
             };
@@ -87,12 +92,20 @@ namespace OmniConsole.PhantomLink
 
         // ── 設定重新載入 ─────────────────────────────────────────────────────
 
-        /// <summary>從背景返回前景時重新讀取設定，反映外部行程（OmniConsole 主程式）的變更。</summary>
+        /// <summary>Widget 浮現（LeavingBackground）：通知 PhantomKey 暫停 Mouse Mode，再重讀設定。</summary>
         private void OnLeavingBackground(object sender, Windows.ApplicationModel.LeavingBackgroundEventArgs e)
         {
-            DebugLogger.Log("[Widget] LeavingBackground → reload");
+            DebugLogger.Log("[Widget] LeavingBackground → set WidgetActive + reload");
+            try { PhantomKeyStore.SetWidgetActive(true); } catch { }
             try { ReloadFromStore(); }
             catch (Exception ex) { DebugLogger.Log("[Widget] Reload FAIL: " + ex); }
+        }
+
+        /// <summary>Widget 隱藏（EnteredBackground）：通知 PhantomKey 恢復 Mouse Mode。</summary>
+        private void OnEnteredBackground(object sender, Windows.ApplicationModel.EnteredBackgroundEventArgs e)
+        {
+            DebugLogger.Log("[Widget] EnteredBackground → clear WidgetActive");
+            try { PhantomKeyStore.SetWidgetActive(false); } catch { }
         }
 
         // ── 焦點進入偵測：重導至選中態按鈕 + 吞掉進入時的 D-pad Down ─────────
@@ -272,15 +285,20 @@ namespace OmniConsole.PhantomLink
                 DebugLogger.Log("[Widget] PopulateProfileCombo FAIL: " + ex);
             }
 
-            // 預選預設 profile（讓使用者打開時有明確的起始點）
+            // 預選 profile：優先用 PhantomKey 記錄的最後套用 profile（反映當前遊戲的指派），
+            // 若尚未有記錄（PhantomKey 從未執行）則退回預設 profile。
             try
             {
-                string defaultId = PhantomKeyStore.GetDefaultProfileId();
-                if (!string.IsNullOrEmpty(defaultId))
+                string activeId = PhantomKeyStore.GetActiveProfileId();
+                string preselectId = !string.IsNullOrEmpty(activeId)
+                    ? activeId
+                    : PhantomKeyStore.GetDefaultProfileId();
+
+                if (!string.IsNullOrEmpty(preselectId))
                 {
                     foreach (var item in ProfileCombo.Items)
                     {
-                        if (item is ComboBoxItem cbi && cbi.Tag is string id && id == defaultId)
+                        if (item is ComboBoxItem cbi && cbi.Tag is string id && id == preselectId)
                         {
                             ProfileCombo.SelectedItem = cbi;
                             break;
@@ -290,7 +308,7 @@ namespace OmniConsole.PhantomLink
             }
             catch (Exception ex)
             {
-                DebugLogger.Log("[Widget] PreSelectDefaultProfile FAIL: " + ex);
+                DebugLogger.Log("[Widget] PreSelectProfile FAIL: " + ex);
             }
 
             UpdateEditProfileEnabled();

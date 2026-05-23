@@ -166,6 +166,23 @@ namespace OmniConsole.PhantomLink.Services
         public static string GetDefaultProfileId()
             => Read("Profiles", "DefaultId", string.Empty);
 
+        // ── 公開 API：Widget 狀態 / Active profile ───────────────────────────
+
+        /// <summary>
+        /// 通知 PhantomKey Widget 目前是否浮現（Game Bar 開啟中）。
+        /// WidgetActive=1 時 PhantomKey 會暫停 Mouse Mode，讓 Game Bar 原生手把 UI 正常運作。
+        /// </summary>
+        public static void SetWidgetActive(bool active)
+            => Write("Status", "WidgetActive", active ? "1" : "0");
+
+        /// <summary>
+        /// 讀取 PhantomKey 最後寫入的 active profile id（[Status] ActiveProfileId）。
+        /// 記錄的是「最後一個非 Widget 前景所套用的 profile」，供 Widget 在填下拉時預選。
+        /// 若尚未寫入（PhantomKey 從未執行過）回空字串。
+        /// </summary>
+        public static string GetActiveProfileId()
+            => Read("Status", "ActiveProfileId", string.Empty);
+
         // ── 公開 API：DefaultPlatform / SteamInGameOverlay 快捷鍵 ───────────
 
         /// <summary>

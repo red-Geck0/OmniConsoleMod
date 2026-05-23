@@ -20,7 +20,7 @@ namespace {
 
     // 滾輪累積：每 tick 推進 kWheelStep，達 kWheelTriggerDelta 觸發一次系統事件
     // WHEEL_DELTA 是 Windows 系統巨集（120），故此處改名避免衝突
-    constexpr float kWheelStep         = 8.0f;
+    constexpr float kWheelStep         = 25.0f;
     constexpr float kWheelTriggerDelta = 120.0f;
 
     // Trigger 邊緣觸發臨界值

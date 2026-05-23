@@ -77,3 +77,6 @@ Directory.Build.props
 
 ## Local tooling
 .claude/
+
+## Local development notes
+rebuild-notes.md

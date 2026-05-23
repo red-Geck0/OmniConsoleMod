@@ -26,9 +26,11 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <StackPanel x:Name="RootPanel" Spacing="12" Margin="0,0,12,0">
 
-                <!-- 前景程式區塊：顯示「目前程式」+ 指派 profile 下拉 + 編輯 profile 入口 -->
-                <StackPanel x:Name="ForegroundAppSection" Spacing="4">
-                    <TextBlock x:Name="ForegroundAppLineText" FontSize="13"
+                <!-- 前景程式區塊：顯示「目前程式」兩行（標籤 + 粗體名稱） -->
+                <StackPanel x:Name="ForegroundAppSection" Spacing="2">
+                    <TextBlock x:Name="ForegroundAppLabelText" FontSize="13"
+                               Foreground="{ThemeResource SystemControlPageTextBaseMediumBrush}"/>
+                    <TextBlock x:Name="ForegroundAppNameText" FontSize="13" FontWeight="SemiBold"
                                TextTrimming="CharacterEllipsis"/>
                     <!-- CustomizeAppNoteText：前景為系統管理員程式時顯示說明 -->
                     <TextBlock x:Name="CustomizeAppNoteText"
@@ -36,24 +38,6 @@
                                Foreground="{ThemeResource SystemControlPageTextBaseMediumBrush}"
                                FontSize="12" TextWrapping="Wrap"
                                Visibility="Collapsed"/>
-                    <!-- 指派列：下拉選 profile（選即套用）＋ 編輯 profile 按鈕（開主程式設定頁） -->
-                    <Grid x:Name="ProfileAssignRow" ColumnSpacing="6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <ComboBox x:Name="ProfileCombo" Grid.Column="0"
-                                  HorizontalAlignment="Stretch"
-                                  SelectionChanged="ProfileCombo_SelectionChanged"
-                                  UseSystemFocusVisuals="True"
-                                  XYFocusDown="{x:Bind TaskViewBtn}"/>
-                        <Button x:Name="EditProfileBtn" Grid.Column="1"
-                                Click="EditProfileBtn_Click"
-                                UseSystemFocusVisuals="True"
-                                XYFocusDown="{x:Bind XboxLibraryBtn}">
-                            <FontIcon Glyph="&#xE70F;" FontSize="16"/>
-                        </Button>
-                    </Grid>
                 </StackPanel>
 
                 <!-- Quick Actions: TaskView / XboxLibrary 兩顆水平排列；委派給 PhantomBridge COM server。
@@ -129,6 +113,28 @@
                     <ToggleSwitch x:Name="ModeSwitch"
                                   Toggled="ModeSwitch_Toggled"
                                   XYFocusUp="{x:Bind SteamInGameOverlayOffBtn}"/>
+                </StackPanel>
+
+                <!-- 指派列：下拉選 profile（選即套用）＋ 編輯 profile 按鈕（開主程式設定頁）
+                     Mouse Mode = Off 時隱藏 -->
+                <StackPanel x:Name="ProfileSection" Spacing="4">
+                    <Grid x:Name="ProfileAssignRow" ColumnSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="ProfileCombo" Grid.Column="0"
+                                  HorizontalAlignment="Stretch"
+                                  SelectionChanged="ProfileCombo_SelectionChanged"
+                                  UseSystemFocusVisuals="True"
+                                  XYFocusUp="{x:Bind ModeSwitch}"/>
+                        <Button x:Name="EditProfileBtn" Grid.Column="1"
+                                Click="EditProfileBtn_Click"
+                                UseSystemFocusVisuals="True"
+                                XYFocusUp="{x:Bind ModeSwitch}">
+                            <FontIcon Glyph="&#xE70F;" FontSize="16"/>
+                        </Button>
+                    </Grid>
                 </StackPanel>
 
                 <!-- 內建手把映射說明（ROG Ally 家族時顯示） -->

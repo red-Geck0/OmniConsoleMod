@@ -336,7 +336,8 @@ namespace OmniConsole.PhantomLink
             catch (Exception ex)
             {
                 DebugLogger.Log("[Widget] GetForegroundAppInfo failed: " + ex.Message);
-                ForegroundAppLineText.Text = LocSafe(resw, "Widget_ForegroundApp_None", "Current: —");
+                ForegroundAppLabelText.Text = LocSafe(resw, "Widget_ForegroundApp_Label", "Current App:");
+                ForegroundAppNameText.Text = "—";
                 _foregroundAppId = null;
                 _foregroundFullPath = string.Empty;
                 CustomizeAppNoteText.Visibility = Visibility.Collapsed;
@@ -345,25 +346,9 @@ namespace OmniConsole.PhantomLink
             }
 
             string identifier = !string.IsNullOrEmpty(displayName) ? displayName : (!string.IsNullOrEmpty(proc) ? proc : "—");
-            string desc = proc ?? string.Empty;
 
-            string lineText;
-            if (string.IsNullOrEmpty(identifier) || identifier == "—")
-            {
-                lineText = LocSafe(resw, "Widget_ForegroundApp_None", "Current: —");
-            }
-            else if (string.IsNullOrEmpty(desc) ||
-                     string.Equals(desc, identifier, StringComparison.OrdinalIgnoreCase))
-            {
-                string fmt = LocSafe(resw, "Widget_ForegroundApp_LineFormat_NoDesc", "Current: {0}");
-                lineText = string.Format(fmt, identifier);
-            }
-            else
-            {
-                string fmt = LocSafe(resw, "Widget_ForegroundApp_LineFormat", "Current: {0} ({1})");
-                lineText = string.Format(fmt, identifier, desc);
-            }
-            ForegroundAppLineText.Text = lineText;
+            ForegroundAppLabelText.Text = LocSafe(resw, "Widget_ForegroundApp_Label", "Current App:");
+            ForegroundAppNameText.Text = string.IsNullOrEmpty(identifier) ? "—" : identifier;
 
             bool isUwp = !string.IsNullOrEmpty(aumid);
 
@@ -437,6 +422,13 @@ namespace OmniConsole.PhantomLink
         {
             ModeSwitch.IsEnabled = !_builtInMapping;
             BuiltInMappingNote.Visibility = _builtInMapping ? Visibility.Visible : Visibility.Collapsed;
+            UpdateProfileSectionVisibility();
+        }
+
+        /// <summary>Mouse Mode = Off 時隱藏 profile 選擇與編輯區塊。</summary>
+        private void UpdateProfileSectionVisibility()
+        {
+            ProfileSection.Visibility = ModeSwitch.IsOn ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // ── Quick Actions：一次性動作按鈕（委派給 PhantomBridge COM server） ─────
@@ -489,9 +481,10 @@ namespace OmniConsole.PhantomLink
             PhantomKeyStore.SetSteamInGameOverlayEnabled(enabled);
         }
 
-        /// <summary>Mouse Mode On/Off 開關：寫入 Store。</summary>
+        /// <summary>Mouse Mode On/Off 開關：寫入 Store；同步更新 profile 區塊可見性。</summary>
         private void ModeSwitch_Toggled(object sender, RoutedEventArgs e)
         {
+            UpdateProfileSectionVisibility();
             if (_loading) return;
             PhantomKeyStore.SetMouseModeEnabled(ModeSwitch.IsOn);
         }

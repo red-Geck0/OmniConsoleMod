@@ -1286,6 +1286,51 @@
   <data name="GamepadHint_SaveReturn.Text" xml:space="preserve">
     <value>保存并返回</value>
   </data>
+  <data name="GamepadHint_NewProfile.Text" xml:space="preserve">
+    <value>新建配置方案</value>
+  </data>
+  <data name="GamepadProfileNameLabel.Text" xml:space="preserve">
+    <value>配置方案名称</value>
+  </data>
+  <data name="GamepadProfileSettingsLabel.Text" xml:space="preserve">
+    <value>配置方案设置</value>
+  </data>
+  <data name="GamepadProfileCursorSpeedLabel.Text" xml:space="preserve">
+    <value>游标速度</value>
+  </data>
+  <data name="GamepadProfileDpadRepeatLabel.Text" xml:space="preserve">
+    <value>十字键自动重复</value>
+  </data>
+  <data name="GamepadProfileLayeredModeLabel.Text" xml:space="preserve">
+    <value>分层模式</value>
+  </data>
+  <data name="GamepadProfileLayeredTriggerLabel.Text" xml:space="preserve">
+    <value>分层触发键</value>
+  </data>
+  <data name="GamepadProfileLayeredActivationLabel.Text" xml:space="preserve">
+    <value>分层激活方式</value>
+  </data>
+  <data name="GamepadProfileLayeredTriggerNote.Text" xml:space="preserve">
+    <value>此键已用作分层触发键</value>
+  </data>
+  <data name="GamepadProfileReadOnlyNote.Text" xml:space="preserve">
+    <value>这是内建配置方案，只读。请使用「复制自…」制作可编辑的副本。</value>
+  </data>
+  <data name="GamepadProfileNewButton.Text" xml:space="preserve">
+    <value>新建配置方案</value>
+  </data>
+  <data name="GamepadProfileDefaultLabel.Text" xml:space="preserve">
+    <value>默认配置方案</value>
+  </data>
+  <data name="GamepadProfileSetDefaultButton" xml:space="preserve">
+    <value>设为默认</value>
+  </data>
+  <data name="GamepadProfileIsDefaultButton" xml:space="preserve">
+    <value>当前默认 ✓</value>
+  </data>
+  <data name="GamepadMappingNavConflictNote.Text" xml:space="preserve">
+    <value>提示：系统应用（Windows 设置、Microsoft Store、Xbox 应用）已从配置方案指派中排除——这些应用的手柄导航使用 Windows 默认输入处理。</value>
+  </data>
   <data name="AdvancedSection_Sound.Text" xml:space="preserve">
     <value>界面音效</value>
   </data>

@@ -74,6 +74,7 @@ namespace OmniConsole.Controls
         private Dictionary<GamepadInputId, (ComboBox combo, Button? keyBtn, TextBlock? note)> _rows = new();
         private GamepadProfile? _editing;
         private bool _isNew;
+        private bool _isDefault;
 
         /// <summary>編輯器存檔／取消後通知宿主關閉（CloseEditor）。</summary>
         public event EventHandler? Closed;
@@ -220,6 +221,7 @@ namespace OmniConsole.Controls
                 Layered = new ProfileLayered(),
                 Bindings = GamepadBuiltInLayouts.OmniNav()
             };
+            _isDefault = data.DefaultProfileId == _editing.Id;
 
             if (_rows.Count == 0) BuildRows();
 
@@ -287,6 +289,23 @@ namespace OmniConsole.Controls
             LayeredModeCombo.SelectionChanged += LayeredModeCombo_SelectionChanged;
 
             UpdateLayeredSubcontrolsEnabled();
+            UpdateSetDefaultButton();
+        }
+
+        /// <summary>更新「設為預設」按鈕的標籤與啟用狀態。</summary>
+        private void UpdateSetDefaultButton()
+        {
+            if (_editing == null) return;
+            SetDefaultButton.Content = Loc(_isDefault ? "GamepadProfileIsDefaultButton" : "GamepadProfileSetDefaultButton");
+            SetDefaultButton.IsEnabled = !_isDefault && !_isNew;
+        }
+
+        private void SetDefaultButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_editing == null || _isDefault || _isNew) return;
+            GamepadProfileStore.SetDefaultProfile(_editing.Id);
+            _isDefault = true;
+            UpdateSetDefaultButton();
         }
 
         /// <summary>Layered trigger / activation 子控制項僅在 Layered Mode 啟用時可操作。</summary>

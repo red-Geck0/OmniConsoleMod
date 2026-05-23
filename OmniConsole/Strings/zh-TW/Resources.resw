@@ -1286,6 +1286,51 @@
   <data name="GamepadHint_SaveReturn.Text" xml:space="preserve">
     <value>儲存並返回</value>
   </data>
+  <data name="GamepadHint_NewProfile.Text" xml:space="preserve">
+    <value>新增設定檔</value>
+  </data>
+  <data name="GamepadProfileNameLabel.Text" xml:space="preserve">
+    <value>設定檔名稱</value>
+  </data>
+  <data name="GamepadProfileSettingsLabel.Text" xml:space="preserve">
+    <value>設定檔設定</value>
+  </data>
+  <data name="GamepadProfileCursorSpeedLabel.Text" xml:space="preserve">
+    <value>游標速度</value>
+  </data>
+  <data name="GamepadProfileDpadRepeatLabel.Text" xml:space="preserve">
+    <value>十字鍵自動重複</value>
+  </data>
+  <data name="GamepadProfileLayeredModeLabel.Text" xml:space="preserve">
+    <value>分層模式</value>
+  </data>
+  <data name="GamepadProfileLayeredTriggerLabel.Text" xml:space="preserve">
+    <value>分層觸發鍵</value>
+  </data>
+  <data name="GamepadProfileLayeredActivationLabel.Text" xml:space="preserve">
+    <value>分層啟動方式</value>
+  </data>
+  <data name="GamepadProfileLayeredTriggerNote.Text" xml:space="preserve">
+    <value>此鍵已作為分層觸發鍵</value>
+  </data>
+  <data name="GamepadProfileReadOnlyNote.Text" xml:space="preserve">
+    <value>這是內建設定檔，唯讀。請使用「複製自…」建立可編輯的複本。</value>
+  </data>
+  <data name="GamepadProfileNewButton.Text" xml:space="preserve">
+    <value>新增設定檔</value>
+  </data>
+  <data name="GamepadProfileDefaultLabel.Text" xml:space="preserve">
+    <value>預設設定檔</value>
+  </data>
+  <data name="GamepadProfileSetDefaultButton" xml:space="preserve">
+    <value>設為預設</value>
+  </data>
+  <data name="GamepadProfileIsDefaultButton" xml:space="preserve">
+    <value>目前預設 ✓</value>
+  </data>
+  <data name="GamepadMappingNavConflictNote.Text" xml:space="preserve">
+    <value>提示：系統應用程式（Windows 設定、Microsoft Store、Xbox 應用程式）已從設定檔指派中排除——這些應用的控制器導航使用 Windows 預設輸入處理。</value>
+  </data>
   <data name="AdvancedSection_Sound.Text" xml:space="preserve">
     <value>介面音效</value>
   </data>

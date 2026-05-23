@@ -217,6 +217,12 @@ namespace OmniConsole.Pages
             if (IsGamepadMappingEditorVisible) GamepadProfileEditor.Save();
         }
 
+        /// <summary>Y 鍵新建 profile 的提示按鈕滑鼠點選處理（清單頁專用）。</summary>
+        private void NewProfileHintButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (IsGamepadMappingListVisible) OpenEditorFor(null);
+        }
+
         /// <summary>判斷節點是否為祖先元素的子孫（含自身）。用於辨識焦點是否落在清單範圍內。</summary>
         private static bool IsDescendantOf(DependencyObject? node, DependencyObject ancestor)
         {
@@ -368,6 +374,7 @@ namespace OmniConsole.Pages
                 GamepadHintMenu.Visibility = Visibility.Collapsed;
                 GamepadHintXDelete.Visibility = (editor ? GamepadProfileEditor.CanDelete : GamepadProfileList.HasItems)
                     ? Visibility.Visible : Visibility.Collapsed;
+                GamepadHintYNewProfile.Visibility = editor ? Visibility.Collapsed : Visibility.Visible;
                 return;
             }
             if (_currentNavTag != "General")
@@ -376,12 +383,14 @@ namespace OmniConsole.Pages
                 GamepadHintMenu.Visibility = Visibility.Collapsed;
                 // 還原映射頁可能留下的特殊提示按鈕（離開時要藏回去；Exit 要顯示）
                 GamepadHintXDelete.Visibility = Visibility.Collapsed;
+                GamepadHintYNewProfile.Visibility = Visibility.Collapsed;
                 GamepadHintBSaveReturn.Visibility = Visibility.Collapsed;
                 GamepadHintExit.Visibility = Visibility.Visible;
                 return;
             }
             // 從手把映射回到 General 時也還原特殊提示按鈕
             GamepadHintXDelete.Visibility = Visibility.Collapsed;
+            GamepadHintYNewProfile.Visibility = Visibility.Collapsed;
             GamepadHintBSaveReturn.Visibility = Visibility.Collapsed;
             GamepadHintExit.Visibility = Visibility.Visible;
 

@@ -12,11 +12,22 @@
 
             <!-- 唯讀 profile（OmniNav / Classic）提示；EditorRoot 之外才能在停用時仍顯示 -->
             <TextBlock x:Name="ReadOnlyNote"
-                       Text="This is a built-in profile and is read-only. Use Copy from… to make an editable copy."
+                       x:Uid="GamepadProfileReadOnlyNote"
                        FontSize="12"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                        TextWrapping="Wrap"
                        Visibility="Collapsed"/>
+
+            <!-- 預設 profile 操作列：置於 EditorRoot 之外，唯讀 profile 亦可設為預設 -->
+            <Grid x:Name="DefaultProfileRow">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Uid="GamepadProfileDefaultLabel" Grid.Column="0" VerticalAlignment="Center" FontSize="15"/>
+                <Button x:Name="SetDefaultButton" Grid.Column="1" FontSize="14" Padding="24,8"
+                        HorizontalAlignment="Left" Click="SetDefaultButton_Click"/>
+            </Grid>
 
             <!-- 可編輯區：唯讀 profile 時整區 IsEnabled=false（ContentControl 才有 IsEnabled） -->
             <ContentControl x:Name="EditorRoot" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
@@ -24,12 +35,12 @@
 
                 <!-- 頁首：profile 名稱 -->
                 <StackPanel Spacing="4">
-                    <TextBlock Text="Profile name" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
+                    <TextBlock x:Uid="GamepadProfileNameLabel" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
                     <TextBox x:Name="NameBox" FontSize="20" MaxLength="64" TextChanged="NameBox_TextChanged"/>
                 </StackPanel>
 
                 <!-- profile 設定群組 -->
-                <TextBlock Text="Profile settings" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
+                <TextBlock x:Uid="GamepadProfileSettingsLabel" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
                 <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1"
@@ -42,7 +53,7 @@
                                 <ColumnDefinition Width="220"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Cursor speed" VerticalAlignment="Center" FontSize="15"/>
+                            <TextBlock x:Uid="GamepadProfileCursorSpeedLabel" Grid.Column="0" VerticalAlignment="Center" FontSize="15"/>
                             <ComboBox x:Name="CursorSpeedCombo" Grid.Column="1" HorizontalAlignment="Stretch"/>
                         </Grid>
                         <Grid>
@@ -50,7 +61,7 @@
                                 <ColumnDefinition Width="220"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="D-pad auto-repeat" VerticalAlignment="Center" FontSize="15"/>
+                            <TextBlock x:Uid="GamepadProfileDpadRepeatLabel" Grid.Column="0" VerticalAlignment="Center" FontSize="15"/>
                             <ToggleSwitch x:Name="DpadRepeatSwitch" Grid.Column="1"/>
                         </Grid>
                         <Grid>
@@ -58,7 +69,7 @@
                                 <ColumnDefinition Width="220"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Layered Mode" VerticalAlignment="Center" FontSize="15"/>
+                            <TextBlock x:Uid="GamepadProfileLayeredModeLabel" Grid.Column="0" VerticalAlignment="Center" FontSize="15"/>
                             <ToggleSwitch x:Name="LayeredSwitch" Grid.Column="1"/>
                         </Grid>
                         <Grid>
@@ -66,7 +77,7 @@
                                 <ColumnDefinition Width="220"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Layered trigger" VerticalAlignment="Center" FontSize="15"/>
+                            <TextBlock x:Uid="GamepadProfileLayeredTriggerLabel" Grid.Column="0" VerticalAlignment="Center" FontSize="15"/>
                             <ComboBox x:Name="LayeredTriggerCombo" Grid.Column="1" HorizontalAlignment="Stretch"/>
                         </Grid>
                         <Grid>
@@ -74,7 +85,7 @@
                                 <ColumnDefinition Width="220"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Layered activation" VerticalAlignment="Center" FontSize="15"/>
+                            <TextBlock x:Uid="GamepadProfileLayeredActivationLabel" Grid.Column="0" VerticalAlignment="Center" FontSize="15"/>
                             <ComboBox x:Name="LayeredModeCombo" Grid.Column="1" HorizontalAlignment="Stretch"/>
                         </Grid>
                     </StackPanel>
@@ -124,7 +135,7 @@
                             <TextBlock x:Uid="GamepadInput_A" VerticalAlignment="Center" FontSize="15"/>
                         </StackPanel>
                         <ComboBox  x:Name="ComboA" Grid.Column="1" HorizontalAlignment="Stretch" Tag="A" SelectionChanged="ActionCombo_SelectionChanged"/>
-                        <TextBlock x:Name="NoteA"  Grid.Column="1" Text="Used as Layered trigger" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock x:Name="NoteA"  Grid.Column="1" x:Uid="GamepadProfileLayeredTriggerNote" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         <Button    x:Name="KeyBtnA" Grid.Column="2" Tag="A" Click="ChangeKey_Click" Margin="8,0,0,0" Visibility="Collapsed"/>
                     </Grid>
                     <Grid>
@@ -138,7 +149,7 @@
                             <TextBlock x:Uid="GamepadInput_B" VerticalAlignment="Center" FontSize="15"/>
                         </StackPanel>
                         <ComboBox  x:Name="ComboB" Grid.Column="1" HorizontalAlignment="Stretch" Tag="B" SelectionChanged="ActionCombo_SelectionChanged"/>
-                        <TextBlock x:Name="NoteB"  Grid.Column="1" Text="Used as Layered trigger" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock x:Name="NoteB"  Grid.Column="1" x:Uid="GamepadProfileLayeredTriggerNote" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         <Button    x:Name="KeyBtnB" Grid.Column="2" Tag="B" Click="ChangeKey_Click" Margin="8,0,0,0" Visibility="Collapsed"/>
                     </Grid>
                     <Grid>
@@ -152,7 +163,7 @@
                             <TextBlock x:Uid="GamepadInput_X" VerticalAlignment="Center" FontSize="15"/>
                         </StackPanel>
                         <ComboBox  x:Name="ComboX" Grid.Column="1" HorizontalAlignment="Stretch" Tag="X" SelectionChanged="ActionCombo_SelectionChanged"/>
-                        <TextBlock x:Name="NoteX"  Grid.Column="1" Text="Used as Layered trigger" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock x:Name="NoteX"  Grid.Column="1" x:Uid="GamepadProfileLayeredTriggerNote" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         <Button    x:Name="KeyBtnX" Grid.Column="2" Tag="X" Click="ChangeKey_Click" Margin="8,0,0,0" Visibility="Collapsed"/>
                     </Grid>
                     <Grid>
@@ -166,7 +177,7 @@
                             <TextBlock x:Uid="GamepadInput_Y" VerticalAlignment="Center" FontSize="15"/>
                         </StackPanel>
                         <ComboBox  x:Name="ComboY" Grid.Column="1" HorizontalAlignment="Stretch" Tag="Y" SelectionChanged="ActionCombo_SelectionChanged"/>
-                        <TextBlock x:Name="NoteY"  Grid.Column="1" Text="Used as Layered trigger" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock x:Name="NoteY"  Grid.Column="1" x:Uid="GamepadProfileLayeredTriggerNote" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         <Button    x:Name="KeyBtnY" Grid.Column="2" Tag="Y" Click="ChangeKey_Click" Margin="8,0,0,0" Visibility="Collapsed"/>
                     </Grid>
                 </StackPanel>
@@ -192,7 +203,7 @@
                             <TextBlock x:Uid="GamepadInput_LB" VerticalAlignment="Center" FontSize="15"/>
                         </StackPanel>
                         <ComboBox  x:Name="ComboLB" Grid.Column="1" HorizontalAlignment="Stretch" Tag="LB" SelectionChanged="ActionCombo_SelectionChanged"/>
-                        <TextBlock x:Name="NoteLB" Grid.Column="1" Text="Used as Layered trigger" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock x:Name="NoteLB" Grid.Column="1" x:Uid="GamepadProfileLayeredTriggerNote" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         <Button    x:Name="KeyBtnLB" Grid.Column="2" Tag="LB" Click="ChangeKey_Click" Margin="8,0,0,0" Visibility="Collapsed"/>
                     </Grid>
                     <Grid>
@@ -206,7 +217,7 @@
                             <TextBlock x:Uid="GamepadInput_RB" VerticalAlignment="Center" FontSize="15"/>
                         </StackPanel>
                         <ComboBox  x:Name="ComboRB" Grid.Column="1" HorizontalAlignment="Stretch" Tag="RB" SelectionChanged="ActionCombo_SelectionChanged"/>
-                        <TextBlock x:Name="NoteRB" Grid.Column="1" Text="Used as Layered trigger" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock x:Name="NoteRB" Grid.Column="1" x:Uid="GamepadProfileLayeredTriggerNote" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         <Button    x:Name="KeyBtnRB" Grid.Column="2" Tag="RB" Click="ChangeKey_Click" Margin="8,0,0,0" Visibility="Collapsed"/>
                     </Grid>
                     <Grid>
@@ -220,7 +231,7 @@
                             <TextBlock x:Uid="GamepadInput_LT" VerticalAlignment="Center" FontSize="15"/>
                         </StackPanel>
                         <ComboBox  x:Name="ComboLT" Grid.Column="1" HorizontalAlignment="Stretch" Tag="LT" SelectionChanged="ActionCombo_SelectionChanged"/>
-                        <TextBlock x:Name="NoteLT" Grid.Column="1" Text="Used as Layered trigger" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock x:Name="NoteLT" Grid.Column="1" x:Uid="GamepadProfileLayeredTriggerNote" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         <Button    x:Name="KeyBtnLT" Grid.Column="2" Tag="LT" Click="ChangeKey_Click" Margin="8,0,0,0" Visibility="Collapsed"/>
                     </Grid>
                     <Grid>
@@ -234,7 +245,7 @@
                             <TextBlock x:Uid="GamepadInput_RT" VerticalAlignment="Center" FontSize="15"/>
                         </StackPanel>
                         <ComboBox  x:Name="ComboRT" Grid.Column="1" HorizontalAlignment="Stretch" Tag="RT" SelectionChanged="ActionCombo_SelectionChanged"/>
-                        <TextBlock x:Name="NoteRT" Grid.Column="1" Text="Used as Layered trigger" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock x:Name="NoteRT" Grid.Column="1" x:Uid="GamepadProfileLayeredTriggerNote" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         <Button    x:Name="KeyBtnRT" Grid.Column="2" Tag="RT" Click="ChangeKey_Click" Margin="8,0,0,0" Visibility="Collapsed"/>
                     </Grid>
                 </StackPanel>
@@ -260,7 +271,7 @@
                             <TextBlock x:Uid="GamepadInput_LS" VerticalAlignment="Center" FontSize="15"/>
                         </StackPanel>
                         <ComboBox  x:Name="ComboLS" Grid.Column="1" HorizontalAlignment="Stretch" Tag="LS" SelectionChanged="ActionCombo_SelectionChanged"/>
-                        <TextBlock x:Name="NoteLS" Grid.Column="1" Text="Used as Layered trigger" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock x:Name="NoteLS" Grid.Column="1" x:Uid="GamepadProfileLayeredTriggerNote" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         <Button    x:Name="KeyBtnLS" Grid.Column="2" Tag="LS" Click="ChangeKey_Click" Margin="8,0,0,0" Visibility="Collapsed"/>
                     </Grid>
                     <Grid>
@@ -274,7 +285,7 @@
                             <TextBlock x:Uid="GamepadInput_RS" VerticalAlignment="Center" FontSize="15"/>
                         </StackPanel>
                         <ComboBox  x:Name="ComboRS" Grid.Column="1" HorizontalAlignment="Stretch" Tag="RS" SelectionChanged="ActionCombo_SelectionChanged"/>
-                        <TextBlock x:Name="NoteRS" Grid.Column="1" Text="Used as Layered trigger" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock x:Name="NoteRS" Grid.Column="1" x:Uid="GamepadProfileLayeredTriggerNote" Visibility="Collapsed" FontStyle="Italic" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         <Button    x:Name="KeyBtnRS" Grid.Column="2" Tag="RS" Click="ChangeKey_Click" Margin="8,0,0,0" Visibility="Collapsed"/>
                     </Grid>
                 </StackPanel>

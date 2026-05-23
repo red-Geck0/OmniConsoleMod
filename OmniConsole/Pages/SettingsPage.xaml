@@ -1152,7 +1152,7 @@
                     Padding="0" MinWidth="0" MinHeight="0"
                     IsTabStop="False">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xEE40;" FontSize="22"
+                    <FontIcon Glyph="&#xEECA;" FontSize="22"
                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                               VerticalAlignment="Center"/>
                     <TextBlock x:Uid="GamepadHint_OpenMenu" FontSize="14"
@@ -1221,6 +1221,21 @@
                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                               VerticalAlignment="Center"/>
                     <TextBlock x:Uid="GamepadHint_Launch" FontSize="14"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <!-- Y 鍵：手把映射清單頁新建 profile。Visibility 由 code-behind 控制 -->
+            <Button x:Name="GamepadHintYNewProfile" Visibility="Collapsed"
+                    Click="NewProfileHintButton_Click"
+                    Background="Transparent" BorderBrush="Transparent"
+                    Padding="0" MinWidth="0" MinHeight="0"
+                    IsTabStop="False">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xF095;" FontSize="22"
+                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                              VerticalAlignment="Center"/>
+                    <TextBlock x:Uid="GamepadHint_NewProfile" FontSize="14"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>

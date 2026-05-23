@@ -1286,6 +1286,51 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   <data name="GamepadHint_SaveReturn.Text" xml:space="preserve">
     <value>Save &amp; back</value>
   </data>
+  <data name="GamepadHint_NewProfile.Text" xml:space="preserve">
+    <value>New profile</value>
+  </data>
+  <data name="GamepadProfileNameLabel.Text" xml:space="preserve">
+    <value>Profile name</value>
+  </data>
+  <data name="GamepadProfileSettingsLabel.Text" xml:space="preserve">
+    <value>Profile settings</value>
+  </data>
+  <data name="GamepadProfileCursorSpeedLabel.Text" xml:space="preserve">
+    <value>Cursor speed</value>
+  </data>
+  <data name="GamepadProfileDpadRepeatLabel.Text" xml:space="preserve">
+    <value>D-pad auto-repeat</value>
+  </data>
+  <data name="GamepadProfileLayeredModeLabel.Text" xml:space="preserve">
+    <value>Layered Mode</value>
+  </data>
+  <data name="GamepadProfileLayeredTriggerLabel.Text" xml:space="preserve">
+    <value>Layered trigger</value>
+  </data>
+  <data name="GamepadProfileLayeredActivationLabel.Text" xml:space="preserve">
+    <value>Layered activation</value>
+  </data>
+  <data name="GamepadProfileLayeredTriggerNote.Text" xml:space="preserve">
+    <value>Used as Layered trigger</value>
+  </data>
+  <data name="GamepadProfileReadOnlyNote.Text" xml:space="preserve">
+    <value>This is a built-in profile and is read-only. Use Copy from… to make an editable copy.</value>
+  </data>
+  <data name="GamepadProfileNewButton.Text" xml:space="preserve">
+    <value>New profile</value>
+  </data>
+  <data name="GamepadProfileDefaultLabel.Text" xml:space="preserve">
+    <value>Default profile</value>
+  </data>
+  <data name="GamepadProfileSetDefaultButton" xml:space="preserve">
+    <value>Set as default</value>
+  </data>
+  <data name="GamepadProfileIsDefaultButton" xml:space="preserve">
+    <value>Default ✓</value>
+  </data>
+  <data name="GamepadMappingNavConflictNote.Text" xml:space="preserve">
+    <value>Note: System apps (Windows Settings, Microsoft Store, Xbox app) are excluded from profile assignment — gamepad navigation in those apps uses default Windows input handling.</value>
+  </data>
   <data name="AdvancedSection_Sound.Text" xml:space="preserve">
     <value>Interface Sound</value>
   </data>

@@ -1,4 +1,6 @@
 #include "MouseMode.h"
+#include <shellapi.h>
+#include <objbase.h>
 
 // ============================================================================
 // 手把滑鼠模式（Gamepad Mouse Mode） — 查 Bindings 表
@@ -465,9 +467,46 @@ namespace {
         layered.triggerPrevDown = down;
     }
 
-    // ── 螢幕鍵盤開合（Phase 4 接上實作；目前為佔位）──────────────────────────
-    void ToggleTouchKeyboard(VkbMethod /*method*/) {
-        // TODO(Phase 4)：Com → TabTip 觸控鍵盤；Osk → osk.exe。
+    // ── 螢幕鍵盤開合 ─────────────────────────────────────────────────────────
+    //
+    // 兩種方式：
+    //   Osk → ShellExecute osk.exe（傳統螢幕鍵盤；簡單可靠，不會偵測手把佈局）
+    //   Com → 透過未公開 ITipInvocation COM 介面切換 TabTip 觸控鍵盤
+    //         （Windows 11 接到手把時可能自動切換到遊戲控制器佈局）
+    //
+    // 註：OmniConsole 主程式（UWP）另有 CoreInputView.TryShow(Gamepad) 走現代手把鍵盤；
+    // PhantomKey 為純 Win32 行程無 CoreApplicationView 無法直接呼叫，僅能走上述兩條路徑。
+
+    // UIHostNoLaunch CLSID + ITipInvocation IID（未公開 API；用 TabTip 觸控鍵盤）
+    struct __declspec(uuid("37c994e7-432b-4834-a2f7-dce1f13b834b")) ITipInvocation : IUnknown {
+        virtual HRESULT STDMETHODCALLTYPE Toggle(HWND wnd) = 0;
+    };
+    static const CLSID CLSID_UIHostNoLaunch =
+        { 0x4CE576FA, 0x83DC, 0x4F88, { 0x95, 0x1C, 0x9D, 0x07, 0x82, 0xB4, 0xE3, 0x76 } };
+
+    static void ToggleTabTipCom() {
+        // 主迴圈執行緒的 COM 初始化；同模式重複呼叫回 S_FALSE、不同模式回 RPC_E_CHANGED_MODE，
+        // 兩種情境皆視為已初始化。
+        ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+
+        ITipInvocation* tip = nullptr;
+        HRESULT hr = ::CoCreateInstance(
+            CLSID_UIHostNoLaunch, nullptr,
+            CLSCTX_INPROC_HANDLER | CLSCTX_LOCAL_SERVER,
+            __uuidof(ITipInvocation), reinterpret_cast<void**>(&tip));
+        if (SUCCEEDED(hr) && tip) {
+            tip->Toggle(::GetDesktopWindow());
+            tip->Release();
+        }
+    }
+
+    void ToggleTouchKeyboard(VkbMethod method) {
+        if (method == VkbMethod::Osk) {
+            ::ShellExecuteW(nullptr, L"open", L"osk.exe", nullptr, nullptr, SW_SHOWNORMAL);
+            return;
+        }
+        // VkbMethod::Com → TabTip
+        ToggleTabTipCom();
     }
 
     void RunBindings(const XINPUT_GAMEPAD& pad, const Bindings& bindings,

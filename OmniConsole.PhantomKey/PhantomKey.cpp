@@ -174,7 +174,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             {
                 std::vector<std::pair<std::wstring, std::wstring>> profileList;
                 for (const auto& p : profileStore.profiles) profileList.emplace_back(p.id, p.name);
-                WriteProfileList(profileList);
+                WriteProfileList(profileList, profileStore.defaultProfileId);
             }
             MouseMode::Reset();
         }

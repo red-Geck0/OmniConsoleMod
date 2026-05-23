@@ -95,18 +95,20 @@ namespace OmniConsole.Controls
         /// <summary>建 _rows 對照表：14 個按鈕類列 + 2 個搖桿列 = 16 個；DPad 主行 ComboDPad 另外處理。</summary>
         private void BuildRows()
         {
+            // 10 個 trigger-able 列的 NoteX TextBlock 在 XAML 已宣告，這裡直接帶入 tuple；
+            // DPad 4 子列與兩支搖桿不可作 trigger，note=null。
             _rows = new Dictionary<GamepadInputId, (ComboBox, Button?, TextBlock?)>
             {
-                [GamepadInputId.A] = (ComboA, KeyBtnA, null),
-                [GamepadInputId.B] = (ComboB, KeyBtnB, null),
-                [GamepadInputId.X] = (ComboX, KeyBtnX, null),
-                [GamepadInputId.Y] = (ComboY, KeyBtnY, null),
-                [GamepadInputId.LB] = (ComboLB, KeyBtnLB, null),
-                [GamepadInputId.RB] = (ComboRB, KeyBtnRB, null),
-                [GamepadInputId.LT] = (ComboLT, KeyBtnLT, null),
-                [GamepadInputId.RT] = (ComboRT, KeyBtnRT, null),
-                [GamepadInputId.LS] = (ComboLS, KeyBtnLS, null),
-                [GamepadInputId.RS] = (ComboRS, KeyBtnRS, null),
+                [GamepadInputId.A] = (ComboA, KeyBtnA, NoteA),
+                [GamepadInputId.B] = (ComboB, KeyBtnB, NoteB),
+                [GamepadInputId.X] = (ComboX, KeyBtnX, NoteX),
+                [GamepadInputId.Y] = (ComboY, KeyBtnY, NoteY),
+                [GamepadInputId.LB] = (ComboLB, KeyBtnLB, NoteLB),
+                [GamepadInputId.RB] = (ComboRB, KeyBtnRB, NoteRB),
+                [GamepadInputId.LT] = (ComboLT, KeyBtnLT, NoteLT),
+                [GamepadInputId.RT] = (ComboRT, KeyBtnRT, NoteRT),
+                [GamepadInputId.LS] = (ComboLS, KeyBtnLS, NoteLS),
+                [GamepadInputId.RS] = (ComboRS, KeyBtnRS, NoteRS),
                 [GamepadInputId.DPadUp] = (ComboDPadUp, KeyBtnDPadUp, null),
                 [GamepadInputId.DPadDown] = (ComboDPadDown, KeyBtnDPadDown, null),
                 [GamepadInputId.DPadLeft] = (ComboDPadLeft, KeyBtnDPadLeft, null),
@@ -118,31 +120,6 @@ namespace OmniConsole.Controls
                 PopulateActionCombo(kv.Value.combo, kv.Key);
 
             PopulateDPadMainCombo();
-            CreateTriggerNoteOverlays();
-        }
-
-        /// <summary>
-        /// 為 Layered trigger 可選的 10 個輸入位動態加上「Used as Layered trigger」TextBlock，
-        /// 與該列的 ComboBox 同 Grid.Column；Visibility 由 SyncRowFromModel 控制。
-        /// </summary>
-        private void CreateTriggerNoteOverlays()
-        {
-            foreach (var id in kTriggerKeys)
-            {
-                if (!_rows.TryGetValue(id, out var row)) continue;
-                if (row.note != null) continue;  // 冪等：已建過就跳過
-                if (!(row.combo.Parent is Grid parent)) continue;  // 視覺樹尚未就緒：稍後 Load 時會再試
-                var note = new TextBlock
-                {
-                    Text = "Used as Layered trigger",
-                    FontStyle = Windows.UI.Text.FontStyle.Italic,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Visibility = Visibility.Collapsed
-                };
-                Grid.SetColumn(note, 1);
-                parent.Children.Add(note);
-                _rows[id] = (row.combo, row.keyBtn, note);
-            }
         }
 
         /// <summary>對某輸入位填入合法動作選項（按鈕類含 DPad 4 子列；搖桿類獨立）。</summary>
@@ -256,10 +233,6 @@ namespace OmniConsole.Controls
 
             // 載入既存 profile：依 model 偵測主行 DPad 模式，Custom 則自動展開
             _dpadEditingCustom = (DetectDPadModeFromModel() == ActionOption.DpadCustom);
-
-            // 防禦性：建構子階段如果 ComboBox.Parent 尚未就緒，trigger note 不會建成功；
-            // 此處再試一次（冪等：已建成的 row 會被跳過）。
-            CreateTriggerNoteOverlays();
 
             RefreshAllRows();
         }

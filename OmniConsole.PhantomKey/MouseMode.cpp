@@ -1,6 +1,7 @@
 #include "MouseMode.h"
 #include <shellapi.h>
 #include <objbase.h>
+#include <thread>
 
 // ============================================================================
 // 手把滑鼠模式（Gamepad Mouse Mode） — 查 Bindings 表
@@ -442,6 +443,26 @@ namespace {
         return mask != 0 && (pad.wButtons & mask) != 0;
     }
 
+    // ── Layered Mode 聲音回饋 ────────────────────────────────────────────────
+    //
+    // 三種情境，各用不同音調：
+    //   HoldRelease activate      → 單音 880 Hz (A5, 70 ms)
+    //   DoubleTapToggle → ON      → 上行雙音 880→1100 Hz（各 50/70 ms）
+    //   DoubleTapToggle → OFF     → 下行雙音 1100→700 Hz（各 50/70 ms）
+    //
+    // 在獨立執行緒執行，不阻塞主迴圈（Beep() 呼叫本身為同步，但僅影響子執行緒）。
+    void PlayLayerSound(bool isToggle, bool nowActive) {
+        if (isToggle) {
+            if (nowActive)
+                std::thread([]{ Beep(880, 50); Beep(1100, 70); }).detach();
+            else
+                std::thread([]{ Beep(1100, 50); Beep(700, 70); }).detach();
+        } else {
+            // HoldRelease：僅在進入作用（rising edge）時響一聲
+            std::thread([]{ Beep(880, 70); }).detach();
+        }
+    }
+
     // 更新 Layered Mode 狀態；profile 啟用 Layered 時每 tick 呼叫
     void UpdateLayeredMode(const GamepadProfile& profile, const XINPUT_GAMEPAD& pad) {
         const bool      down = IsKeyIdDown(profile.layered.triggerKey, pad);
@@ -623,6 +644,16 @@ namespace MouseMode {
         if (profile.layered.enabled) {
             const bool wasActive = layered.active;
             UpdateLayeredMode(profile, pad);
+
+            // 狀態改變時播放聲音回饋
+            if (layered.active != wasActive) {
+                const bool isToggle =
+                    (profile.layered.activationMode == LayeredActivationMode::DoubleTapToggle);
+                // HoldRelease 只在 activate（rising edge）時響；Toggle 兩端都響
+                if (isToggle || layered.active)
+                    PlayLayerSound(isToggle, layered.active);
+            }
+
             if (!layered.active) {
                 // layer 未作用：不送出映射。剛從作用切回未作用時釋放壓著狀態；
                 // 維持輸入基準（prevButtons 等）為現值，避免 layer 重新作用時誤判邊緣。

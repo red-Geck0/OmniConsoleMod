@@ -34,6 +34,8 @@ namespace OmniConsole.Controls
             StickScroll,
             StickArrows,
             StickWasd,
+            TouchKeyboardCom,
+            TouchKeyboardOsk,
             // DPad 主行專用選項（不對應單一 GamepadInputId，僅 ComboDPad 使用）
             DpadArrows,
             DpadWasd,
@@ -53,14 +55,13 @@ namespace OmniConsole.Controls
             GamepadInputId.DPadLeft, GamepadInputId.DPadRight
         };
 
-        // Layered trigger 可選的輸入位（搖桿擺動類不可作 trigger）
+        // Layered trigger 可選的輸入位（限定 face/shoulder/trigger/stick-press 10 顆；
+        // DPad/搖桿擺動不適合作 trigger，且 DPad 多被當組合使用）
         private static readonly GamepadInputId[] kTriggerKeys =
         {
             GamepadInputId.A, GamepadInputId.B, GamepadInputId.X, GamepadInputId.Y,
             GamepadInputId.LB, GamepadInputId.RB, GamepadInputId.LT, GamepadInputId.RT,
             GamepadInputId.LS, GamepadInputId.RS,
-            GamepadInputId.DPadUp, GamepadInputId.DPadDown,
-            GamepadInputId.DPadLeft, GamepadInputId.DPadRight
         };
 
         // 游標速度可選百分比
@@ -70,7 +71,7 @@ namespace OmniConsole.Controls
         private bool _dpadEditingCustom = false;
 
         private readonly ResourceLoader _resw = ResourceLoader.GetForViewIndependentUse();
-        private Dictionary<GamepadInputId, (ComboBox combo, Button? keyBtn)> _rows = new();
+        private Dictionary<GamepadInputId, (ComboBox combo, Button? keyBtn, TextBlock? note)> _rows = new();
         private GamepadProfile? _editing;
         private bool _isNew;
 
@@ -94,29 +95,53 @@ namespace OmniConsole.Controls
         /// <summary>建 _rows 對照表：14 個按鈕類列 + 2 個搖桿列 = 16 個；DPad 主行 ComboDPad 另外處理。</summary>
         private void BuildRows()
         {
-            _rows = new Dictionary<GamepadInputId, (ComboBox, Button?)>
+            _rows = new Dictionary<GamepadInputId, (ComboBox, Button?, TextBlock?)>
             {
-                [GamepadInputId.A] = (ComboA, KeyBtnA),
-                [GamepadInputId.B] = (ComboB, KeyBtnB),
-                [GamepadInputId.X] = (ComboX, KeyBtnX),
-                [GamepadInputId.Y] = (ComboY, KeyBtnY),
-                [GamepadInputId.LB] = (ComboLB, KeyBtnLB),
-                [GamepadInputId.RB] = (ComboRB, KeyBtnRB),
-                [GamepadInputId.LT] = (ComboLT, KeyBtnLT),
-                [GamepadInputId.RT] = (ComboRT, KeyBtnRT),
-                [GamepadInputId.LS] = (ComboLS, KeyBtnLS),
-                [GamepadInputId.RS] = (ComboRS, KeyBtnRS),
-                [GamepadInputId.DPadUp] = (ComboDPadUp, KeyBtnDPadUp),
-                [GamepadInputId.DPadDown] = (ComboDPadDown, KeyBtnDPadDown),
-                [GamepadInputId.DPadLeft] = (ComboDPadLeft, KeyBtnDPadLeft),
-                [GamepadInputId.DPadRight] = (ComboDPadRight, KeyBtnDPadRight),
-                [GamepadInputId.LStick] = (ComboLStick, null),
-                [GamepadInputId.RStick] = (ComboRStick, null),
+                [GamepadInputId.A] = (ComboA, KeyBtnA, null),
+                [GamepadInputId.B] = (ComboB, KeyBtnB, null),
+                [GamepadInputId.X] = (ComboX, KeyBtnX, null),
+                [GamepadInputId.Y] = (ComboY, KeyBtnY, null),
+                [GamepadInputId.LB] = (ComboLB, KeyBtnLB, null),
+                [GamepadInputId.RB] = (ComboRB, KeyBtnRB, null),
+                [GamepadInputId.LT] = (ComboLT, KeyBtnLT, null),
+                [GamepadInputId.RT] = (ComboRT, KeyBtnRT, null),
+                [GamepadInputId.LS] = (ComboLS, KeyBtnLS, null),
+                [GamepadInputId.RS] = (ComboRS, KeyBtnRS, null),
+                [GamepadInputId.DPadUp] = (ComboDPadUp, KeyBtnDPadUp, null),
+                [GamepadInputId.DPadDown] = (ComboDPadDown, KeyBtnDPadDown, null),
+                [GamepadInputId.DPadLeft] = (ComboDPadLeft, KeyBtnDPadLeft, null),
+                [GamepadInputId.DPadRight] = (ComboDPadRight, KeyBtnDPadRight, null),
+                [GamepadInputId.LStick] = (ComboLStick, null, null),
+                [GamepadInputId.RStick] = (ComboRStick, null, null),
             };
             foreach (var kv in _rows)
                 PopulateActionCombo(kv.Value.combo, kv.Key);
 
             PopulateDPadMainCombo();
+            CreateTriggerNoteOverlays();
+        }
+
+        /// <summary>
+        /// 為 Layered trigger 可選的 10 個輸入位動態加上「Used as Layered trigger」TextBlock，
+        /// 與該列的 ComboBox 同 Grid.Column；Visibility 由 SyncRowFromModel 控制。
+        /// </summary>
+        private void CreateTriggerNoteOverlays()
+        {
+            foreach (var id in kTriggerKeys)
+            {
+                if (!_rows.TryGetValue(id, out var row)) continue;
+                if (!(row.combo.Parent is Grid parent)) continue;
+                var note = new TextBlock
+                {
+                    Text = "Used as Layered trigger",
+                    FontStyle = Windows.UI.Text.FontStyle.Italic,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Visibility = Visibility.Collapsed
+                };
+                Grid.SetColumn(note, 1);
+                parent.Children.Add(note);
+                _rows[id] = (row.combo, row.keyBtn, note);
+            }
         }
 
         /// <summary>對某輸入位填入合法動作選項（按鈕類含 DPad 4 子列；搖桿類獨立）。</summary>
@@ -144,6 +169,8 @@ namespace OmniConsole.Controls
                     Add(combo, ActionOption.WheelDown, "GamepadAction_WheelDown");
                     Add(combo, ActionOption.WheelLeft, "GamepadAction_WheelLeft");
                     Add(combo, ActionOption.WheelRight, "GamepadAction_WheelRight");
+                    Add(combo, ActionOption.TouchKeyboardCom, "GamepadAction_TouchKeyboardCom");
+                    Add(combo, ActionOption.TouchKeyboardOsk, "GamepadAction_TouchKeyboardOsk");
                     Add(combo, ActionOption.None, "GamepadAction_None");
                     break;
             }
@@ -233,12 +260,12 @@ namespace OmniConsole.Controls
         }
 
         /// <summary>
-        /// 把焦點程式化設給編輯器的首個可聚焦控制項（一般為 NameBox；唯讀 profile 時可能無焦點目標）。
-        /// 宿主在開啟編輯器後呼叫，避免 D-pad / XY 導航沒有起點。
+        /// 把焦點程式化設給編輯器的 NameBox（唯讀 profile 時 NameBox.IsEnabled=false 焦點呼叫會失敗，
+        /// 那情境下使用者僅檢視，按 B 退出即可）。宿主在開啟編輯器後呼叫，避免 D-pad / XY 導航沒有起點。
         /// </summary>
         public void FocusFirstControl()
         {
-            (Microsoft.UI.Xaml.Input.FocusManager.FindFirstFocusableElement(this) as UIElement)?.Focus(FocusState.Programmatic);
+            NameBox?.Focus(FocusState.Programmatic);
         }
 
         /// <summary>為新 profile 產生不撞名的預設名稱。</summary>
@@ -290,12 +317,12 @@ namespace OmniConsole.Controls
             if (combo.Items.Count > 0) combo.SelectedIndex = 0;
         }
 
-        /// <summary>把 _editing 的所有 binding 同步回 UI（ComboBox 選項 + KeyBtn 顯示）。</summary>
+        /// <summary>把 _editing 的所有 binding 同步回 UI（ComboBox 選項 + KeyBtn 顯示 + trigger note）。</summary>
         private void RefreshAllRows()
         {
             if (_editing == null) return;
             foreach (var kv in _rows)
-                SyncRowFromModel(kv.Key, kv.Value.combo, kv.Value.keyBtn);
+                SyncRowFromModel(kv.Key, kv.Value.combo, kv.Value.keyBtn, kv.Value.note);
             SyncDPadMainFromModel();
         }
 
@@ -319,13 +346,17 @@ namespace OmniConsole.Controls
 
         private void LayeredSwitch_Toggled(object sender, RoutedEventArgs e)
         {
-            if (_editing != null) _editing.Layered.Enabled = LayeredSwitch.IsOn;
+            if (_editing == null) return;
+            _editing.Layered.Enabled = LayeredSwitch.IsOn;
+            RefreshAllRows();  // trigger 列要切換顯示「Used as Layered trigger」
         }
 
         private void LayeredTriggerCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_editing != null && LayeredTriggerCombo.SelectedItem is ComboBoxItem it && it.Tag is GamepadInputId id)
-                _editing.Layered.TriggerKey = id;
+            if (_editing == null) return;
+            if (!(LayeredTriggerCombo.SelectedItem is ComboBoxItem it) || !(it.Tag is GamepadInputId id)) return;
+            _editing.Layered.TriggerKey = id;
+            RefreshAllRows();  // 舊 trigger 列恢復可編輯；新 trigger 列換成 note
         }
 
         private void LayeredModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -411,7 +442,7 @@ namespace OmniConsole.Controls
 
             foreach (var k in kDpadKeys)
                 if (_rows.TryGetValue(k, out var pair))
-                    SyncRowFromModel(k, pair.combo, pair.keyBtn);
+                    SyncRowFromModel(k, pair.combo, pair.keyBtn, pair.note);
             UpdateDPadExpandedVisibility(opt);
         }
 
@@ -431,10 +462,26 @@ namespace OmniConsole.Controls
                 _editing.Bindings[k] = new GamepadAction { Kind = GamepadActionKind.None };
         }
 
-        /// <summary>從 model 同步單列 UI（過程中暫時解除 SelectionChanged 事件處理器）。</summary>
-        private void SyncRowFromModel(GamepadInputId id, ComboBox combo, Button? keyBtn)
+        /// <summary>
+        /// 從 model 同步單列 UI（過程中暫時解除 SelectionChanged 事件處理器）。
+        /// 若此列正是 Layered trigger 且 Layered 啟用 → 隱藏下拉/改鍵，顯示 note 取而代之。
+        /// </summary>
+        private void SyncRowFromModel(GamepadInputId id, ComboBox combo, Button? keyBtn, TextBlock? note)
         {
             if (_editing == null) return;
+
+            bool isTrigger = _editing.Layered.Enabled && _editing.Layered.TriggerKey == id && note != null;
+            if (isTrigger)
+            {
+                combo.Visibility = Visibility.Collapsed;
+                if (keyBtn != null) keyBtn.Visibility = Visibility.Collapsed;
+                note!.Visibility = Visibility.Visible;
+                return;
+            }
+            // 非 trigger：確保下拉/note 回到正常顯示
+            combo.Visibility = Visibility.Visible;
+            if (note != null) note.Visibility = Visibility.Collapsed;
+
             var a = _editing.Get(id);
             var opt = ToOption(a, id);
 
@@ -522,6 +569,8 @@ namespace OmniConsole.Controls
                 case ActionOption.StickScroll: return new GamepadAction { Kind = GamepadActionKind.StickScroll };
                 case ActionOption.StickArrows: return new GamepadAction { Kind = GamepadActionKind.StickArrows };
                 case ActionOption.StickWasd: return new GamepadAction { Kind = GamepadActionKind.StickWasd };
+                case ActionOption.TouchKeyboardCom: return new GamepadAction { Kind = GamepadActionKind.TouchKeyboard, Vkb = VkbMethod.Com };
+                case ActionOption.TouchKeyboardOsk: return new GamepadAction { Kind = GamepadActionKind.TouchKeyboard, Vkb = VkbMethod.Osk };
                 default: return new GamepadAction { Kind = GamepadActionKind.None };
             }
         }
@@ -554,6 +603,8 @@ namespace OmniConsole.Controls
                 case GamepadActionKind.StickScroll: return ActionOption.StickScroll;
                 case GamepadActionKind.StickArrows: return ActionOption.StickArrows;
                 case GamepadActionKind.StickWasd: return ActionOption.StickWasd;
+                case GamepadActionKind.TouchKeyboard:
+                    return a.Vkb == VkbMethod.Osk ? ActionOption.TouchKeyboardOsk : ActionOption.TouchKeyboardCom;
                 default: return ActionOption.None;
             }
         }

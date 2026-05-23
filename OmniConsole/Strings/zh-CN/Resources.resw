@@ -866,6 +866,12 @@
   <data name="GamepadActivation_DoubleTap" xml:space="preserve">
     <value>双击切换</value>
   </data>
+  <data name="GamepadAction_TouchKeyboardCom" xml:space="preserve">
+    <value>触控键盘 (TabTip)</value>
+  </data>
+  <data name="GamepadAction_TouchKeyboardOsk" xml:space="preserve">
+    <value>触控键盘 (OSK)</value>
+  </data>
   <data name="GamepadMappingDescription.Text" xml:space="preserve">
     <value>猫又愿意为你的手柄施一道咒，为每个应用召唤出最顺手的设置。</value>
   </data>

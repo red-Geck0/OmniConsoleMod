@@ -866,6 +866,12 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   <data name="GamepadActivation_DoubleTap" xml:space="preserve">
     <value>Double-tap toggle</value>
   </data>
+  <data name="GamepadAction_TouchKeyboardCom" xml:space="preserve">
+    <value>Touch Keyboard (TabTip)</value>
+  </data>
+  <data name="GamepadAction_TouchKeyboardOsk" xml:space="preserve">
+    <value>Touch Keyboard (OSK)</value>
+  </data>
   <data name="GamepadMappingDescription.Text" xml:space="preserve">
     <value>Nekomata will weave a charm for your gamepad, conjuring the perfect bindings for each app.</value>
   </data>

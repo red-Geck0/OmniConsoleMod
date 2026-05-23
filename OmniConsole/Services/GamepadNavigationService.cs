@@ -619,6 +619,30 @@ namespace OmniConsole.Services
                     }
                     _heldStates[gamepad] = held;
 
+                    // 右搖桿：捲動焦點所在的 ScrollViewer（combobox 未展開時）
+                    // 搖桿向上(+Y) → VerticalOffset 減少；向下(-Y) → 增加
+                    if (_activeComboBox == null)
+                    {
+                        double rsY = reading.RightThumbstickY;
+                        if (Math.Abs(rsY) > 0.15)
+                        {
+                            try
+                            {
+                                var focusedEl = FocusManager.GetFocusedElement(_searchRoot.XamlRoot);
+                                if (focusedEl is DependencyObject focusDep)
+                                {
+                                    var sv = FindParent<ScrollViewer>(focusDep);
+                                    if (sv != null)
+                                    {
+                                        double delta = -rsY * 25; // px per tick (50 ms)
+                                        sv.ChangeView(null, sv.VerticalOffset + delta, null, disableAnimation: true);
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+
                     _previousReadings[gamepad] = reading;
                 }
 
@@ -706,6 +730,23 @@ namespace OmniConsole.Services
         {
             try
             {
+                // 焦點在 ListViewItem 且向右 → 進入列內第一個可互動按鈕
+                // （ListViewItem 的 bounding rect 包含內部按鈕，FindNextElement 無法靠 XY 距離找到它們）
+                if (direction == FocusNavigationDirection.Right)
+                {
+                    var cur = FocusManager.GetFocusedElement(_searchRoot.XamlRoot);
+                    if (cur is ListViewItem lvi)
+                    {
+                        var btn = FindFirstFocusableDescendant<Button>(lvi);
+                        if (btn != null)
+                        {
+                            btn.Focus(FocusState.Keyboard);
+                            PlaySound(ElementSoundKind.Focus);
+                            return;
+                        }
+                    }
+                }
+
                 var focused = FocusManager.GetFocusedElement(_searchRoot.XamlRoot);
                 if (focused is DependencyObject dep && IsDescendantOf(_searchRoot, dep))
                 {
@@ -775,6 +816,24 @@ namespace OmniConsole.Services
                 var child = VisualTreeHelper.GetChild(parent, i);
                 if (child is T result) return result;
                 var descendant = FindDescendant<T>(child);
+                if (descendant != null) return descendant;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 在視覺樹中遞迴尋找第一個符合型別、且 Visible 與 IsEnabled 的 Control 子元素。
+        /// 用於 ListViewItem 列內按鈕的 D-pad 右鍵導航。
+        /// </summary>
+        private static T? FindFirstFocusableDescendant<T>(DependencyObject parent) where T : Control
+        {
+            int count = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T result && result.Visibility == Visibility.Visible && result.IsEnabled)
+                    return result;
+                var descendant = FindFirstFocusableDescendant<T>(child);
                 if (descendant != null) return descendant;
             }
             return null;

@@ -25,6 +25,12 @@ namespace OmniConsole.Controls
         /// <summary>是否可刪除（內建 profile 為 false）。</summary>
         public bool CanDelete { get; set; }
 
+        /// <summary>是否可設為預設（已是預設的 profile 為 false）。</summary>
+        public bool CanSetDefault { get; set; }
+
+        /// <summary>「設為預設」的 tooltip 文字（由外部填入 resw 字串）。</summary>
+        public string SetDefaultTooltip { get; set; } = string.Empty;
+
         /// <summary>徽章是否顯示。</summary>
         public Visibility BadgeVisibility =>
             string.IsNullOrEmpty(Badge) ? Visibility.Collapsed : Visibility.Visible;
@@ -32,6 +38,10 @@ namespace OmniConsole.Controls
         /// <summary>刪除鈕是否顯示。</summary>
         public Visibility DeleteVisibility =>
             CanDelete ? Visibility.Visible : Visibility.Collapsed;
+
+        /// <summary>「設為預設」鈕是否顯示。</summary>
+        public Visibility SetDefaultVisibility =>
+            CanSetDefault ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>手把映射「清單頁」UserControl：列出所有 profile，提供編輯/刪除入口。</summary>
@@ -92,7 +102,9 @@ namespace OmniConsole.Controls
                         Id = p.Id,
                         Name = p.Name,
                         Badge = p.Id == data.DefaultProfileId ? Loc("GamepadProfileBadge_Default") : string.Empty,
-                        CanDelete = !p.IsBuiltIn
+                        CanDelete = !p.IsBuiltIn,
+                        CanSetDefault = (p.Id != data.DefaultProfileId),
+                        SetDefaultTooltip = Loc("GamepadProfileSetDefaultButton")
                     });
                 }
             }
@@ -153,6 +165,16 @@ namespace OmniConsole.Controls
         {
             if (sender is Button b && b.Tag is string profileId)
                 _ = DeleteAsync(profileId);
+        }
+
+        /// <summary>每列星形 Button 點擊：將該 profile 設為預設，並重新整理清單。</summary>
+        private void SetDefaultItemButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button b && b.Tag is string profileId)
+            {
+                GamepadProfileStore.SetDefaultProfile(profileId);
+                Refresh();
+            }
         }
 
         /// <summary>彈確認對話方塊，按下「是」才實際刪除並重新整理。期間透過 DialogActiveChanged 通知宿主 Stop/Start 手把輪詢。</summary>

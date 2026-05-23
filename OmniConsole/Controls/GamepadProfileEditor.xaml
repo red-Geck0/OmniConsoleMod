@@ -18,17 +18,6 @@
                        TextWrapping="Wrap"
                        Visibility="Collapsed"/>
 
-            <!-- 預設 profile 操作列：置於 EditorRoot 之外，唯讀 profile 亦可設為預設 -->
-            <Grid x:Name="DefaultProfileRow">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="220"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock x:Uid="GamepadProfileDefaultLabel" Grid.Column="0" VerticalAlignment="Center" FontSize="15"/>
-                <Button x:Name="SetDefaultButton" Grid.Column="1" FontSize="14" Padding="24,8"
-                        HorizontalAlignment="Left" Click="SetDefaultButton_Click"/>
-            </Grid>
-
             <!-- 可編輯區：唯讀 profile 時整區 IsEnabled=false（ContentControl 才有 IsEnabled） -->
             <ContentControl x:Name="EditorRoot" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
             <StackPanel Spacing="16">

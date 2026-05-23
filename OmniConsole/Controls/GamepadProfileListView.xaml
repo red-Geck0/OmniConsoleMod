@@ -57,6 +57,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0"
                                            Text="{x:Bind Name}"
@@ -72,10 +73,23 @@
                                         VerticalAlignment="Center">
                                     <TextBlock Text="{x:Bind Badge}" FontSize="12"/>
                                 </Border>
+                                <!-- 設為預設：已是預設時隱藏 -->
                                 <Button Grid.Column="2"
+                                        Click="SetDefaultItemButton_Click"
+                                        Tag="{x:Bind Id}"
+                                        Visibility="{x:Bind SetDefaultVisibility}"
+                                        UseSystemFocusVisuals="True"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="8"
+                                        ToolTipService.ToolTip="{x:Bind SetDefaultTooltip}">
+                                    <FontIcon Glyph="&#xE734;" FontSize="14"/>
+                                </Button>
+                                <Button Grid.Column="3"
                                         Click="DeleteItemButton_Click"
                                         Tag="{x:Bind Id}"
                                         Visibility="{x:Bind DeleteVisibility}"
+                                        UseSystemFocusVisuals="True"
                                         Background="Transparent"
                                         BorderThickness="0"
                                         Padding="8">

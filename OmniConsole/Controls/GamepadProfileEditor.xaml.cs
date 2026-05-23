@@ -130,7 +130,8 @@ namespace OmniConsole.Controls
             foreach (var id in kTriggerKeys)
             {
                 if (!_rows.TryGetValue(id, out var row)) continue;
-                if (!(row.combo.Parent is Grid parent)) continue;
+                if (row.note != null) continue;  // 冪等：已建過就跳過
+                if (!(row.combo.Parent is Grid parent)) continue;  // 視覺樹尚未就緒：稍後 Load 時會再試
                 var note = new TextBlock
                 {
                     Text = "Used as Layered trigger",
@@ -255,6 +256,10 @@ namespace OmniConsole.Controls
 
             // 載入既存 profile：依 model 偵測主行 DPad 模式，Custom 則自動展開
             _dpadEditingCustom = (DetectDPadModeFromModel() == ActionOption.DpadCustom);
+
+            // 防禦性：建構子階段如果 ComboBox.Parent 尚未就緒，trigger note 不會建成功；
+            // 此處再試一次（冪等：已建成的 row 會被跳過）。
+            CreateTriggerNoteOverlays();
 
             RefreshAllRows();
         }

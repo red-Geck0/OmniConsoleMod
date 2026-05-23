@@ -180,8 +180,14 @@ namespace OmniConsole.Services
                 }
                 else
                 {
-                    // OmniNavL：保留已存檔（可能被使用者編輯）的版本，缺漏才種子
+                    // OmniNavL：保留已存檔（可能被使用者編輯）的版本，缺漏才種子。
+                    // 但強制 Layered.Enabled=true — OmniNavL 識別性質的一部分，
+                    // 禁用即等同 OmniNav（避免舊版檔案殘留 enabled=false 造成混淆）。
                     var stored = data.Profiles.FirstOrDefault(p => p.Id == bi.Id);
+                    if (stored != null && stored.Id == GamepadBuiltInLayouts.OmniNavLId)
+                    {
+                        stored.Layered.Enabled = true;
+                    }
                     ordered.Add(stored ?? bi);
                 }
             }

@@ -312,6 +312,16 @@ namespace OmniConsole.Controls
             LayeredModeCombo.SelectionChanged -= LayeredModeCombo_SelectionChanged;
             SelectComboByTag(LayeredModeCombo, _editing.Layered.ActivationMode);
             LayeredModeCombo.SelectionChanged += LayeredModeCombo_SelectionChanged;
+
+            UpdateLayeredSubcontrolsEnabled();
+        }
+
+        /// <summary>Layered trigger / activation 子控制項僅在 Layered Mode 啟用時可操作。</summary>
+        private void UpdateLayeredSubcontrolsEnabled()
+        {
+            bool on = LayeredSwitch.IsOn;
+            LayeredTriggerCombo.IsEnabled = on;
+            LayeredModeCombo.IsEnabled = on;
         }
 
         /// <summary>在 ComboBox 內選取 Tag 等於 tag 的項；找不到則選第一項。</summary>
@@ -353,6 +363,7 @@ namespace OmniConsole.Controls
         {
             if (_editing == null) return;
             _editing.Layered.Enabled = LayeredSwitch.IsOn;
+            UpdateLayeredSubcontrolsEnabled();
             RefreshAllRows();  // trigger 列要切換顯示「Used as Layered trigger」
         }
 

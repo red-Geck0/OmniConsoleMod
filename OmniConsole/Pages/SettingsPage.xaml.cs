@@ -103,6 +103,7 @@ namespace OmniConsole.Pages
         private void WireGamepadMappingControls()
         {
             GamepadProfileList.EditRequested += (s, profileId) => OpenEditorFor(profileId);
+            GamepadProfileList.NewProfileRequested += (s, e) => OpenEditorFor(null);
             GamepadProfileEditor.Closed += (s, e) => CloseEditor();
             GamepadProfileEditor.Deleted += (s, e) => CloseEditor();
 
@@ -139,7 +140,7 @@ namespace OmniConsole.Pages
             GamepadProfileList.FocusList();
         }
 
-        /// <summary>切到編輯器：載入目標 profile（profileId 為 null 則新建）→ 切 VSM → 更新提示按鈕。</summary>
+        /// <summary>切到編輯器：載入目標 profile（profileId 為 null 則新建）→ 切 VSM → 更新提示按鈕 → 把焦點移到編輯器首個控制項。</summary>
         private void OpenEditorFor(string? profileId)
         {
             try
@@ -147,6 +148,10 @@ namespace OmniConsole.Pages
                 GamepadProfileEditor.Load(profileId);
                 VisualStateManager.GoToState(this, "GamepadMappingEditorVisible", false);
                 UpdateGamepadHints();
+                // 以 Low 優先序排入佇列，確保 VSM 切換與版面配置完成後再設定焦點；
+                // 沒有起始焦點時 D-pad / XY 導航無法在編輯器內推進。
+                DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+                    () => GamepadProfileEditor.FocusFirstControl());
             }
             catch
             {

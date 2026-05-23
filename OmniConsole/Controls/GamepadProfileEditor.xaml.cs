@@ -232,6 +232,15 @@ namespace OmniConsole.Controls
             RefreshAllRows();
         }
 
+        /// <summary>
+        /// 把焦點程式化設給編輯器的首個可聚焦控制項（一般為 NameBox；唯讀 profile 時可能無焦點目標）。
+        /// 宿主在開啟編輯器後呼叫，避免 D-pad / XY 導航沒有起點。
+        /// </summary>
+        public void FocusFirstControl()
+        {
+            (Microsoft.UI.Xaml.Input.FocusManager.FindFirstFocusableElement(this) as UIElement)?.Focus(FocusState.Programmatic);
+        }
+
         /// <summary>為新 profile 產生不撞名的預設名稱。</summary>
         private static string MakeNewProfileName(GamepadProfileData data)
         {

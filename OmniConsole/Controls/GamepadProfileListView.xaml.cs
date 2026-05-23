@@ -43,6 +43,9 @@ namespace OmniConsole.Controls
         /// <summary>使用者要編輯某 profile（A 鍵或滑鼠點列項）時觸發，帶 profile Id。</summary>
         public event EventHandler<string>? EditRequested;
 
+        /// <summary>使用者按「New profile」按鈕時觸發。</summary>
+        public event EventHandler? NewProfileRequested;
+
         /// <summary>子對話方塊開啟前 true、關閉後 false（宿主據此 Stop/StartGamepadPolling）。</summary>
         public event EventHandler<bool>? DialogActiveChanged;
 
@@ -137,6 +140,12 @@ namespace OmniConsole.Controls
         {
             if (e.ClickedItem is GamepadProfileRow row && !string.IsNullOrEmpty(row.Id))
                 EditRequested?.Invoke(this, row.Id);
+        }
+
+        /// <summary>「New profile」按鈕點擊：對外發出 NewProfileRequested 由宿主處理。</summary>
+        private void NewProfileButton_Click(object sender, RoutedEventArgs e)
+        {
+            NewProfileRequested?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>每列垃圾桶 Button 點擊：刪除該列對應 profile。</summary>

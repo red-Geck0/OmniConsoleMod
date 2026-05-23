@@ -70,7 +70,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     {
         std::vector<std::pair<std::wstring, std::wstring>> profileList;
         for (const auto& p : profileStore.profiles) profileList.emplace_back(p.id, p.name);
-        WriteProfileList(profileList);
+        WriteProfileList(profileList, profileStore.defaultProfileId);
     }
 
     // FSE 狀態查詢函式：載入成功時主迴圈會在偵測到 FSE 退出時結束 PhantomKey；

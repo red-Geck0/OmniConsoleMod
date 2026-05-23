@@ -258,7 +258,7 @@ namespace OmniConsole.PhantomLink
             }
         }
 
-        /// <summary>從 Shared.ini [Profiles] 區段填入 profile 下拉清單（Tag=profile id）。</summary>
+        /// <summary>從 Shared.ini [Profiles] 區段填入 profile 下拉清單（Tag=profile id），並預選預設 profile。</summary>
         private void PopulateProfileCombo()
         {
             ProfileCombo.Items.Clear();
@@ -271,6 +271,28 @@ namespace OmniConsole.PhantomLink
             {
                 DebugLogger.Log("[Widget] PopulateProfileCombo FAIL: " + ex);
             }
+
+            // 預選預設 profile（讓使用者打開時有明確的起始點）
+            try
+            {
+                string defaultId = PhantomKeyStore.GetDefaultProfileId();
+                if (!string.IsNullOrEmpty(defaultId))
+                {
+                    foreach (var item in ProfileCombo.Items)
+                    {
+                        if (item is ComboBoxItem cbi && cbi.Tag is string id && id == defaultId)
+                        {
+                            ProfileCombo.SelectedItem = cbi;
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.Log("[Widget] PreSelectDefaultProfile FAIL: " + ex);
+            }
+
             UpdateEditProfileEnabled();
         }
 

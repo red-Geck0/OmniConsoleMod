@@ -24,7 +24,9 @@ unsigned long long GetSharedIniLastWriteTime();
 // 用途：PhantomLink Widget 透過 PhantomKeyStore 讀取此鍵，傳給 PhantomBridge 觸發 overlay。
 void WriteSteamInGameOverlayShortcut(const std::wstring& shortcut);
 
-// 將手把映射 profile 清單寫入 Shared.ini [Profiles]（Count / IdN / NameN）。
+// 將手把映射 profile 清單及預設 profile id 寫入 Shared.ini [Profiles]
+//（Count / IdN / NameN / DefaultId）。
 // 內部以靜態快取比對，僅在清單改變時實際寫檔。
-// 用途：PhantomLink Widget 透過 PhantomKeyStore 讀取此區段以填 profile 下拉選單。
-void WriteProfileList(const std::vector<std::pair<std::wstring, std::wstring>>& profiles);
+// 用途：PhantomLink Widget 透過 PhantomKeyStore 讀取此區段以填 profile 下拉選單與預選預設項。
+void WriteProfileList(const std::vector<std::pair<std::wstring, std::wstring>>& profiles,
+                      const std::wstring& defaultProfileId);

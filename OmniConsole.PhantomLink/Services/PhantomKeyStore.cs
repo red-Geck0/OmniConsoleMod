@@ -159,6 +159,13 @@ namespace OmniConsole.PhantomLink.Services
             return result;
         }
 
+        /// <summary>
+        /// 讀取預設 profile id（[Profiles] DefaultId）。
+        /// PhantomKey 在 WriteProfileList 時同步寫入；缺失回空字串。
+        /// </summary>
+        public static string GetDefaultProfileId()
+            => Read("Profiles", "DefaultId", string.Empty);
+
         // ── 公開 API：DefaultPlatform / SteamInGameOverlay 快捷鍵 ───────────
 
         /// <summary>

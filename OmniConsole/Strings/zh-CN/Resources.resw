@@ -269,8 +269,11 @@
     <value>手柄鼠标模式</value>
   </data>
   <data name="MouseModeSetting_Description.Text" xml:space="preserve">
-    <value>关闭：禁用。自动：见下方支持列表。强制开启：所有应用程序。</value>
+    <value>启用将手柄输入映射为鼠标或键盘。应用将使用默认配置方案（见猫又页），除非在 OmniCharm Game Bar 小工具上另行指定。</value>
   </data>
+  <!-- [UNUSED in this fork] MouseModeItem_Off/Auto/ForceOn: upstream tri-state ComboBox items.
+       This fork replaces the ComboBox with a simple Off/On ToggleSwitch (per-app exclusion
+       handled via OmniCharm widget "None" profile assignment). Retained for upstream merge compat. -->
   <data name="MouseModeItem_Off.Content" xml:space="preserve">
     <value>关闭</value>
   </data>
@@ -280,12 +283,18 @@
   <data name="MouseModeItem_ForceOn.Content" xml:space="preserve">
     <value>强制开启</value>
   </data>
+  <!-- [UNUSED in this fork] MouseModeSetting_Note: upstream caption that explained the Auto
+       whitelist. No longer applicable under the simplified Off/On model. -->
   <data name="MouseModeSetting_Note.Text" xml:space="preserve">
     <value>设为自动时，支持 Edge、Chrome、Firefox、Opera、Brave、Epic Games Store、文件资源管理器、Steam 和 Discord。</value>
   </data>
   <data name="MouseModeSetting_BuiltInMappingNote.Text" xml:space="preserve">
     <value>已禁用 — 设备具备内置手柄映射。</value>
   </data>
+  <!-- [UNUSED in this fork] MouseModeLayout* + CursorSpeedSetting_*: upstream global
+       Controller Layout (OmniNav/Classic) and global Cursor Speed settings. This fork
+       moved both to per-profile values in GamepadProfiles.json (managed in profile editor).
+       Retained for upstream merge compat. -->
   <data name="MouseModeLayoutSetting_Title.Text" xml:space="preserve">
     <value>控制器布局</value>
   </data>
@@ -918,7 +927,7 @@
     <value>重置</value>
   </data>
   <data name="GamepadMappingCopyFromButton.Content" xml:space="preserve">
-    <value>从其他应用读入…</value>
+    <value>从其他配置方案读入…</value>
   </data>
   <data name="GamepadMappingChangeKeyButton" xml:space="preserve">
     <value>改键…</value>
@@ -1083,7 +1092,7 @@
     <value>取消</value>
   </data>
   <data name="GamepadMappingCopyFromTitle" xml:space="preserve">
-    <value>从其他应用读入</value>
+    <value>从其他配置方案读入</value>
   </data>
   <data name="GamepadMappingCopyFromHint" xml:space="preserve">
     <value>选择一个现有配置，将其按键设置复制过来。</value>
@@ -1286,8 +1295,8 @@
   <data name="GamepadHint_SaveReturn.Text" xml:space="preserve">
     <value>保存并返回</value>
   </data>
-  <data name="GamepadHint_NewProfile.Text" xml:space="preserve">
-    <value>新建配置方案</value>
+  <data name="GamepadHint_SetDefault.Text" xml:space="preserve">
+    <value>设为默认配置方案</value>
   </data>
   <data name="GamepadProfileNameLabel.Text" xml:space="preserve">
     <value>配置方案名称</value>
@@ -1329,7 +1338,7 @@
     <value>当前默认 ✓</value>
   </data>
   <data name="GamepadMappingNavConflictNote.Text" xml:space="preserve">
-    <value>提示：系统应用（Windows 设置、Microsoft Store、Xbox 应用）已从配置方案指派中排除——这些应用的手柄导航使用 Windows 默认输入处理。</value>
+    <value>提示：部分系统应用（如 Microsoft Store、Xbox 应用）已从配置方案指派中排除——这些应用的手柄导航使用 Windows 默认输入处理。</value>
   </data>
   <data name="AdvancedSection_Sound.Text" xml:space="preserve">
     <value>界面音效</value>

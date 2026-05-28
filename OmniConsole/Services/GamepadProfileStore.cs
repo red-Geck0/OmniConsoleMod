@@ -88,7 +88,6 @@ namespace OmniConsole.Services
         {
             "OmniConsole",
             "Playnite.FullscreenApp",
-            "steamwebhelper",        // Steam Big Picture / 桌面 Steam 共用此 exe
         };
 
         /// <summary>AUMID 形如 &lt;PFN&gt;!&lt;AppId&gt;，對 AUMID 整段做子字串搜尋。</summary>
@@ -96,8 +95,7 @@ namespace OmniConsole.Services
         {
             "Microsoft.GamingApp",                      // Xbox App
             "B9ECED6F.ArmouryCrateSE",                  // Armoury Crate SE
-            "windows.immersivecontrolpanel",            // Windows 設定
-            "Microsoft.WindowsStore",                   // Microsoft Store
+            "Microsoft.WindowsStore",                   // Microsoft Store（避免使用者誤指派造成 Store 內手把導航衝突）
             "b5fbce6b-2d7d-4da0-b419-4beb30e2b808",     // OmniConsole 主程式自己（packaged）
         };
 
@@ -107,7 +105,8 @@ namespace OmniConsole.Services
         public static bool IsBuiltInId(string? id) =>
             id == GamepadBuiltInLayouts.OmniNavId ||
             id == GamepadBuiltInLayouts.ClassicId ||
-            id == GamepadBuiltInLayouts.OmniNavLId;
+            id == GamepadBuiltInLayouts.OmniNavLId ||
+            id == GamepadBuiltInLayouts.NoneId;
 
         // ── 讀 ────────────────────────────────────────────────────────────────
 

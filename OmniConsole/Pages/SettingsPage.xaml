@@ -656,7 +656,7 @@
                                 <!-- 分隔線 -->
                                 <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
 
-                                <!-- Gamepad Mouse Mode 主開關 -->
+                                <!-- Gamepad Mouse Mode 主開關（Off / On 兩態；per-app 細節走 OmniCharm widget 指派 profile）-->
                                 <Grid Padding="16">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
@@ -668,60 +668,14 @@
 
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
                                         <TextBlock x:Uid="MouseModeSetting_Title" FontWeight="SemiBold" FontSize="16" />
-                                        <TextBlock x:Uid="MouseModeSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
-                                        <TextBlock x:Uid="MouseModeSetting_Note" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        <TextBlock x:Uid="MouseModeSetting_Description" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
                                         <TextBlock x:Name="MouseModeBuiltInMappingNoteText" x:Uid="MouseModeSetting_BuiltInMappingNote" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" Visibility="Collapsed"/>
                                     </StackPanel>
 
-                                    <ComboBox x:Name="MouseModeCombo" Grid.Column="2"
-                                              SelectionChanged="MouseModeCombo_SelectionChanged"
-                                              MinWidth="120" VerticalAlignment="Center">
-                                        <ComboBoxItem x:Uid="MouseModeItem_Off"     Tag="Off"/>
-                                        <ComboBoxItem x:Uid="MouseModeItem_Auto"    Tag="Auto"/>
-                                        <ComboBoxItem x:Uid="MouseModeItem_ForceOn" Tag="ForceOn"/>
-                                    </ComboBox>
-                                </Grid>
-
-                                <!-- Mouse Mode 版面配置切換 (OmniNav / Classic) -->
-                                <Grid Padding="16">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <FontIcon Glyph="&#xE8AB;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock x:Uid="MouseModeLayoutSetting_Title" FontWeight="SemiBold" FontSize="16" />
-                                        <TextBlock x:Uid="MouseModeLayoutSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
-                                    </StackPanel>
-
-                                    <ToggleSwitch x:Name="MouseModeLayoutSwitch"
-                                                  x:Uid="MouseModeLayoutSwitch"
-                                                  Toggled="MouseModeLayoutSwitch_Toggled"
+                                    <ToggleSwitch x:Name="MouseModeSwitch"
+                                                  Toggled="MouseModeSwitch_Toggled"
                                                   FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
-                                </Grid>
-
-                                <!-- Cursor Speed 下拉選單 -->
-                                <Grid Padding="16">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <FontIcon Glyph="&#xE7C9;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock x:Uid="CursorSpeedSetting_Title" FontWeight="SemiBold" FontSize="16" />
-                                        <TextBlock x:Uid="CursorSpeedSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
-                                    </StackPanel>
-
-                                    <ComboBox x:Name="CursorSpeedCombo" Grid.Column="2"
-                                              SelectionChanged="CursorSpeedCombo_SelectionChanged"
-                                              MinWidth="120" VerticalAlignment="Center" />
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -1225,9 +1179,9 @@
                                VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
-            <!-- Y 鍵：手把映射清單頁新建 profile。Visibility 由 code-behind 控制 -->
+            <!-- Y 鍵：手把映射清單頁將焦點 profile 設為預設。Visibility 由 code-behind 控制 -->
             <Button x:Name="GamepadHintYNewProfile" Visibility="Collapsed"
-                    Click="NewProfileHintButton_Click"
+                    Click="SetDefaultProfileHintButton_Click"
                     Background="Transparent" BorderBrush="Transparent"
                     Padding="0" MinWidth="0" MinHeight="0"
                     IsTabStop="False">
@@ -1235,7 +1189,7 @@
                     <FontIcon Glyph="&#xF095;" FontSize="22"
                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                               VerticalAlignment="Center"/>
-                    <TextBlock x:Uid="GamepadHint_NewProfile" FontSize="14"
+                    <TextBlock x:Uid="GamepadHint_SetDefault" FontSize="14"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>

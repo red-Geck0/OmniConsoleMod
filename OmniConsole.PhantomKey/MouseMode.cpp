@@ -19,10 +19,17 @@ namespace {
     // 游標速度（@ 100%）：線性，推多少動多少
     constexpr float kMaxSpeed = 18.0f;
 
-    // 滾輪累積：每 tick 推進 kWheelStep，達 kWheelTriggerDelta 觸發一次系統事件
-    // WHEEL_DELTA 是 Windows 系統巨集（120），故此處改名避免衝突
-    constexpr float kWheelStep         = 25.0f;
-    constexpr float kWheelTriggerDelta = 120.0f;
+    // 滾輪累積：每 tick 推進 kWheelStep，達 kWheelTriggerDelta 觸發一次系統事件。
+    // WHEEL_DELTA 是 Windows 系統巨集（120 = 一個實體滾輪 detent / 一格）。
+    //
+    // 設計：觸發臨界 = 60（半格），讓事件較頻繁送出、每次只送半格 delta。
+    // 現代 app（瀏覽器 / 檔案總管 / 設定）會把連續的小 delta 視為 smooth scroll，
+    // 比起每 ~32ms 才送一次 120 delta（burst 感）順暢許多。
+    //
+    // 8ms tick 下，kWheelStep=40 → 全推時每 ~12ms 送一次 delta=60（≈83Hz 事件率），
+    // 總速度 ~5000 units/sec ≈ 42 notches/sec（約是 25/120 配置的 1.7 倍）。
+    constexpr float kWheelStep         = 40.0f;
+    constexpr float kWheelTriggerDelta = 60.0f;
 
     // Trigger 邊緣觸發臨界值
     constexpr BYTE kTriggerThreshold = 128;

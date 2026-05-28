@@ -132,6 +132,9 @@
   <data name="Widget_OpenXboxLibrary.Text" xml:space="preserve">
     <value>Xbox 库</value>
   </data>
+  <data name="Widget_EditProfile.Text" xml:space="preserve">
+    <value>编辑配置方案</value>
+  </data>
   <!-- Widget_OpenSettings.Text: SettingsBtn 暫時註解保留，往後啟用時恢復此資源
   <data name="Widget_OpenSettings.Text" xml:space="preserve">
     <value>设置</value>

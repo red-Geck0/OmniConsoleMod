@@ -11,36 +11,26 @@
     UseSystemFocusVisuals="False">
 
     <Page.Resources>
+        <!-- WinUI 2.x（Microsoft.UI.Xaml 2.8）已透過 App.xaml 的 XamlControlsResources 套用 Fluent 預設樣式；
+             這裡只 override 兩個視覺微調項，其餘交給 Fluent default。 -->
         <Style TargetType="ToggleButton">
-            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="12,10"/>
         </Style>
-        <!-- Button 圓角對齊 ToggleButton 視覺風格（Quick Actions 用） -->
         <Style TargetType="Button">
-            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="12,10"/>
         </Style>
     </Page.Resources>
 
-    <Grid Padding="24,0,24,24">
+    <!-- Padding 左右對稱（20/20）；StackPanel 再額外加 4px 左右 margin 留給 ComboBox 等 focus visual 繪製。
+         ScrollViewer 會在自己邊界 clip 子內容，控制項若 flush 邊界其 focus visual（畫在控制項外 ~3-4px）會被切掉，
+         故 StackPanel 留 4px 內縮，讓 focus visual 落在 ScrollViewer clip 內。 -->
+    <Grid Padding="20,0,20,20">
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel x:Name="RootPanel" Spacing="12" Margin="0,0,12,0">
+            <StackPanel x:Name="RootPanel" Spacing="12" Margin="4,0,4,0">
 
-                <!-- 前景程式區塊：顯示「目前程式」兩行（標籤 + 粗體名稱） -->
-                <StackPanel x:Name="ForegroundAppSection" Spacing="2">
-                    <TextBlock x:Name="ForegroundAppLabelText" FontSize="13"
-                               Foreground="{ThemeResource SystemControlPageTextBaseMediumBrush}"/>
-                    <TextBlock x:Name="ForegroundAppNameText" FontSize="13" FontWeight="SemiBold"
-                               TextTrimming="CharacterEllipsis"/>
-                    <!-- CustomizeAppNoteText：前景為系統管理員程式時顯示說明 -->
-                    <TextBlock x:Name="CustomizeAppNoteText"
-                               x:Uid="Widget_CustomizeApp_ElevatedNote"
-                               Foreground="{ThemeResource SystemControlPageTextBaseMediumBrush}"
-                               FontSize="12" TextWrapping="Wrap"
-                               Visibility="Collapsed"/>
-                </StackPanel>
-
-                <!-- Quick Actions: TaskView / XboxLibrary 兩顆水平排列；委派給 PhantomBridge COM server。
+                <!-- Quick Actions: TaskView / XboxLibrary 兩顆水平排列；委派給 PhantomBridge COM server.
                      不設 XYFocusUp —— 讓 D-pad Up 從最頂端按鈕外移到 Game Bar，使用者能回到小工具切換列。 -->
                 <Grid x:Name="QuickActionsSection" ColumnSpacing="6">
                     <Grid.ColumnDefinitions>
@@ -115,26 +105,48 @@
                                   XYFocusUp="{x:Bind SteamInGameOverlayOffBtn}"/>
                 </StackPanel>
 
-                <!-- 指派列：下拉選 profile（選即套用）＋ 編輯 profile 按鈕（開主程式設定頁）
-                     Mouse Mode = Off 時隱藏 -->
-                <StackPanel x:Name="ProfileSection" Spacing="4">
-                    <Grid x:Name="ProfileAssignRow" ColumnSpacing="6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <ComboBox x:Name="ProfileCombo" Grid.Column="0"
-                                  HorizontalAlignment="Stretch"
-                                  SelectionChanged="ProfileCombo_SelectionChanged"
-                                  UseSystemFocusVisuals="True"
-                                  XYFocusUp="{x:Bind ModeSwitch}"/>
-                        <Button x:Name="EditProfileBtn" Grid.Column="1"
-                                Click="EditProfileBtn_Click"
-                                UseSystemFocusVisuals="True"
-                                XYFocusUp="{x:Bind ModeSwitch}">
+                <!-- 前景程式區塊：兩行（Label + 粗體名稱）。
+                     位於 Mouse Mode 下方，profile 指派區上方。 -->
+                <StackPanel x:Name="ForegroundAppSection" Spacing="2">
+                    <TextBlock x:Name="ForegroundAppLabelText" FontSize="13"
+                               Foreground="{ThemeResource SystemControlPageTextBaseMediumBrush}"/>
+                    <TextBlock x:Name="ForegroundAppNameText" FontSize="14" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis"/>
+                    <!-- CustomizeAppNoteText：前景為系統管理員程式時顯示說明 -->
+                    <TextBlock x:Name="CustomizeAppNoteText"
+                               x:Uid="Widget_CustomizeApp_ElevatedNote"
+                               Foreground="{ThemeResource SystemControlPageTextBaseMediumBrush}"
+                               FontSize="12" TextWrapping="Wrap"
+                               Visibility="Collapsed"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <!-- 指派區：下拉選 profile（選即套用），下方為編輯 profile 按鈕（開主程式設定頁）。
+                     Mouse Mode = Off 時整段隱藏。
+                     ProfileCombo MinHeight=56 / FontSize=16 模擬 Windows 11 設定頁原生 ComboBox 外觀；
+                     ItemContainerStyle 拉高下拉選單每一列高度，與設定頁觀感一致。 -->
+                <StackPanel x:Name="ProfileSection" Spacing="6">
+                    <!-- WinUI 2.x Fluent default 已提供 Windows 11 設定頁觀感（含 dropdown item 高度、padding、selected indicator）。
+                         僅以 MinHeight 拉高方便手把/觸控操作；其餘樣式交給 Fluent default。 -->
+                    <ComboBox x:Name="ProfileCombo"
+                              HorizontalAlignment="Stretch"
+                              MinHeight="40"
+                              SelectionChanged="ProfileCombo_SelectionChanged"
+                              UseSystemFocusVisuals="True"
+                              XYFocusUp="{x:Bind ModeSwitch}"
+                              XYFocusDown="{x:Bind EditProfileBtn}"/>
+                    <Button x:Name="EditProfileBtn"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            MinHeight="44"
+                            Click="EditProfileBtn_Click"
+                            UseSystemFocusVisuals="True"
+                            XYFocusUp="{x:Bind ProfileCombo}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
                             <FontIcon Glyph="&#xE70F;" FontSize="16"/>
-                        </Button>
-                    </Grid>
+                            <TextBlock x:Uid="Widget_EditProfile"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
 
                 <!-- 內建手把映射說明（ROG Ally 家族時顯示） -->

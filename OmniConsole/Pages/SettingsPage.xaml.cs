@@ -217,10 +217,10 @@ namespace OmniConsole.Pages
             if (IsGamepadMappingEditorVisible) GamepadProfileEditor.Save();
         }
 
-        /// <summary>Y 鍵新建 profile 的提示按鈕滑鼠點選處理（清單頁專用）。</summary>
-        private void NewProfileHintButton_Click(object sender, RoutedEventArgs e)
+        /// <summary>Y 鍵將焦點 profile 設為預設的提示按鈕滑鼠點選處理（清單頁專用）。</summary>
+        private void SetDefaultProfileHintButton_Click(object sender, RoutedEventArgs e)
         {
-            if (IsGamepadMappingListVisible) OpenEditorFor(null);
+            if (IsGamepadMappingListVisible) GamepadProfileList.SetSelectedAsDefault();
         }
 
         /// <summary>判斷節點是否為祖先元素的子孫（含自身）。用於辨識焦點是否落在清單範圍內。</summary>
@@ -296,23 +296,12 @@ namespace OmniConsole.Pages
             UsePhantomKeySteamInGameOverlaySwitch.IsOn = SettingsService.GetUsePhantomKeySteamInGameOverlay();
             UsePhantomKeySteamInGameOverlaySwitch.IsEnabled = true;
 
-            // 還原 Mouse Mode（Off/Auto/ForceOn）/ 版面配置 / 游標速度，並依內建廠商映射偵測強制停用
+            // 還原 Mouse Mode（Off/On）。On 對應現有 MouseModeAuto 值（PhantomKey 視為啟用）；
+            // per-app 細節走 OmniCharm widget 指派 profile（None profile 等同該 app 停用 mouse mode）。
+            // 內建廠商映射偵測命中時強制停用主開關。
             bool builtInMapping = SettingsService.HasBuiltInGamepadMapping();
             string currentMode = builtInMapping ? SettingsService.MouseModeOff : SettingsService.GetMouseMode();
-            MouseModeCombo.SelectedIndex = currentMode switch
-            {
-                SettingsService.MouseModeOff => 0,
-                SettingsService.MouseModeForceOn => 2,
-                _ => 1,
-            };
-            MouseModeLayoutSwitch.IsOn = SettingsService.GetMouseModeLayout() == SettingsService.LayoutClassic;
-
-            // 填充游標速度下拉選單並還原選取
-            CursorSpeedCombo.Items.Clear();
-            foreach (var p in SettingsService.ValidCursorSpeedPercents)
-                CursorSpeedCombo.Items.Add($"{p}%");
-            int pct = SettingsService.GetCursorSpeedPercent();
-            CursorSpeedCombo.SelectedIndex = Array.IndexOf(SettingsService.ValidCursorSpeedPercents, pct);
+            MouseModeSwitch.IsOn = currentMode != SettingsService.MouseModeOff;
 
             ApplyMouseModeEnabledState(builtInMapping);
 
@@ -456,7 +445,11 @@ namespace OmniConsole.Pages
                         CheckForUpdatesButton.Focus(FocusState.Programmatic);
                     break;
                 case "GamepadMapping":
-                    (FocusManager.FindFirstFocusableElement(GamepadMappingPage) as UIElement)?.Focus(FocusState.Programmatic);
+                    // Focus the profile list (so OmniNav is selected first), not the New Profile button below
+                    if (GamepadProfileList != null && IsGamepadMappingListVisible)
+                        GamepadProfileList.FocusList();
+                    else
+                        (FocusManager.FindFirstFocusableElement(GamepadMappingPage) as UIElement)?.Focus(FocusState.Programmatic);
                     break;
                 case "Troubleshoot":
                     ResetGameBarButton.Focus(FocusState.Programmatic);
@@ -905,23 +898,13 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// Mouse Mode 下拉選單（Off/Auto/ForceOn）變更時立即儲存，並更新子控制項反灰狀態。
+        /// Mouse Mode ToggleSwitch 切換時立即儲存。Off=停用、On=啟用（以 MouseModeAuto 值儲存）。
         /// </summary>
-        private void MouseModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void MouseModeSwitch_Toggled(object sender, RoutedEventArgs e)
         {
-            if (MouseModeCombo.SelectedItem is not ComboBoxItem item) return;
-            string mode = item.Tag as string ?? SettingsService.MouseModeAuto;
+            string mode = MouseModeSwitch.IsOn ? SettingsService.MouseModeAuto : SettingsService.MouseModeOff;
             SettingsService.SetMouseMode(mode);
             ApplyMouseModeEnabledState();
-        }
-
-        /// <summary>
-        /// Mouse Mode 版面配置 ToggleSwitch 切換時立即儲存。Off=OmniNav、On=Classic。
-        /// </summary>
-        private void MouseModeLayoutSwitch_Toggled(object sender, RoutedEventArgs e)
-        {
-            SettingsService.SetMouseModeLayout(
-                MouseModeLayoutSwitch.IsOn ? SettingsService.LayoutClassic : SettingsService.LayoutOmniNav);
         }
 
         /// <summary>
@@ -938,35 +921,14 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// Cursor Speed 下拉選單選取變更時儲存百分比。
-        /// </summary>
-        private void CursorSpeedCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (CursorSpeedCombo.SelectedIndex < 0) return;
-            int pct = SettingsService.ValidCursorSpeedPercents[CursorSpeedCombo.SelectedIndex];
-            SettingsService.SetCursorSpeedPercent(pct);
-        }
-
-        /// <summary>
-        /// 套用 Mouse Mode 子控制項的反灰串聯：
-        /// PhantomKey 主開關 + 內建廠商映射偵測 → Mouse Mode 主開關
-        /// → Layout / Cursor Speed。
+        /// 套用 Mouse Mode 反灰：內建廠商映射偵測命中（ROG Ally 家族）→ 強制停用主開關 + 顯示說明。
+        /// （per-profile 細節：CursorSpeed / Layered 由 profile 編輯器管，不再有頂層 layout/speed 設定）
         /// </summary>
         private void ApplyMouseModeEnabledState(bool? builtInMappingOverride = null)
         {
             bool builtIn = builtInMappingOverride ?? SettingsService.HasBuiltInGamepadMapping();
-            // PhantomKey 改為 FSE 常駐，不再依開關；保留變數以利未來復原。
-            //bool phantomOn = UsePhantomKeySwitch.IsOn;
-            bool phantomOn = true;
-            bool mouseModeAvailable = phantomOn && !builtIn;
-            string mode = (MouseModeCombo.SelectedItem as ComboBoxItem)?.Tag as string ?? SettingsService.MouseModeAuto;
-            bool mouseModeOn = mouseModeAvailable && mode != SettingsService.MouseModeOff;
-
-            MouseModeCombo.IsEnabled = mouseModeAvailable;
+            MouseModeSwitch.IsEnabled = !builtIn;
             MouseModeBuiltInMappingNoteText.Visibility = builtIn ? Visibility.Visible : Visibility.Collapsed;
-
-            MouseModeLayoutSwitch.IsEnabled = mouseModeOn;
-            CursorSpeedCombo.IsEnabled = mouseModeOn;
         }
 
         // Game Bar 媒體櫃 / Passthrough 開關 UI 暫時隱藏（見 SettingsPage.xaml 註解），Toggled handler 一併停用。
@@ -1419,11 +1381,9 @@ namespace OmniConsole.Pages
                     UsePhantomKeySteamInGameOverlaySwitch.IsOn = !sw.IsOn;
                     break;
 
-                // Mouse Mode 下拉選單：A 鍵展開由 GamepadNavigationService 統一處理，此處無需動作
-
-                // Mouse Mode 版面配置切換 (OmniNav / Classic)
-                case ToggleSwitch sw when ReferenceEquals(sw, MouseModeLayoutSwitch):
-                    if (sw.IsEnabled) MouseModeLayoutSwitch.IsOn = !sw.IsOn;
+                // Mouse Mode 主開關（Off/On）
+                case ToggleSwitch sw when ReferenceEquals(sw, MouseModeSwitch):
+                    if (sw.IsEnabled) MouseModeSwitch.IsOn = !sw.IsOn;
                     break;
 
                 // 導覽音效開關
@@ -1514,14 +1474,15 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// 手把 Y 鍵：使用者索引標籤時觸發新增平台。
+        /// 手把 Y 鍵：使用者索引標籤時觸發新增平台；Nekomata 清單頁將焦點 profile 設為預設。
         /// </summary>
         private void OnGamepadYButtonPressed()
         {
-            // 手把映射清單頁的 Y 鍵 = 新建 profile
+            // 手把映射清單頁的 Y 鍵 = 將焦點 profile 設為預設
+            // (New profile 改為僅可由清單下方的按鈕觸發)
             if (_currentNavTag == "GamepadMapping")
             {
-                if (IsGamepadMappingListVisible) OpenEditorFor(null);
+                if (IsGamepadMappingListVisible) GamepadProfileList.SetSelectedAsDefault();
                 return;
             }
             if (_currentNavTag != "General") return;

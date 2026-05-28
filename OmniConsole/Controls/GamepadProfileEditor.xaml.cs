@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using OmniConsole.Dialogs;
 using OmniConsole.Models;
 using OmniConsole.Services;
@@ -237,12 +238,69 @@ namespace OmniConsole.Controls
         }
 
         /// <summary>
-        /// 把焦點程式化設給編輯器的 NameBox（唯讀 profile 時 NameBox.IsEnabled=false 焦點呼叫會失敗，
-        /// 那情境下使用者僅檢視，按 B 退出即可）。宿主在開啟編輯器後呼叫，避免 D-pad / XY 導航沒有起點。
+        /// 把焦點設到編輯器內第一個可用控制項：優先 NameBox；
+        /// NameBox 不可用（唯讀 profile EditorRoot 整段停用，或視窗尚未啟動 / 版面未完成）時，
+        /// 退到 FocusManager.FindFirstFocusableElement 找實際可聚焦的控制項。
+        ///
+        /// Protocol（widget 開編輯器）路徑下，呼叫時視窗可能剛啟動、版面/啟用狀態尚未完成 layout
+        /// pass，Focus(true→false) 失敗。採三段重試：
+        ///   1) 立即嘗試（多數正常路徑直接命中）
+        ///   2) 控制項未 Loaded → 掛 Loaded 後重試
+        ///   3) 已 Loaded 仍失敗 → 用 Dispatcher Low 排到下幾個 layout pass 之後再試（最多 5 次）
         /// </summary>
         public void FocusFirstControl()
         {
-            NameBox?.Focus(FocusState.Programmatic);
+            if (TryFocusFirstAvailable()) return;
+
+            if (!this.IsLoaded)
+            {
+                RoutedEventHandler? handler = null;
+                handler = (s, e) =>
+                {
+                    this.Loaded -= handler;
+                    if (!TryFocusFirstAvailable()) ScheduleFocusRetries(5);
+                };
+                this.Loaded += handler;
+                return;
+            }
+
+            ScheduleFocusRetries(5);
+        }
+
+        /// <summary>
+        /// 排入 Dispatcher Low queue 重試 TryFocusFirstAvailable，
+        /// 直到成功或耗盡次數。每次重試會經過完整的 layout pass，
+        /// 給予 ContentControl realization / IsEnabled 串聯 / 視窗啟動 時間落地。
+        /// </summary>
+        private void ScheduleFocusRetries(int retries)
+        {
+            if (retries <= 0) return;
+            this.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                if (TryFocusFirstAvailable()) return;
+                ScheduleFocusRetries(retries - 1);
+            });
+        }
+
+        /// <summary>
+        /// 嘗試把焦點放到第一個可用控制項，按優先序：
+        ///   1) CursorSpeedCombo — ComboBox 不會吃掉 D-pad 鍵（可立即用方向鍵離開），是最友善的起點
+        ///   2) NameBox — fallback；缺點：TextBox 會吃掉左右鍵作為文字游標移動，但至少有焦點
+        ///   3) FocusManager.FindFirstFocusableElement — 最終保底
+        /// 唯讀 profile（EditorRoot.IsEnabled=false）下三者皆失敗，畫面無焦點，按 B 退出即可。
+        /// </summary>
+        private bool TryFocusFirstAvailable()
+        {
+            if (CursorSpeedCombo != null && CursorSpeedCombo.IsEnabled && CursorSpeedCombo.IsLoaded &&
+                CursorSpeedCombo.Focus(FocusState.Programmatic))
+                return true;
+            if (NameBox != null && NameBox.IsEnabled && NameBox.IsLoaded &&
+                NameBox.Focus(FocusState.Programmatic))
+                return true;
+            if (FocusManager.FindFirstFocusableElement(this) is Control c &&
+                c.Focus(FocusState.Programmatic))
+                return true;
+            return false;
         }
 
         /// <summary>為新 profile 產生不撞名的預設名稱。</summary>

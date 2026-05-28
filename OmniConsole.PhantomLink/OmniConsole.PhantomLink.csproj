@@ -20,7 +20,7 @@
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WindowsXamlEnableOverview>true</WindowsXamlEnableOverview>
-    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <AppxBundle>Never</AppxBundle>
   </PropertyGroup>
@@ -192,6 +192,11 @@
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
       <Version>6.2.14</Version>
     </PackageReference>
+    <!-- WinUI 2.x：將 UWP 標準控制項（ComboBox/ToggleSwitch/Button 等）的 default style
+         自動換成 Fluent (WinUI 3 觀感)。需搭配 App.xaml 內的 <XamlControlsResources/>。 -->
+    <PackageReference Include="Microsoft.UI.Xaml">
+      <Version>2.8.7</Version>
+    </PackageReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
@@ -217,9 +222,7 @@
          2. DependsOnTargets="BuildPhantomBridge" 鎖序：.h 必須先由 vcxproj 產出。
          3. .g.cs 由本 target 動態加入 Compile item，避免乾淨 repo 首次建置報 CS2001。
          4. 不設 Inputs/Outputs incremental check：腳本內部已比對內容相同則不寫檔。 -->
-  <Target Name="GeneratePhantomBridgeIIDs"
-          BeforeTargets="BeforeBuild;CoreCompile"
-          DependsOnTargets="BuildPhantomBridge">
+  <Target Name="GeneratePhantomBridgeIIDs" BeforeTargets="BeforeBuild;CoreCompile" DependsOnTargets="BuildPhantomBridge">
     <PropertyGroup>
       <_PhantomBridgeHeader>..\OmniConsole.PhantomBridge\x64\$(Configuration)\Intermediate\Generated Files\winrt\impl\PhantomBridge.0.h</_PhantomBridgeHeader>
       <_PhantomBridgeIIDsFile>$(ProjectDir)Generated\PhantomBridgeIIDs.g.cs</_PhantomBridgeIIDsFile>

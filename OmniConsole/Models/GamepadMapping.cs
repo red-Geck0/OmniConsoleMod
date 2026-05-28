@@ -188,6 +188,7 @@ namespace OmniConsole.Models
         public const string OmniNavId = "omninav";
         public const string ClassicId = "classic";
         public const string OmniNavLId = "omninavl";
+        public const string NoneId = "none";
 
         // VK 常數
         private const int VK_RETURN = 0x0D;
@@ -249,8 +250,9 @@ namespace OmniConsole.Models
         }
 
         /// <summary>
-        /// 產生三份內建 profile（OmniNav / Classic / OmniNavL）。
+        /// 產生四份內建 profile（OmniNav / Classic / OmniNavL / None）。
         /// first-run 種子與 reset-to-default 皆取自此；每次呼叫產生全新物件。
+        /// None profile 有空映射，指派給 app 等同停用 mouse mode（黑名單效果）。
         /// </summary>
         public static List<GamepadProfile> BuiltInProfiles()
         {
@@ -293,6 +295,17 @@ namespace OmniConsole.Models
                         ActivationMode = ProfileActivationMode.HoldRelease
                     },
                     Bindings = OmniNav()
+                },
+                new GamepadProfile
+                {
+                    Id = NoneId,
+                    Name = "None",
+                    IsBuiltIn = true,
+                    IsReadOnly = true,
+                    CursorSpeedPercent = 100,
+                    DpadAutoRepeat = false,
+                    Layered = new ProfileLayered { Enabled = false },
+                    Bindings = new Dictionary<GamepadInputId, GamepadAction>()
                 },
             };
         }

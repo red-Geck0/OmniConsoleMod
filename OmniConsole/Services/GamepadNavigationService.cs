@@ -318,8 +318,9 @@ namespace OmniConsole.Services
         private bool _priming;
 
         // ── D-pad / 搖桿長按連續移動（Key Repeat） ────────────────────────────
-        private const int RepeatInitialDelayMs = 400;  // 長按後開始重複前的等待時間
-        private const int RepeatIntervalMs = 80;       // 重複移動的間隔
+        // 數值偏向「感覺即時」：初始延遲 300ms（典型 OS 鍵盤重複 ~500ms），重複間隔 60ms ≈ 16.7 次/秒
+        private const int RepeatInitialDelayMs = 300;  // 長按後開始重複前的等待時間
+        private const int RepeatIntervalMs = 60;       // 重複移動的間隔
 
         /// <summary>各手把獨立的長按重複狀態，避免多手把間互相覆蓋。</summary>
         private readonly Dictionary<Gamepad, HeldState> _heldStates = new();
@@ -367,7 +368,7 @@ namespace OmniConsole.Services
             _onViewButtonPressed = onViewButtonPressed;
 
             _gamepadTimer = dispatcherQueue.CreateTimer();
-            _gamepadTimer.Interval = TimeSpan.FromMilliseconds(50); // 20 FPS
+            _gamepadTimer.Interval = TimeSpan.FromMilliseconds(33); // ~30 FPS（單按反應時間 ≤ 33ms 比 50ms 明顯靈敏）
             _gamepadTimer.Tick += GamepadTimer_Tick;
 
             try { _inputInjector = InputInjector.TryCreate(); } catch { }
@@ -634,7 +635,7 @@ namespace OmniConsole.Services
                                     var sv = FindParent<ScrollViewer>(focusDep);
                                     if (sv != null)
                                     {
-                                        double delta = -rsY * 25; // px per tick (50 ms)
+                                        double delta = -rsY * 17; // px per tick (~33 ms) — ≈ 500 px/s 全推
                                         sv.ChangeView(null, sv.VerticalOffset + delta, null, disableAnimation: true);
                                     }
                                 }

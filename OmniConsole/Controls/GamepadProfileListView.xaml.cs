@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using OmniConsole.Dialogs;
+using OmniConsole.Models;
 using OmniConsole.Services;
 using System;
 using System.Collections.ObjectModel;
@@ -97,6 +98,9 @@ namespace OmniConsole.Controls
                 var data = GamepadProfileStore.Load();
                 foreach (var p in data.Profiles)
                 {
+                    // Hide the "None" profile from the list — it's only selectable via widget
+                    if (p.Id == GamepadBuiltInLayouts.NoneId) continue;
+
                     _items.Add(new GamepadProfileRow
                     {
                         Id = p.Id,
@@ -114,8 +118,23 @@ namespace OmniConsole.Controls
                 ProfileList.SelectedIndex = (prevIndex >= 0 && prevIndex < _items.Count) ? prevIndex : 0;
         }
 
-        /// <summary>將焦點程式化設給 ListView（清單頁進入時呼叫）。</summary>
-        public void FocusList() => ProfileList.Focus(FocusState.Programmatic);
+        /// <summary>將焦點程式化設給 ListView（清單頁進入時呼叫）。聚焦首列以利 D-pad 立即可用。</summary>
+        public void FocusList()
+        {
+            if (ProfileList == null) return;
+            if (ProfileList.SelectedIndex < 0 && _items.Count > 0)
+                ProfileList.SelectedIndex = 0;
+
+            // 列項容器需 layout 完成後才能聚焦；用 dispatcher 延後一格
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                int idx = ProfileList.SelectedIndex >= 0 ? ProfileList.SelectedIndex : 0;
+                if (ProfileList.ContainerFromIndex(idx) is ListViewItem container)
+                    container.Focus(FocusState.Keyboard);
+                else
+                    ProfileList.Focus(FocusState.Keyboard);
+            });
+        }
 
         /// <summary>取目前作用中的 row：先看焦點 ListViewItem（D-pad 移動只動焦點不更新 SelectedItem），回退到 SelectedItem。</summary>
         private GamepadProfileRow? GetActiveRow()
@@ -147,6 +166,17 @@ namespace OmniConsole.Controls
             return Task.CompletedTask;
         }
 
+        /// <summary>給宿主 Y 鍵呼叫：將目前焦點 profile 設為預設（已是預設則略過）。</summary>
+        public void SetSelectedAsDefault()
+        {
+            var row = GetActiveRow();
+            if (row != null && row.CanSetDefault && !string.IsNullOrEmpty(row.Id))
+            {
+                GamepadProfileStore.SetDefaultProfile(row.Id);
+                Refresh();
+            }
+        }
+
         /// <summary>滑鼠／手把 A 點某列：發出 EditRequested。</summary>
         private void ProfileList_ItemClick(object sender, ItemClickEventArgs e)
         {
@@ -161,20 +191,16 @@ namespace OmniConsole.Controls
         }
 
         /// <summary>每列垃圾桶 Button 點擊：刪除該列對應 profile。</summary>
+        /// <remarks>
+        /// [UNUSED in this fork] 此 fork 將每列的 inline delete 按鈕從 XAML 中移除，改為
+        /// 手把 X 鍵 / 清單頁底部 footer 提示鍵觸發 DeleteSelectedAsync()。
+        /// 保留此 handler 以維持與上游 (8bit2qubit/OmniConsole) 簽名一致，
+        /// 若上游恢復 inline delete 按鈕，此 handler 仍可直接連線。
+        /// </remarks>
         private void DeleteItemButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button b && b.Tag is string profileId)
                 _ = DeleteAsync(profileId);
-        }
-
-        /// <summary>每列星形 Button 點擊：將該 profile 設為預設，並重新整理清單。</summary>
-        private void SetDefaultItemButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button b && b.Tag is string profileId)
-            {
-                GamepadProfileStore.SetDefaultProfile(profileId);
-                Refresh();
-            }
         }
 
         /// <summary>彈確認對話方塊，按下「是」才實際刪除並重新整理。期間透過 DialogActiveChanged 通知宿主 Stop/Start 手把輪詢。</summary>

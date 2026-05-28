@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <xinput.h>
 #include <appmodel.h>
+#include <algorithm>
 
 #pragma comment(lib, "xinput.lib")
 
@@ -12,6 +13,19 @@
 #include "MouseMode.h"
 #include "GamepadProfiles.h"
 #include "PingService.h"
+
+// ============================================================================
+// Profile 判斷小工具
+// ============================================================================
+
+// 「空映射 profile」：所有按鍵 action 皆為 None。
+// 用途：當 ResolveProfileForForeground 取得一個無任何映射的 profile
+//      （如內建的 "None" 或使用者手動 Clear All 的 profile）時，等同停用 Mouse Mode。
+// 採行為判斷而非比對 id，名稱即使更名仍能正確識別。
+static bool IsProfileEffectivelyEmpty(const GamepadProfile& p) {
+    return std::all_of(p.bindings.begin(), p.bindings.end(),
+        [](const Action& a) { return a.kind == ActionKind::None; });
+}
 
 // ============================================================================
 // FSE 狀態查詢
@@ -206,7 +220,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             !config.widgetActive &&
             !IsMouseModeForceExcluded(currentFg)) {
             activeProfile = ResolveProfileForForeground(profileStore, currentFg, currentFgPath, GetForegroundHwnd());
-            if (activeProfile) {
+            if (activeProfile && !IsProfileEffectivelyEmpty(*activeProfile)) {
                 mouseModeActive = true;
                 WriteActiveProfileId(activeProfile->id);
             }

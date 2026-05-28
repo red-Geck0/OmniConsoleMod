@@ -269,8 +269,11 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
     <value>Gamepad Mouse Mode</value>
   </data>
   <data name="MouseModeSetting_Description.Text" xml:space="preserve">
-    <value>Off: disabled. Auto: apps listed below. Force On: all apps.</value>
+    <value>Enable mapping gamepad inputs into mouse or keyboard. Apps will use the default profile (see Nekomata page) unless specified on the OmniCharm Game Bar widget.</value>
   </data>
+  <!-- [UNUSED in this fork] MouseModeItem_Off/Auto/ForceOn: upstream tri-state ComboBox items.
+       This fork replaces the ComboBox with a simple Off/On ToggleSwitch (per-app exclusion
+       handled via OmniCharm widget "None" profile assignment). Retained for upstream merge compat. -->
   <data name="MouseModeItem_Off.Content" xml:space="preserve">
     <value>Off</value>
   </data>
@@ -280,12 +283,18 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   <data name="MouseModeItem_ForceOn.Content" xml:space="preserve">
     <value>Force On</value>
   </data>
+  <!-- [UNUSED in this fork] MouseModeSetting_Note: upstream caption that explained the Auto
+       whitelist. No longer applicable under the simplified Off/On model. -->
   <data name="MouseModeSetting_Note.Text" xml:space="preserve">
     <value>When set to Auto, supports Edge, Chrome, Firefox, Opera, Brave, Epic Games Store, File Explorer, Steam, and Discord.</value>
   </data>
   <data name="MouseModeSetting_BuiltInMappingNote.Text" xml:space="preserve">
     <value>Disabled — device has built-in gamepad mapping.</value>
   </data>
+  <!-- [UNUSED in this fork] MouseModeLayout* + CursorSpeedSetting_*: upstream global
+       Controller Layout (OmniNav/Classic) and global Cursor Speed settings. This fork
+       moved both to per-profile values in GamepadProfiles.json (managed in profile editor).
+       Retained for upstream merge compat. -->
   <data name="MouseModeLayoutSetting_Title.Text" xml:space="preserve">
     <value>Controller Layout</value>
   </data>
@@ -918,7 +927,7 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>Reset</value>
   </data>
   <data name="GamepadMappingCopyFromButton.Content" xml:space="preserve">
-    <value>Copy from app…</value>
+    <value>Copy from other profile…</value>
   </data>
   <data name="GamepadMappingChangeKeyButton" xml:space="preserve">
     <value>Change key…</value>
@@ -1083,7 +1092,7 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>Cancel</value>
   </data>
   <data name="GamepadMappingCopyFromTitle" xml:space="preserve">
-    <value>Copy from another app</value>
+    <value>Copy from other profile</value>
   </data>
   <data name="GamepadMappingCopyFromHint" xml:space="preserve">
     <value>Pick an existing profile to copy its bindings.</value>
@@ -1286,8 +1295,8 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   <data name="GamepadHint_SaveReturn.Text" xml:space="preserve">
     <value>Save &amp; back</value>
   </data>
-  <data name="GamepadHint_NewProfile.Text" xml:space="preserve">
-    <value>New profile</value>
+  <data name="GamepadHint_SetDefault.Text" xml:space="preserve">
+    <value>Set as default profile</value>
   </data>
   <data name="GamepadProfileNameLabel.Text" xml:space="preserve">
     <value>Profile name</value>
@@ -1329,7 +1338,7 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>Default ✓</value>
   </data>
   <data name="GamepadMappingNavConflictNote.Text" xml:space="preserve">
-    <value>Note: System apps (Windows Settings, Microsoft Store, Xbox app) are excluded from profile assignment — gamepad navigation in those apps uses default Windows input handling.</value>
+    <value>Note: Some system apps (e.g. Microsoft Store, Xbox app) are excluded from profile assignment — gamepad navigation in those apps uses default Windows input handling.</value>
   </data>
   <data name="AdvancedSection_Sound.Text" xml:space="preserve">
     <value>Interface Sound</value>

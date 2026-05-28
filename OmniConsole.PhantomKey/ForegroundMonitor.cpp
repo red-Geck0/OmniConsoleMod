@@ -78,7 +78,13 @@ const InputRule* FindRuleForForeground() {
 // ============================================================================
 // Mouse Mode 目標前景程式
 // ============================================================================
-
+//
+// [UNUSED in this fork] g_mouseModeTargets / IsMouseModeTarget 屬於上游
+// (8bit2qubit/OmniConsole) 的 Mouse Mode = Auto 白名單機制（限定特定 app
+// 啟用 mouse mode）。此 fork 改為「user-controlled per-app profile assignment」
+// 模型：Mouse Mode = On/Off，per-app 細節由 OmniCharm widget 指派 profile
+// 控制（assign "None" profile 等同該 app 停用）。
+// 保留宣告與符號以維持簽名相容；上游若繼續演進 Auto 模型仍可重新接線。
 static bool IsExplorerTaskView();
 
 static const wchar_t* g_mouseModeTargets[] = {
@@ -120,8 +126,7 @@ static const wchar_t* g_excludedPackagedAppTitles[] = {
 // title 隨系統語系變動的 app 改走「對 AUMID 整段做 PFN 子字串比對」
 // （AUMID 形如 <PFN>!<AppId>，搜尋的目標子字串實質為 PFN）
 static const wchar_t* g_excludedPackagedAppPfnSubstrings[] = {
-    L"windows.immersivecontrolpanel",               // Windows 設定（SystemSettings.exe，packaged 但自跑 exe）
-    L"Microsoft.WindowsStore",                      // Microsoft Store（WinStore.App.exe，packaged 但自跑 exe）
+    L"Microsoft.WindowsStore",                      // Microsoft Store（packaged 但自跑 exe；保留硬擋避免使用者誤指派造成 Store 內遊戲手把導航衝突）
     L"b5fbce6b-2d7d-4da0-b419-4beb30e2b808",        // OmniConsole 主程式自己
 };
 

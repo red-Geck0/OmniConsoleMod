@@ -25,17 +25,6 @@
                        MaxWidth="700"
                        Margin="0,0,0,8"/>
 
-            <!-- New profile：滑鼠/觸控入口；手把 Y 鍵亦觸發（SettingsPage.OnGamepadYButtonPressed） -->
-            <Button x:Name="NewProfileButton"
-                    Click="NewProfileButton_Click"
-                    HorizontalAlignment="Center"
-                    UseSystemFocusVisuals="True">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xE710;" FontSize="16"/>
-                    <TextBlock x:Uid="GamepadProfileNewButton"/>
-                </StackPanel>
-            </Button>
-
             <Border x:Name="ListCard"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -56,8 +45,6 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0"
                                            Text="{x:Bind Name}"
@@ -73,33 +60,23 @@
                                         VerticalAlignment="Center">
                                     <TextBlock Text="{x:Bind Badge}" FontSize="12"/>
                                 </Border>
-                                <!-- 設為預設：已是預設時隱藏 -->
-                                <Button Grid.Column="2"
-                                        Click="SetDefaultItemButton_Click"
-                                        Tag="{x:Bind Id}"
-                                        Visibility="{x:Bind SetDefaultVisibility}"
-                                        UseSystemFocusVisuals="True"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="8"
-                                        ToolTipService.ToolTip="{x:Bind SetDefaultTooltip}">
-                                    <FontIcon Glyph="&#xE734;" FontSize="14"/>
-                                </Button>
-                                <Button Grid.Column="3"
-                                        Click="DeleteItemButton_Click"
-                                        Tag="{x:Bind Id}"
-                                        Visibility="{x:Bind DeleteVisibility}"
-                                        UseSystemFocusVisuals="True"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="8">
-                                    <FontIcon Glyph="&#xE74D;" FontSize="14"/>
-                                </Button>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
             </Border>
+
+            <!-- New profile：移到 list 下方；手把 Y 鍵改為 Set as default（在 ProfileList 上時觸發），
+                 New profile 僅可由滑鼠/觸控/A 鍵點擊此按鈕觸發 -->
+            <Button x:Name="NewProfileButton"
+                    Click="NewProfileButton_Click"
+                    HorizontalAlignment="Center"
+                    UseSystemFocusVisuals="True">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE710;" FontSize="16"/>
+                    <TextBlock x:Uid="GamepadProfileNewButton"/>
+                </StackPanel>
+            </Button>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

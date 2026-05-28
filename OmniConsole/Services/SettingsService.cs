@@ -637,6 +637,19 @@ namespace OmniConsole.Services
             WriteShared("PhantomKey", "MouseMode", mode);
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // [UNUSED in this fork] MouseModeLayout / CursorSpeedPercent (below) are
+        // upstream (8bit2qubit/OmniConsole) global settings. This fork moved
+        // both to per-profile values in GamepadProfiles.json (see
+        // GamepadProfileEditor's Cursor Speed combo per profile; layout is
+        // implicit per profile bindings). PhantomKey no longer reads
+        // [PhantomKey] MouseModeLayout / CursorSpeedPercent from Shared.ini.
+        //
+        // Kept intact for upstream-merge compatibility; SyncPhantomKeyStore()
+        // still writes these so upstream PhantomKey builds (if any user runs
+        // a mixed-version setup) continue to see a sane value.
+        // ─────────────────────────────────────────────────────────────────────
+
         /// <summary>OmniNav 預設版面配置。</summary>
         public const string LayoutOmniNav = "OmniNav";
         /// <summary>Classic 版面配置。</summary>

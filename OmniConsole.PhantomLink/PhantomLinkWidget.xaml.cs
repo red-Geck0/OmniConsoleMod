@@ -342,6 +342,7 @@ namespace OmniConsole.PhantomLink
                 _foregroundFullPath = string.Empty;
                 CustomizeAppNoteText.Visibility = Visibility.Collapsed;
                 UpdateEditProfileEnabled();
+                UpdateProfileSectionVisibility();
                 return;
             }
 
@@ -360,7 +361,6 @@ namespace OmniConsole.PhantomLink
             {
                 blocked = aumid.IndexOf("Microsoft.GamingApp", StringComparison.OrdinalIgnoreCase) >= 0
                        || aumid.IndexOf("B9ECED6F.ArmouryCrateSE", StringComparison.OrdinalIgnoreCase) >= 0
-                       || aumid.IndexOf("windows.immersivecontrolpanel", StringComparison.OrdinalIgnoreCase) >= 0
                        || aumid.IndexOf("Microsoft.WindowsStore", StringComparison.OrdinalIgnoreCase) >= 0
                        || aumid.IndexOf("b5fbce6b-2d7d-4da0-b419-4beb30e2b808", StringComparison.OrdinalIgnoreCase) >= 0;
             }
@@ -381,6 +381,7 @@ namespace OmniConsole.PhantomLink
                 (isElevated && _foregroundAppId != null) ? Visibility.Visible : Visibility.Collapsed;
 
             UpdateEditProfileEnabled();
+            UpdateProfileSectionVisibility();
         }
 
         /// <summary>是否可把目前前景 App 指派到 profile（有有效 appId、無內建廠商映射）。</summary>
@@ -408,7 +409,7 @@ namespace OmniConsole.PhantomLink
         {
             string[] names =
             {
-                "OmniConsole", "Playnite.FullscreenApp", "steamwebhelper",
+                "OmniConsole", "Playnite.FullscreenApp",
             };
             foreach (var n in names)
                 if (string.Equals(proc, n, StringComparison.OrdinalIgnoreCase)) return true;
@@ -425,10 +426,16 @@ namespace OmniConsole.PhantomLink
             UpdateProfileSectionVisibility();
         }
 
-        /// <summary>Mouse Mode = Off 時隱藏 profile 選擇與編輯區塊。</summary>
+        /// <summary>
+        /// 隱藏 ProfileSection 的兩種情境：
+        ///   1. Mouse Mode = Off（全域停用）
+        ///   2. 前景 App 被硬擋黑名單命中（_foregroundAppId == null）→ 對該 app 強制 mouse mode OFF，
+        ///      指派下拉與編輯鈕沒有意義
+        /// </summary>
         private void UpdateProfileSectionVisibility()
         {
-            ProfileSection.Visibility = ModeSwitch.IsOn ? Visibility.Visible : Visibility.Collapsed;
+            bool show = ModeSwitch.IsOn && _foregroundAppId != null;
+            ProfileSection.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // ── Quick Actions：一次性動作按鈕（委派給 PhantomBridge COM server） ─────

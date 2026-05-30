@@ -336,6 +336,7 @@ namespace OmniConsole.PhantomLink
             catch (Exception ex)
             {
                 DebugLogger.Log("[Widget] GetForegroundAppInfo failed: " + ex.Message);
+                PhantomBridgeHelper.Invalidate();
                 ForegroundAppLabelText.Text = LocSafe(resw, "Widget_ForegroundApp_Label", "Current App:");
                 ForegroundAppNameText.Text = "—";
                 _foregroundAppId = null;
@@ -445,7 +446,7 @@ namespace OmniConsole.PhantomLink
         {
             DebugLogger.Log("[Widget] TaskViewBtn_Click → PhantomBridge.SendTaskView");
             try { PhantomBridgeHelper.CreateFactory().SendTaskView(); }
-            catch (Exception ex) { DebugLogger.Log("[Widget] TaskView FAIL: " + ex); }
+            catch (Exception ex) { DebugLogger.Log("[Widget] TaskView FAIL: " + ex); PhantomBridgeHelper.Invalidate(); }
         }
 
         /// <summary>透過 PhantomBridge 觸發 Steam In-Game Overlay。</summary>
@@ -454,7 +455,7 @@ namespace OmniConsole.PhantomLink
             string shortcut = PhantomKeyStore.GetSteamInGameOverlayShortcut();
             DebugLogger.Log($"[Widget] TriggerSteamInGameOverlayBtn_Click → PhantomBridge.TriggerSteamInGameOverlay(\"{shortcut}\")");
             try { PhantomBridgeHelper.CreateFactory().TriggerSteamInGameOverlay(shortcut); }
-            catch (Exception ex) { DebugLogger.Log("[Widget] TriggerSteamInGameOverlay FAIL: " + ex); }
+            catch (Exception ex) { DebugLogger.Log("[Widget] TriggerSteamInGameOverlay FAIL: " + ex); PhantomBridgeHelper.Invalidate(); }
         }
 
         /// <summary>透過 PhantomBridge 啟動 xbox://library（Xbox 媒體櫃）。</summary>
@@ -462,7 +463,7 @@ namespace OmniConsole.PhantomLink
         {
             DebugLogger.Log("[Widget] XboxLibraryBtn_Click → PhantomBridge.OpenXboxLibrary");
             try { PhantomBridgeHelper.CreateFactory().OpenXboxLibrary(); }
-            catch (Exception ex) { DebugLogger.Log("[Widget] OpenXboxLibrary FAIL: " + ex); }
+            catch (Exception ex) { DebugLogger.Log("[Widget] OpenXboxLibrary FAIL: " + ex); PhantomBridgeHelper.Invalidate(); }
         }
 
         // ── UI 事件處理 ─────────────────────────────────────────────────────
@@ -516,6 +517,7 @@ namespace OmniConsole.PhantomLink
             catch (Exception ex)
             {
                 DebugLogger.Log("[Widget] SetProfileAssignment FAIL: " + ex.Message);
+                PhantomBridgeHelper.Invalidate();
             }
         }
 
@@ -528,7 +530,7 @@ namespace OmniConsole.PhantomLink
             if (!(ProfileCombo.SelectedItem is ComboBoxItem item) || !(item.Tag is string profileId)) return;
             DebugLogger.Log("[Widget] EditProfileBtn_Click → PhantomBridge.OpenProfileEditor: " + profileId);
             try { PhantomBridgeHelper.CreateFactory().OpenProfileEditor(profileId); }
-            catch (Exception ex) { DebugLogger.Log("[Widget] OpenProfileEditor FAIL: " + ex.Message); }
+            catch (Exception ex) { DebugLogger.Log("[Widget] OpenProfileEditor FAIL: " + ex.Message); PhantomBridgeHelper.Invalidate(); }
         }
     }
 }

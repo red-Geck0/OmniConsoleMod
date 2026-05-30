@@ -67,24 +67,55 @@ namespace OmniConsole.PhantomLink.Services
         // ── 公開 API ─────────────────────────────────────────────────────────
 
         /// <summary>
-        /// 取得 factory 實例。擲出例外（含 COM HRESULT）：CLASS_NOT_REG / SERVER_EXEC_FAILURE 等。
-        /// 直接以 IPhantomBridgeFactory IID 請求（而非 IInspectable）。
+        /// 快取的 factory 實例。out-of-process COM server，每次 CoCreateInstance 都可能重新啟動
+        /// OmniConsole.PhantomBridge.exe，故快取單一實例避免每次呼叫的啟動 / 連線開銷。
+        /// 若 bridge 行程結束（RPC 中斷），呼叫會擲例外 → 呼叫端於 catch 中呼 Invalidate() 使下次重建。
+        /// </summary>
+        private static IPhantomBridgeFactory _cachedFactory;
+        private static readonly object _factoryLock = new object();
+
+        /// <summary>
+        /// 取得（快取的）factory 實例；首次或失效後重建。擲出例外（含 COM HRESULT）：
+        /// CLASS_NOT_REG / SERVER_EXEC_FAILURE 等。直接以 IPhantomBridgeFactory IID 請求（而非 IInspectable）。
         /// </summary>
         public static IPhantomBridgeFactory CreateFactory()
         {
-            Guid clsid = CLSID_PhantomBridgeFactory;
-            Guid iid = IID_IPhantomBridgeFactory;
-            IntPtr ptr;
-            int hr = CoCreateInstance(ref clsid, IntPtr.Zero, CLSCTX_LOCAL_SERVER, ref iid, out ptr);
-            if (hr < 0) Marshal.ThrowExceptionForHR(hr);
+            lock (_factoryLock)
+            {
+                if (_cachedFactory != null)
+                    return _cachedFactory;
 
-            try
-            {
-                return (IPhantomBridgeFactory)Marshal.GetObjectForIUnknown(ptr);
+                Guid clsid = CLSID_PhantomBridgeFactory;
+                Guid iid = IID_IPhantomBridgeFactory;
+                IntPtr ptr;
+                int hr = CoCreateInstance(ref clsid, IntPtr.Zero, CLSCTX_LOCAL_SERVER, ref iid, out ptr);
+                if (hr < 0) Marshal.ThrowExceptionForHR(hr);
+
+                try
+                {
+                    _cachedFactory = (IPhantomBridgeFactory)Marshal.GetObjectForIUnknown(ptr);
+                    return _cachedFactory;
+                }
+                finally
+                {
+                    if (ptr != IntPtr.Zero) Marshal.Release(ptr);
+                }
             }
-            finally
+        }
+
+        /// <summary>
+        /// 釋放快取的 factory RCW 並清除，使下次 CreateFactory() 重建。
+        /// 呼叫端在 COM 呼叫擲例外（bridge 行程結束 / RPC 中斷）時於 catch 區呼叫。
+        /// </summary>
+        public static void Invalidate()
+        {
+            lock (_factoryLock)
             {
-                if (ptr != IntPtr.Zero) Marshal.Release(ptr);
+                if (_cachedFactory != null)
+                {
+                    try { Marshal.FinalReleaseComObject(_cachedFactory); } catch { }
+                    _cachedFactory = null;
+                }
             }
         }
     }

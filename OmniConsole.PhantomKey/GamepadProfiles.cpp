@@ -435,7 +435,8 @@ GamepadProfileStore LoadGamepadProfileStore() {
         return store;
     }
 
-    store.defaultProfileId = json::GetString(root, L"defaultProfileId");
+    store.defaultProfileId     = json::GetString(root, L"defaultProfileId");
+    store.gameDefaultProfileId = json::GetString(root, L"gameDefaultProfileId");
 
     auto profilesV = json::Get(root, L"profiles");
     if (profilesV && profilesV->type == json::Type::Array) {
@@ -552,6 +553,87 @@ static const GamepadProfile* FindProfileById(const GamepadProfileStore& store, c
     return nullptr;
 }
 
+// ── 遊戲判定 ──────────────────────────────────────────────────────────────
+//
+// Windows GameDVR / Game Bar 把它認定 / 記錄為遊戲的 exe 寫在
+// HKCU\System\GameConfigStore\Children\<GUID>\MatchedExeFullPath。
+// 比對前景 exe 完整路徑是否登記於該處。純讀 registry，無注入、無 hook。
+static bool IsExeInGameConfigStore(const std::wstring& fullPath) {
+    if (fullPath.empty()) return false;
+    HKEY hRoot = nullptr;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"System\\GameConfigStore\\Children",
+                      0, KEY_READ, &hRoot) != ERROR_SUCCESS)
+        return false;
+
+    std::wstring target = NormalizePath(fullPath);
+    bool found = false;
+    DWORD idx = 0;
+    for (;; ++idx) {
+        wchar_t subName[256];
+        DWORD subLen = _countof(subName);
+        LONG rc = RegEnumKeyExW(hRoot, idx, subName, &subLen, nullptr, nullptr, nullptr, nullptr);
+        if (rc != ERROR_SUCCESS) break;
+
+        HKEY hSub = nullptr;
+        if (RegOpenKeyExW(hRoot, subName, 0, KEY_READ, &hSub) != ERROR_SUCCESS) continue;
+
+        wchar_t exe[1024] = {};
+        DWORD cb = sizeof(exe), type = 0;
+        if (RegQueryValueExW(hSub, L"MatchedExeFullPath", nullptr, &type,
+                             reinterpret_cast<LPBYTE>(exe), &cb) == ERROR_SUCCESS &&
+            type == REG_SZ) {
+            if (NormalizePath(exe) == target) found = true;
+        }
+        RegCloseKey(hSub);
+        if (found) break;
+    }
+    RegCloseKey(hRoot);
+    return found;
+}
+
+// borderless / exclusive 全螢幕偵測：前景視窗 rect 是否覆蓋整個螢幕（rcMonitor）。
+// borderless windowed fullscreen 與 exclusive fullscreen 兩者視窗 rect 都等於 rcMonitor；
+// 一般「最大化」視窗只到工作區 rcWork（不蓋工作列），故不會誤判為全螢幕。
+// 排除桌面 / 工作列等 Shell 視窗（否則待在桌面時會被當成遊戲）。
+static bool IsForegroundFullscreen(HWND hwnd) {
+    if (!hwnd) return false;
+
+    wchar_t cls[64] = {};
+    GetClassNameW(hwnd, cls, _countof(cls));
+    if (_wcsicmp(cls, L"Progman") == 0 ||
+        _wcsicmp(cls, L"WorkerW") == 0 ||
+        _wcsicmp(cls, L"Shell_TrayWnd") == 0) return false;
+
+    RECT wr;
+    if (!GetWindowRect(hwnd, &wr)) return false;
+    HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO mi; mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfoW(mon, &mi)) return false;
+
+    const RECT& m = mi.rcMonitor;
+    const int tol = 2;  // 容忍 1-2px 邊框差
+    return abs(wr.left   - m.left)   <= tol &&
+           abs(wr.top    - m.top)    <= tol &&
+           abs(wr.right  - m.right)  <= tol &&
+           abs(wr.bottom - m.bottom) <= tol;
+}
+
+bool IsForegroundLikelyGame(const std::wstring& fullPath, HWND fgHwnd) {
+    // 訊號 1：GameConfigStore 登記（以 fullPath 為鍵快取，僅路徑改變時掃 registry，避免每 tick I/O）
+    if (!fullPath.empty()) {
+        static std::wstring cachedPath;
+        static bool         cachedReg = false;
+        std::wstring norm = NormalizePath(fullPath);
+        if (norm != cachedPath) {
+            cachedPath = norm;
+            cachedReg  = IsExeInGameConfigStore(fullPath);
+        }
+        if (cachedReg) return true;
+    }
+    // 訊號 2：borderless / exclusive 全螢幕（user32 查詢，cheap，每 tick 算亦可忽略）
+    return IsForegroundFullscreen(fgHwnd);
+}
+
 const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& store,
                                                   const std::wstring& procName,
                                                   const std::wstring& fullPath,
@@ -594,8 +676,15 @@ const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& sto
         }
     }
 
-    // 命中 assignment → 用其 profile；未命中 → 回退 defaultProfileId 的 profile
+    // 命中 assignment → 用其 profile
     if (const GamepadProfile* assigned = FindProfileById(store, assignedId))
         return assigned;
+
+    // 未指派 → 依前景是否為遊戲挑預設：遊戲用 gameDefaultProfileId，否則 defaultProfileId。
+    // 遊戲預設找不到時回退到一般預設。
+    if (IsForegroundLikelyGame(fullPath, fgHwnd)) {
+        if (const GamepadProfile* g = FindProfileById(store, store.gameDefaultProfileId))
+            return g;
+    }
     return FindProfileById(store, store.defaultProfileId);
 }

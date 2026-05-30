@@ -20,8 +20,11 @@ namespace OmniConsole.Controls
         /// <summary>顯示名稱。</summary>
         public string Name { get; set; } = string.Empty;
 
-        /// <summary>徽章文字（如「預設」）；空字串代表不顯示徽章。</summary>
+        /// <summary>徽章文字（如「App 預設」）；空字串代表不顯示徽章。</summary>
         public string Badge { get; set; } = string.Empty;
+
+        /// <summary>遊戲預設徽章文字；空字串代表不顯示。</summary>
+        public string GameBadge { get; set; } = string.Empty;
 
         /// <summary>是否可刪除（內建 profile 為 false）。</summary>
         public bool CanDelete { get; set; }
@@ -35,6 +38,10 @@ namespace OmniConsole.Controls
         /// <summary>徽章是否顯示。</summary>
         public Visibility BadgeVisibility =>
             string.IsNullOrEmpty(Badge) ? Visibility.Collapsed : Visibility.Visible;
+
+        /// <summary>遊戲預設徽章是否顯示。</summary>
+        public Visibility GameBadgeVisibility =>
+            string.IsNullOrEmpty(GameBadge) ? Visibility.Collapsed : Visibility.Visible;
 
         /// <summary>刪除鈕是否顯示。</summary>
         public Visibility DeleteVisibility =>
@@ -98,7 +105,7 @@ namespace OmniConsole.Controls
                 var data = GamepadProfileStore.Load();
                 foreach (var p in data.Profiles)
                 {
-                    // Hide the "None" profile from the list — it's only selectable via widget
+                    // None 不顯示於清單 — 它只作為「停用」選項，由 widget 指派給個別 App。
                     if (p.Id == GamepadBuiltInLayouts.NoneId) continue;
 
                     _items.Add(new GamepadProfileRow
@@ -106,6 +113,7 @@ namespace OmniConsole.Controls
                         Id = p.Id,
                         Name = p.Name,
                         Badge = p.Id == data.DefaultProfileId ? Loc("GamepadProfileBadge_Default") : string.Empty,
+                        GameBadge = p.Id == data.GameDefaultProfileId ? Loc("GamepadProfileBadge_GameDefault") : string.Empty,
                         CanDelete = !p.IsBuiltIn,
                         CanSetDefault = (p.Id != data.DefaultProfileId),
                         SetDefaultTooltip = Loc("GamepadProfileSetDefaultButton")
@@ -166,14 +174,38 @@ namespace OmniConsole.Controls
             return Task.CompletedTask;
         }
 
-        /// <summary>給宿主 Y 鍵呼叫：將目前焦點 profile 設為預設（已是預設則略過）。</summary>
-        public void SetSelectedAsDefault()
+        /// <summary>給宿主 Y 鍵呼叫：彈出範圍選擇對話方塊，設定為 App 預設或遊戲預設。</summary>
+        public void SetSelectedAsDefault() => _ = SetSelectedAsDefaultAsync();
+
+        /// <summary>顯示「設為預設」範圍選擇對話方塊，依選擇寫入 App / 遊戲預設並重整。</summary>
+        private async Task SetSelectedAsDefaultAsync()
         {
             var row = GetActiveRow();
-            if (row != null && row.CanSetDefault && !string.IsNullOrEmpty(row.Id))
+            if (row == null || string.IsNullOrEmpty(row.Id)) return;
+
+            DialogActiveChanged?.Invoke(this, true);
+            try
             {
-                GamepadProfileStore.SetDefaultProfile(row.Id);
-                Refresh();
+                var dlg = new SetDefaultScopeDialog(
+                    XamlRoot,
+                    Loc("GamepadProfileSetDefaultTitle"),
+                    string.Format(Loc("GamepadProfileSetDefaultBody"), row.Name),
+                    Loc("GamepadProfileSetDefaultApps"),
+                    Loc("GamepadProfileSetDefaultGames"),
+                    Loc("GamepadMappingDeleteConfirmNo"));   // 「取消」共用既有字串
+                await dlg.ShowAsync();
+
+                if (dlg.Result == DefaultScope.Apps)
+                    GamepadProfileStore.SetDefaultProfile(row.Id);
+                else if (dlg.Result == DefaultScope.Games)
+                    GamepadProfileStore.SetGameDefaultProfile(row.Id);
+
+                if (dlg.Result != DefaultScope.None) Refresh();
+            }
+            finally
+            {
+                DialogActiveChanged?.Invoke(this, false);
+                FocusList();
             }
         }
 

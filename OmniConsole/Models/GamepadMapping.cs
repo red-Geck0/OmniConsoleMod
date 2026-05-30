@@ -115,11 +115,11 @@ namespace OmniConsole.Models
 
     /// <summary>
     /// 一份手把映射 profile：可命名、可重用，由 App 透過 assignment 指派。
-    /// 內建 profile（OmniNav / Classic / OmniNavL）以 IsBuiltIn 標記。
+    /// 內建 profile（OmniNav / Classic / Gaming / None）以 IsBuiltIn 標記。
     /// </summary>
     public sealed class GamepadProfile
     {
-        /// <summary>穩定識別碼：內建用 slug（omninav/classic/omninavl），使用者建立的用 GUID。</summary>
+        /// <summary>穩定識別碼：內建用 slug（omninav/classic/gaming/none），使用者建立的用 GUID。</summary>
         public string Id { get; set; } = string.Empty;
 
         /// <summary>使用者可見名稱（內建 profile 亦可重新命名，OmniNav/Classic 除外）。</summary>
@@ -128,7 +128,7 @@ namespace OmniConsole.Models
         /// <summary>是否為內建 profile。</summary>
         public bool IsBuiltIn { get; set; }
 
-        /// <summary>是否唯讀（OmniNav / Classic 唯讀；OmniNavL 與使用者 profile 可編輯）。</summary>
+        /// <summary>是否唯讀（OmniNav / Classic 唯讀；Gaming 與使用者 profile 可編輯）。</summary>
         public bool IsReadOnly { get; set; }
 
         /// <summary>游標移動速度百分比（25–200，預設 100）。</summary>
@@ -187,7 +187,7 @@ namespace OmniConsole.Models
         /// <summary>內建 profile 的固定識別碼。</summary>
         public const string OmniNavId = "omninav";
         public const string ClassicId = "classic";
-        public const string OmniNavLId = "omninavl";
+        public const string GamingId = "gaming";
         public const string NoneId = "none";
 
         // VK 常數
@@ -250,7 +250,7 @@ namespace OmniConsole.Models
         }
 
         /// <summary>
-        /// 產生四份內建 profile（OmniNav / Classic / OmniNavL / None）。
+        /// 產生四份內建 profile（OmniNav / Classic / Gaming / None）。
         /// first-run 種子與 reset-to-default 皆取自此；每次呼叫產生全新物件。
         /// None profile 有空映射，指派給 app 等同停用 mouse mode（黑名單效果）。
         /// </summary>
@@ -282,8 +282,8 @@ namespace OmniConsole.Models
                 },
                 new GamepadProfile
                 {
-                    Id = OmniNavLId,
-                    Name = "OmniNavL",
+                    Id = GamingId,
+                    Name = "Gaming",
                     IsBuiltIn = true,
                     IsReadOnly = false,
                     CursorSpeedPercent = 100,

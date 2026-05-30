@@ -51,15 +51,25 @@
                                            FontSize="16"
                                            VerticalAlignment="Center"
                                            TextTrimming="CharacterEllipsis"/>
-                                <Border Grid.Column="1"
-                                        Visibility="{x:Bind BadgeVisibility}"
-                                        Background="{ThemeResource AccentFillColorDefaultBrush}"
-                                        CornerRadius="4"
-                                        Padding="8,2"
-                                        Margin="8,0"
-                                        VerticalAlignment="Center">
-                                    <TextBlock Text="{x:Bind Badge}" FontSize="12"/>
-                                </Border>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                            Spacing="6" VerticalAlignment="Center" Margin="8,0">
+                                    <!-- App 預設徽章 -->
+                                    <Border Visibility="{x:Bind BadgeVisibility}"
+                                            Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                            CornerRadius="4"
+                                            Padding="8,2"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Badge}" FontSize="12"/>
+                                    </Border>
+                                    <!-- 遊戲預設徽章（不同色以區分） -->
+                                    <Border Visibility="{x:Bind GameBadgeVisibility}"
+                                            Background="#2E7D32"
+                                            CornerRadius="4"
+                                            Padding="8,2"
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind GameBadge}" FontSize="12"/>
+                                    </Border>
+                                </StackPanel>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>

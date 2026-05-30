@@ -23,8 +23,12 @@ namespace OmniConsole.Services
     /// <summary>整個 profile store 的內容：預設 profile + profile 清單 + App 指派清單。</summary>
     public sealed class GamepadProfileData
     {
-        /// <summary>mode=On 時未被指派的 App 一律套用此 profile。</summary>
-        public string DefaultProfileId { get; set; } = GamepadBuiltInLayouts.OmniNavLId;
+        /// <summary>未被指派且前景「非遊戲」的 App 套用此 profile（安裝預設＝OmniNav）。</summary>
+        public string DefaultProfileId { get; set; } = GamepadBuiltInLayouts.OmniNavId;
+
+        /// <summary>未被指派且前景「是遊戲」的 App 套用此 profile（安裝預設＝Gaming，id=omninavl）。
+        /// 遊戲判定由 PhantomKey 端依 GameConfigStore 比對前景 exe。</summary>
+        public string GameDefaultProfileId { get; set; } = GamepadBuiltInLayouts.GamingId;
 
         /// <summary>所有 profile（內建排在前，使用者建立的接續其後）。</summary>
         public List<GamepadProfile> Profiles { get; set; } = new List<GamepadProfile>();
@@ -105,7 +109,7 @@ namespace OmniConsole.Services
         public static bool IsBuiltInId(string? id) =>
             id == GamepadBuiltInLayouts.OmniNavId ||
             id == GamepadBuiltInLayouts.ClassicId ||
-            id == GamepadBuiltInLayouts.OmniNavLId ||
+            id == GamepadBuiltInLayouts.GamingId ||
             id == GamepadBuiltInLayouts.NoneId;
 
         // ── 讀 ────────────────────────────────────────────────────────────────
@@ -113,7 +117,7 @@ namespace OmniConsole.Services
         /// <summary>
         /// 讀取整個 store。檔案不存在 / 解析失敗時回只含內建 profile 的預設內容。
         /// 內建 profile 一律補齊：OmniNav / Classic 唯讀，每次重新同步自程式碼定義；
-        /// OmniNavL 僅在缺漏時種子，已存在則保留使用者編輯。
+        /// Gaming 僅在缺漏時種子，已存在則保留使用者編輯。
         /// </summary>
         public static GamepadProfileData Load()
         {
@@ -127,6 +131,7 @@ namespace OmniConsole.Services
                     if (!string.IsNullOrWhiteSpace(text) && JsonNode.Parse(text) is JsonObject root)
                     {
                         data.DefaultProfileId = root["defaultProfileId"]?.GetValue<string>() ?? string.Empty;
+                        data.GameDefaultProfileId = root["gameDefaultProfileId"]?.GetValue<string>() ?? string.Empty;
 
                         if (root["profiles"] is JsonArray profArr)
                         {
@@ -151,8 +156,26 @@ namespace OmniConsole.Services
                     data = new GamepadProfileData();
                 }
             }
+            MigrateLegacyIds(data);
             ApplyBuiltIns(data);
             return data;
+        }
+
+        /// <summary>
+        /// 舊版相容：把已棄用的內建 id "omninavl" 一律改寫為 "gaming"
+        /// （profile id / 兩個預設指向 / assignment 指向）。一次性，於 Load 解析後執行。
+        /// </summary>
+        private static void MigrateLegacyIds(GamepadProfileData data)
+        {
+            const string legacy = "omninavl";
+            string now = GamepadBuiltInLayouts.GamingId;
+
+            foreach (var p in data.Profiles)
+                if (p.Id == legacy) p.Id = now;
+            if (data.DefaultProfileId == legacy) data.DefaultProfileId = now;
+            if (data.GameDefaultProfileId == legacy) data.GameDefaultProfileId = now;
+            foreach (var a in data.Assignments)
+                if (a.ProfileId == legacy) a.ProfileId = now;
         }
 
         /// <summary>若 profile 檔尚不存在，以內建內容建立一份（讓 C++ 端有檔可讀）。</summary>
@@ -179,13 +202,14 @@ namespace OmniConsole.Services
                 }
                 else
                 {
-                    // OmniNavL：保留已存檔（可能被使用者編輯）的版本，缺漏才種子。
-                    // 但強制 Layered.Enabled=true — OmniNavL 識別性質的一部分，
+                    // Gaming：保留已存檔（可能被使用者編輯）的版本，缺漏才種子。
+                    // 但強制 Layered.Enabled=true — Gaming 識別性質的一部分，
                     // 禁用即等同 OmniNav（避免舊版檔案殘留 enabled=false 造成混淆）。
                     var stored = data.Profiles.FirstOrDefault(p => p.Id == bi.Id);
-                    if (stored != null && stored.Id == GamepadBuiltInLayouts.OmniNavLId)
+                    if (stored != null && stored.Id == GamepadBuiltInLayouts.GamingId)
                     {
                         stored.Layered.Enabled = true;
+                        stored.Name = bi.Name;  // 名稱為內建品牌（Gaming），以正式名覆寫舊存檔
                     }
                     ordered.Add(stored ?? bi);
                 }
@@ -196,7 +220,13 @@ namespace OmniConsole.Services
             if (string.IsNullOrEmpty(data.DefaultProfileId) ||
                 !data.Profiles.Any(p => p.Id == data.DefaultProfileId))
             {
-                data.DefaultProfileId = GamepadBuiltInLayouts.OmniNavLId;
+                data.DefaultProfileId = GamepadBuiltInLayouts.OmniNavId;
+            }
+
+            if (string.IsNullOrEmpty(data.GameDefaultProfileId) ||
+                !data.Profiles.Any(p => p.Id == data.GameDefaultProfileId))
+            {
+                data.GameDefaultProfileId = GamepadBuiltInLayouts.GamingId;
             }
         }
 
@@ -239,7 +269,8 @@ namespace OmniConsole.Services
                 var root = new JsonObject
                 {
                     ["version"] = SchemaVersion,
-                    ["defaultProfileId"] = data.DefaultProfileId ?? GamepadBuiltInLayouts.OmniNavLId,
+                    ["defaultProfileId"] = data.DefaultProfileId ?? GamepadBuiltInLayouts.OmniNavId,
+                    ["gameDefaultProfileId"] = data.GameDefaultProfileId ?? GamepadBuiltInLayouts.GamingId,
                     ["profiles"] = new JsonArray(data.Profiles.Where(p => p != null).Select(SerializeProfile).ToArray()),
                     ["assignments"] = new JsonArray(data.Assignments.Where(a => a != null).Select(SerializeAssignment).ToArray())
                 };
@@ -267,7 +298,7 @@ namespace OmniConsole.Services
             return Save(data);
         }
 
-        /// <summary>刪除一個 profile（內建 profile 不可刪）。連帶移除指向它的指派；若為預設則回退到 OmniNavL。</summary>
+        /// <summary>刪除一個 profile（內建 profile 不可刪）。連帶移除指向它的指派；若為預設則回退到內建預設。</summary>
         public static bool DeleteProfile(string id)
         {
             if (string.IsNullOrEmpty(id) || IsBuiltInId(id)) return false;
@@ -276,16 +307,27 @@ namespace OmniConsole.Services
             if (removed == 0) return true;
             data.Assignments.RemoveAll(a => a.ProfileId == id);
             if (data.DefaultProfileId == id)
-                data.DefaultProfileId = GamepadBuiltInLayouts.OmniNavLId;
+                data.DefaultProfileId = GamepadBuiltInLayouts.OmniNavId;
+            if (data.GameDefaultProfileId == id)
+                data.GameDefaultProfileId = GamepadBuiltInLayouts.GamingId;
             return Save(data);
         }
 
-        /// <summary>設定預設 profile。id 不存在時不變更，回 false。</summary>
+        /// <summary>設定「非遊戲」預設 profile。id 不存在時不變更，回 false。</summary>
         public static bool SetDefaultProfile(string id)
         {
             var data = Load();
             if (!data.Profiles.Any(p => p.Id == id)) return false;
             data.DefaultProfileId = id;
+            return Save(data);
+        }
+
+        /// <summary>設定「遊戲」預設 profile。id 不存在時不變更，回 false。</summary>
+        public static bool SetGameDefaultProfile(string id)
+        {
+            var data = Load();
+            if (!data.Profiles.Any(p => p.Id == id)) return false;
+            data.GameDefaultProfileId = id;
             return Save(data);
         }
 

@@ -867,7 +867,22 @@
     <value>貓又</value>
   </data>
   <data name="GamepadProfileBadge_Default" xml:space="preserve">
-    <value>預設</value>
+    <value>App 預設</value>
+  </data>
+  <data name="GamepadProfileBadge_GameDefault" xml:space="preserve">
+    <value>遊戲預設</value>
+  </data>
+  <data name="GamepadProfileSetDefaultTitle" xml:space="preserve">
+    <value>設為預設</value>
+  </data>
+  <data name="GamepadProfileSetDefaultBody" xml:space="preserve">
+    <value>將「{0}」設為哪類應用的預設設定檔？僅作用於尚未單獨指派設定檔的應用程式。</value>
+  </data>
+  <data name="GamepadProfileSetDefaultApps" xml:space="preserve">
+    <value>非遊戲應用程式</value>
+  </data>
+  <data name="GamepadProfileSetDefaultGames" xml:space="preserve">
+    <value>遊戲</value>
   </data>
   <data name="GamepadActivation_HoldRelease" xml:space="preserve">
     <value>按住啟用</value>

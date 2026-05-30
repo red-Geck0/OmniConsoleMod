@@ -60,7 +60,8 @@ struct ProfileAssignment {
 
 // ── 整個 store ──────────────────────────────────────────────────────────────
 struct GamepadProfileStore {
-    std::wstring                   defaultProfileId;
+    std::wstring                   defaultProfileId;      // 未指派 + 前景非遊戲 → 套此
+    std::wstring                   gameDefaultProfileId;  // 未指派 + 前景是遊戲 → 套此
     std::vector<GamepadProfile>    profiles;
     std::vector<ProfileAssignment> assignments;
 };
@@ -77,9 +78,18 @@ unsigned long long GetGamepadProfilesLastWriteTime();
 // 自跑 exe 的 packaged（Notepad / SnippingTool 等）回空字串
 std::wstring GetForegroundAumid(HWND hwnd);
 
-// 解析前景 App 應套用的 profile：先查 assignment，未命中回 defaultProfileId 的 profile。
+// 解析前景 App 應套用的 profile：先查 assignment；未命中時依前景是否為遊戲
+// 回 gameDefaultProfileId 或 defaultProfileId 的 profile。
 // store 內無對應 profile（含 default 都找不到）時回 nullptr。
 const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& store,
                                                   const std::wstring& procName,
                                                   const std::wstring& fullPath,
                                                   HWND fgHwnd);
+
+// 判定前景 App 是否「可能是遊戲」，兩個訊號擇一命中即視為遊戲：
+//   1. 前景 exe 登記於 HKCU\System\GameConfigStore\Children（Windows GameDVR / Game Bar
+//      記錄的遊戲）— 以 fullPath 為鍵靜態快取，僅路徑改變時掃 registry。
+//   2. 前景視窗為 borderless / exclusive 全螢幕（視窗 rect 覆蓋整個 rcMonitor）—
+//      涵蓋現代無邊框全螢幕遊戲；排除 Shell（桌面 / 工作列）。
+// 純讀 registry + user32 查詢，無注入、無 hook。
+bool IsForegroundLikelyGame(const std::wstring& fullPath, HWND fgHwnd);

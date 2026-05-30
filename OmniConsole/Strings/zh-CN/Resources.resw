@@ -867,7 +867,22 @@
     <value>猫又</value>
   </data>
   <data name="GamepadProfileBadge_Default" xml:space="preserve">
-    <value>默认</value>
+    <value>应用默认</value>
+  </data>
+  <data name="GamepadProfileBadge_GameDefault" xml:space="preserve">
+    <value>游戏默认</value>
+  </data>
+  <data name="GamepadProfileSetDefaultTitle" xml:space="preserve">
+    <value>设为默认</value>
+  </data>
+  <data name="GamepadProfileSetDefaultBody" xml:space="preserve">
+    <value>将“{0}”设为哪类应用的默认配置方案？仅作用于尚未单独指派配置方案的应用。</value>
+  </data>
+  <data name="GamepadProfileSetDefaultApps" xml:space="preserve">
+    <value>非游戏应用</value>
+  </data>
+  <data name="GamepadProfileSetDefaultGames" xml:space="preserve">
+    <value>游戏</value>
   </data>
   <data name="GamepadActivation_HoldRelease" xml:space="preserve">
     <value>按住启用</value>

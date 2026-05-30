@@ -867,7 +867,22 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>Nekomata</value>
   </data>
   <data name="GamepadProfileBadge_Default" xml:space="preserve">
-    <value>Default</value>
+    <value>App default</value>
+  </data>
+  <data name="GamepadProfileBadge_GameDefault" xml:space="preserve">
+    <value>Game default</value>
+  </data>
+  <data name="GamepadProfileSetDefaultTitle" xml:space="preserve">
+    <value>Set as default</value>
+  </data>
+  <data name="GamepadProfileSetDefaultBody" xml:space="preserve">
+    <value>Use "{0}" as the default profile for which apps? Applies to apps you haven't assigned a profile to yet.</value>
+  </data>
+  <data name="GamepadProfileSetDefaultApps" xml:space="preserve">
+    <value>Non-game apps</value>
+  </data>
+  <data name="GamepadProfileSetDefaultGames" xml:space="preserve">
+    <value>Games</value>
   </data>
   <data name="GamepadActivation_HoldRelease" xml:space="preserve">
     <value>Hold &amp; release</value>

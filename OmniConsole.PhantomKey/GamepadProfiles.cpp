@@ -637,8 +637,12 @@ bool IsForegroundLikelyGame(const std::wstring& fullPath, HWND fgHwnd) {
 const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& store,
                                                   const std::wstring& procName,
                                                   const std::wstring& fullPath,
-                                                  HWND fgHwnd) {
+                                                  HWND fgHwnd,
+                                                  bool* provisionalOut) {
     std::wstring assignedId;
+    std::wstring aumid;  // 提到外層供 diag 填入
+    const bool isAfh = (!procName.empty() &&
+                        _wcsicmp(procName.c_str(), L"ApplicationFrameHost") == 0);
 
     if (!procName.empty()) {
         // ── 取前景 packaged AUMID（涵蓋兩種型態）──
@@ -650,7 +654,7 @@ const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& sto
             DWORD hostedPid = GetHostedUwpPid(fgHwnd);
             if (hostedPid != 0) aumidPid = hostedPid;
         }
-        std::wstring aumid = GetAumidFromProcess(aumidPid);
+        aumid = GetAumidFromProcess(aumidPid);
 
         if (!aumid.empty()) {
             // 取到 AUMID：只比 kind=Aumid 的 assignment，未命中不回退 process 名稱
@@ -676,13 +680,19 @@ const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& sto
         }
     }
 
+    // ApplicationFrameHost 宿主 UWP 但 AUMID 還沒解析出 → 身分尚未就緒（provisional）。
+    // 此時不可靠：不該用全螢幕去猜「遊戲」（會把 OGL 之類已指派的 app 誤判成遊戲預設），
+    // 也不該被呼叫端快取鎖定（須重試到 AUMID 出現）。
+    const bool provisional = isAfh && aumid.empty();
+    if (provisionalOut) *provisionalOut = provisional;
+
     // 命中 assignment → 用其 profile
     if (const GamepadProfile* assigned = FindProfileById(store, assignedId))
         return assigned;
 
     // 未指派 → 依前景是否為遊戲挑預設：遊戲用 gameDefaultProfileId，否則 defaultProfileId。
-    // 遊戲預設找不到時回退到一般預設。
-    if (IsForegroundLikelyGame(fullPath, fgHwnd)) {
+    // 但 provisional（AFH 身分未就緒）時跳過遊戲猜測，先給非遊戲預設（呼叫端不快取，會重試）。
+    if (!provisional && IsForegroundLikelyGame(fullPath, fgHwnd)) {
         if (const GamepadProfile* g = FindProfileById(store, store.gameDefaultProfileId))
             return g;
     }

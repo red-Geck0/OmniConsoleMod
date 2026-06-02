@@ -81,10 +81,15 @@ std::wstring GetForegroundAumid(HWND hwnd);
 // 解析前景 App 應套用的 profile：先查 assignment；未命中時依前景是否為遊戲
 // 回 gameDefaultProfileId 或 defaultProfileId 的 profile。
 // store 內無對應 profile（含 default 都找不到）時回 nullptr。
+//
+// provisionalOut 非 null 時回傳「身分是否尚未就緒」：ApplicationFrameHost 宿主 UWP 剛成為
+// 前景時，其 AUMID（須列舉子視窗找 CoreWindow）可能還沒解析出 → 此時解析不可靠。
+// 為 true 時呼叫端不應快取結果，須於後續 tick 重試，直到 AUMID 出現才鎖定正確 profile。
 const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& store,
                                                   const std::wstring& procName,
                                                   const std::wstring& fullPath,
-                                                  HWND fgHwnd);
+                                                  HWND fgHwnd,
+                                                  bool* provisionalOut = nullptr);
 
 // 判定前景 App 是否「可能是遊戲」，兩個訊號擇一命中即視為遊戲：
 //   1. 前景 exe 登記於 HKCU\System\GameConfigStore\Children（Windows GameDVR / Game Bar
@@ -92,4 +97,5 @@ const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& sto
 //   2. 前景視窗為 borderless / exclusive 全螢幕（視窗 rect 覆蓋整個 rcMonitor）—
 //      涵蓋現代無邊框全螢幕遊戲；排除 Shell（桌面 / 工作列）。
 // 純讀 registry + user32 查詢，無注入、無 hook。
+// 註：全螢幕為「首次認定」時的訊號之一；認定後不再因全螢幕切換而重算（呼叫端以 HWND 鎖定快取）。
 bool IsForegroundLikelyGame(const std::wstring& fullPath, HWND fgHwnd);

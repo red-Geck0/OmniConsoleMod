@@ -133,6 +133,8 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     // GetApplicationUserModelId）與 ApplicationFrameHost 的 EnumChildWindows，昂貴。
     // 結果僅依前景 HWND（同視窗永屬同行程 → 同 profile），故以 HWND 為鍵快取。
     // 注意：cachedProfile 指向 profileStore 內部；profileStore 重載時必須失效（見下方 reload 區塊）。
+    // 以 HWND 為唯一鍵：同一視窗的「首次成功解析」結果即鎖定，整個視窗生命週期不再重算
+    // （游戲/非游戲判定只在首次認定，之後不因全螢幕切換等動態訊號而變動）。
     HWND cachedProfileHwnd = nullptr;
     const GamepadProfile* cachedProfile = nullptr;
 
@@ -166,8 +168,21 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
         // 前景程式變化偵測 → 重新讀取設定 + 重設 Mouse Mode 狀態 + FSE 退出檢查
         // 僅在 HWND 改變時才重查行程名/路徑（避免每 tick OpenProcess + 字串配置）。
         if (fgHwnd != lastFgHwnd) {
-            lastFgHwnd = fgHwnd;
-            GetForegroundProcessInfo(cachedFg, cachedFgPath);
+            std::wstring fg, fgPath;
+            GetForegroundProcessInfo(fg, fgPath);
+            // 只在查詢成功（取得行程名）時才更新快取並標記此 HWND 已處理。
+            // 視窗剛出現時 OpenProcess / QueryFullProcessImageName 可能短暫失敗回空字串；
+            // 若把空身分快取住，整個 session 都會用空身分解析 → assignment 比不中 →
+            // 落到全螢幕遊戲預設（Gaming）並卡住（已指派 profile 的 app 被自動換掉）。
+            // 失敗則不更新 lastFgHwnd，下一 tick 重試。
+            if (!fg.empty()) {
+                lastFgHwnd    = fgHwnd;
+                cachedFg      = fg;
+                cachedFgPath  = fgPath;
+                // 前景身分已更新 → profile 解析快取失效，強制以新身分重解析
+                // （否則身分剛從空字串修復、但 (HWND,fullscreen) 鍵未變 → 仍回傳卡住的舊結果）
+                cachedProfileHwnd = nullptr;
+            }
         }
         std::wstring& currentFg = cachedFg;
         std::wstring& currentFgPath = cachedFgPath;
@@ -253,13 +268,19 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             !config.widgetActive &&
             !IsMouseModeForceExcluded(currentFg)) {
             // 以前景 HWND 快取解析結果：同視窗免重做 AUMID 解析 / EnumChildWindows（每 tick 昂貴）。
-            // profileStore 重載時 cachedProfileHwnd 已在上方清為 nullptr，故不會回傳失效指標。
+            // 首次成功解析即鎖定，視窗生命週期內不再重算（游戲/非游戲判定不隨後續狀態變動）。
+            // profileStore 重載或前景身分更新時 cachedProfileHwnd 已清為 nullptr（見上方），故不會回傳失效指標。
             if (fgHwnd == cachedProfileHwnd) {
                 activeProfile = cachedProfile;
             } else {
-                activeProfile = ResolveProfileForForeground(profileStore, currentFg, currentFgPath, fgHwnd);
-                cachedProfileHwnd = fgHwnd;
-                cachedProfile = activeProfile;
+                bool provisional = false;
+                activeProfile = ResolveProfileForForeground(profileStore, currentFg, currentFgPath, fgHwnd, &provisional);
+                // 只鎖定可靠（非 provisional）的解析。AFH 宿主 UWP 的 AUMID 尚未就緒時為 provisional →
+                // 不快取（cachedProfileHwnd 不更新）→ 下一 tick 重試，直到 AUMID 出現才鎖定正確 profile。
+                if (!provisional) {
+                    cachedProfileHwnd = fgHwnd;
+                    cachedProfile = activeProfile;
+                }
             }
             if (activeProfile && !IsProfileEffectivelyEmpty(*activeProfile)) {
                 mouseModeActive = true;

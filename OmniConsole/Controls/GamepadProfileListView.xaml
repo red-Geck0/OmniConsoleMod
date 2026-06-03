@@ -15,6 +15,7 @@
         <!-- 與 Advanced / About 一致：頂端對齊、置中、最大寬 700，分段卡片排版。 -->
         <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="700" Margin="0,24,0,24">
             <TextBlock x:Uid="GamepadMappingTitle" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+            <TextBlock x:Uid="GamepadMappingPageDesc" FontSize="18" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
             <!-- ── Section 1：OmniNav Mode ── -->
             <TextBlock x:Uid="OmniNavModeSection" FontSize="14" FontWeight="SemiBold"
@@ -40,12 +41,8 @@
                         <TextBlock x:Uid="GamepadMappingDescription"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    FontSize="14" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                        <!-- 黃色提示：系統應用已排除 -->
+                        <!-- 黃色提示：系統應用已排除（遊戲偵測限制提示已移至「設為預設」對話方塊） -->
                         <TextBlock x:Uid="GamepadMappingNavConflictNote"
-                                   Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                                   FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                        <!-- 黃色提示：遊戲偵測限制 -->
-                        <TextBlock x:Uid="GamepadMappingGameDetectNote"
                                    Foreground="{ThemeResource SystemFillColorCautionBrush}"
                                    FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
                         <!-- 黃色提示：內建廠商映射時停用（預設隱藏） -->
@@ -94,9 +91,9 @@
                                            TextTrimming="CharacterEllipsis"/>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal"
                                             Spacing="6" VerticalAlignment="Center" Margin="8,0">
-                                    <!-- App 預設徽章 -->
+                                    <!-- App 預設徽章（深藍 / navy） -->
                                     <Border Visibility="{x:Bind BadgeVisibility}"
-                                            Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                            Background="#1B3A6B"
                                             CornerRadius="4"
                                             Padding="8,2"
                                             VerticalAlignment="Center">

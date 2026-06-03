@@ -120,6 +120,24 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     // 前景程式偵測
     std::wstring lastFgProcess;
 
+    // 前景 HWND 快取：行程名/路徑只在前景視窗（HWND）改變時才需重查（OpenProcess + 字串配置昂貴）。
+    // 同一視窗永遠屬於同一行程，故以 HWND 為鍵快取行程資訊安全無虞。
+    HWND lastFgHwnd = nullptr;
+    std::wstring cachedFg, cachedFgPath;
+
+    // mtime 輪詢節流：輸入活躍時主迴圈跑 ~125Hz，但設定檔變更偵測不需這麼高頻。
+    // 以時間為基準每 ~50ms 才 stat 一次三個檔案，砍掉活躍輸入時大量無謂的檔案系統查詢。
+    ULONGLONG lastMtimeCheck = 0;
+
+    // Profile 解析快取：ResolveProfileForForeground 每次都做 AUMID 解析（OpenProcess +
+    // GetApplicationUserModelId）與 ApplicationFrameHost 的 EnumChildWindows，昂貴。
+    // 結果僅依前景 HWND（同視窗永屬同行程 → 同 profile），故以 HWND 為鍵快取。
+    // 注意：cachedProfile 指向 profileStore 內部；profileStore 重載時必須失效（見下方 reload 區塊）。
+    // 以 HWND 為唯一鍵：同一視窗的「首次成功解析」結果即鎖定，整個視窗生命週期不再重算
+    // （游戲/非游戲判定只在首次認定，之後不因全螢幕切換等動態訊號而變動）。
+    HWND cachedProfileHwnd = nullptr;
+    const GamepadProfile* cachedProfile = nullptr;
+
     // 常駐主迴圈
     while (true) {
         Sleep(sleepMs);
@@ -144,9 +162,30 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             }
         }
 
+        // 前景視窗 HWND（GetForegroundWindow 極輕量，回傳快取值）。
+        HWND fgHwnd = GetForegroundWindow();
+
         // 前景程式變化偵測 → 重新讀取設定 + 重設 Mouse Mode 狀態 + FSE 退出檢查
-        std::wstring currentFg, currentFgPath;
-        GetForegroundProcessInfo(currentFg, currentFgPath);
+        // 僅在 HWND 改變時才重查行程名/路徑（避免每 tick OpenProcess + 字串配置）。
+        if (fgHwnd != lastFgHwnd) {
+            std::wstring fg, fgPath;
+            GetForegroundProcessInfo(fg, fgPath);
+            // 只在查詢成功（取得行程名）時才更新快取並標記此 HWND 已處理。
+            // 視窗剛出現時 OpenProcess / QueryFullProcessImageName 可能短暫失敗回空字串；
+            // 若把空身分快取住，整個 session 都會用空身分解析 → assignment 比不中 →
+            // 落到全螢幕遊戲預設（Gaming）並卡住（已指派 profile 的 app 被自動換掉）。
+            // 失敗則不更新 lastFgHwnd，下一 tick 重試。
+            if (!fg.empty()) {
+                lastFgHwnd    = fgHwnd;
+                cachedFg      = fg;
+                cachedFgPath  = fgPath;
+                // 前景身分已更新 → profile 解析快取失效，強制以新身分重解析
+                // （否則身分剛從空字串修復、但 (HWND,fullscreen) 鍵未變 → 仍回傳卡住的舊結果）
+                cachedProfileHwnd = nullptr;
+            }
+        }
+        std::wstring& currentFg = cachedFg;
+        std::wstring& currentFgPath = cachedFgPath;
         if (currentFg != lastFgProcess) {
             Log(L"[PhantomKey] FG changed: [%s] -> [%s].", lastFgProcess.c_str(), currentFg.c_str());
             LogForegroundWindowDiagnostics();
@@ -169,39 +208,48 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             MouseMode::Reset();
         }
 
-        // Shared.ini 被改寫（主程式或 PhantomLink 操作）→ 即時重載 AppConfig
-        unsigned long long curIniMTime = GetSharedIniLastWriteTime();
-        if (curIniMTime != 0 && curIniMTime != lastIniMTime) {
-            Log(L"[PhantomKey] Shared.ini changed, reloading config.");
-            lastIniMTime = curIniMTime;
-            config = ReadConfig();
-            MouseMode::Reset();
-        }
+        // 設定檔變更偵測（mtime 輪詢）：每 ~50ms 才 stat 一次三個檔案，避免活躍輸入時 ~125Hz 的無謂檔案系統查詢。
+        // 設定變更為使用者操作觸發（非即時性需求），50ms 延遲偵測對體感無影響。
+        ULONGLONG nowMs = GetTickCount64();
+        if (nowMs - lastMtimeCheck >= 50) {
+            lastMtimeCheck = nowMs;
 
-        // GamepadProfiles.json 被改寫（主程式編輯器存檔）→ 即時重載 profile
-        // 每 tick 比對 mtime，變動才重讀整檔
-        unsigned long long curProfilesMTime = GetGamepadProfilesLastWriteTime();
-        if (curProfilesMTime != lastProfilesMTime) {
-            Log(L"[PhantomKey] GamepadProfiles.json changed, reloading profiles.");
-            lastProfilesMTime = curProfilesMTime;
-            profileStore = LoadGamepadProfileStore();
-            {
-                std::vector<std::pair<std::wstring, std::wstring>> profileList;
-                for (const auto& p : profileStore.profiles) profileList.emplace_back(p.id, p.name);
-                WriteProfileList(profileList, profileStore.defaultProfileId);
+            // Shared.ini 被改寫（主程式或 PhantomLink 操作）→ 即時重載 AppConfig
+            unsigned long long curIniMTime = GetSharedIniLastWriteTime();
+            if (curIniMTime != 0 && curIniMTime != lastIniMTime) {
+                Log(L"[PhantomKey] Shared.ini changed, reloading config.");
+                lastIniMTime = curIniMTime;
+                config = ReadConfig();
+                MouseMode::Reset();
             }
-            MouseMode::Reset();
-        }
 
-        // localconfig.vdf 被改寫（使用者在 SteamBigPicture 調整 overlay 快捷鍵或開關）→ 即時重讀 SteamConfig
-        // 涵蓋「SteamBigPicture 改快捷鍵 → 直接啟動遊戲、未回 SteamBigPicture」這條路徑（前景切換偵測點抓不到）
-        // Steam 未安裝 / 未登入 / 路徑尚未確立 → GetSteamLocalConfigLastWriteTime() 回 0
-        unsigned long long curSteamVdfMTime = GetSteamLocalConfigLastWriteTime();
-        if (curSteamVdfMTime != 0 && curSteamVdfMTime != lastSteamVdfMTime) {
-            Log(L"[PhantomKey] localconfig.vdf changed, reloading SteamConfig.");
-            lastSteamVdfMTime = curSteamVdfMTime;
-            steamCfg = ReadSteamOverlayConfig();
-            WriteSteamInGameOverlayShortcut(steamCfg.overlayShortcut);
+            // GamepadProfiles.json 被改寫（主程式編輯器存檔）→ 即時重載 profile
+            unsigned long long curProfilesMTime = GetGamepadProfilesLastWriteTime();
+            if (curProfilesMTime != lastProfilesMTime) {
+                Log(L"[PhantomKey] GamepadProfiles.json changed, reloading profiles.");
+                lastProfilesMTime = curProfilesMTime;
+                profileStore = LoadGamepadProfileStore();
+                // profileStore 重新配置 → 舊的 cachedProfile 指標失效，清除快取
+                cachedProfileHwnd = nullptr;
+                cachedProfile = nullptr;
+                {
+                    std::vector<std::pair<std::wstring, std::wstring>> profileList;
+                    for (const auto& p : profileStore.profiles) profileList.emplace_back(p.id, p.name);
+                    WriteProfileList(profileList, profileStore.defaultProfileId);
+                }
+                MouseMode::Reset();
+            }
+
+            // localconfig.vdf 被改寫（使用者在 SteamBigPicture 調整 overlay 快捷鍵或開關）→ 即時重讀 SteamConfig
+            // 涵蓋「SteamBigPicture 改快捷鍵 → 直接啟動遊戲、未回 SteamBigPicture」這條路徑（前景切換偵測點抓不到）
+            // Steam 未安裝 / 未登入 / 路徑尚未確立 → GetSteamLocalConfigLastWriteTime() 回 0
+            unsigned long long curSteamVdfMTime = GetSteamLocalConfigLastWriteTime();
+            if (curSteamVdfMTime != 0 && curSteamVdfMTime != lastSteamVdfMTime) {
+                Log(L"[PhantomKey] localconfig.vdf changed, reloading SteamConfig.");
+                lastSteamVdfMTime = curSteamVdfMTime;
+                steamCfg = ReadSteamOverlayConfig();
+                WriteSteamInGameOverlayShortcut(steamCfg.overlayShortcut);
+            }
         }
 
         // Mouse Mode 決策順序（每 tick）：
@@ -219,7 +267,21 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             !config.hasBuiltInGamepadMapping &&
             !config.widgetActive &&
             !IsMouseModeForceExcluded(currentFg)) {
-            activeProfile = ResolveProfileForForeground(profileStore, currentFg, currentFgPath, GetForegroundHwnd());
+            // 以前景 HWND 快取解析結果：同視窗免重做 AUMID 解析 / EnumChildWindows（每 tick 昂貴）。
+            // 首次成功解析即鎖定，視窗生命週期內不再重算（游戲/非游戲判定不隨後續狀態變動）。
+            // profileStore 重載或前景身分更新時 cachedProfileHwnd 已清為 nullptr（見上方），故不會回傳失效指標。
+            if (fgHwnd == cachedProfileHwnd) {
+                activeProfile = cachedProfile;
+            } else {
+                bool provisional = false;
+                activeProfile = ResolveProfileForForeground(profileStore, currentFg, currentFgPath, fgHwnd, &provisional);
+                // 只鎖定可靠（非 provisional）的解析。AFH 宿主 UWP 的 AUMID 尚未就緒時為 provisional →
+                // 不快取（cachedProfileHwnd 不更新）→ 下一 tick 重試，直到 AUMID 出現才鎖定正確 profile。
+                if (!provisional) {
+                    cachedProfileHwnd = fgHwnd;
+                    cachedProfile = activeProfile;
+                }
+            }
             if (activeProfile && !IsProfileEffectivelyEmpty(*activeProfile)) {
                 mouseModeActive = true;
                 WriteActiveProfileId(activeProfile->id);

@@ -15,5 +15,11 @@
         <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#25282C"/>
     </ContentDialog.Resources>
 
-    <TextBlock x:Name="BodyText" TextWrapping="Wrap" MinWidth="320" FontSize="14"/>
+    <StackPanel Spacing="10" MinWidth="320">
+        <TextBlock x:Name="BodyText" TextWrapping="Wrap" FontSize="14"/>
+        <!-- 遊戲偵測限制提示（黃色），置於本體文字下方 -->
+        <TextBlock x:Uid="GamepadMappingGameDetectNote"
+                   Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                   FontSize="12" TextWrapping="Wrap"/>
+    </StackPanel>
 </ContentDialog>

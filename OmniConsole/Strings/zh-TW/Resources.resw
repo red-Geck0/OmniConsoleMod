@@ -861,10 +861,13 @@
     <value>可直接貼到 GitHub Issue。</value>
   </data>
   <data name="Nav_GamepadMapping.Content" xml:space="preserve">
-    <value>貓又</value>
+    <value>OmniNav</value>
   </data>
   <data name="GamepadMappingTitle.Text" xml:space="preserve">
-    <value>貓又</value>
+    <value>OmniNav</value>
+  </data>
+  <data name="GamepadProfilesLabel.Text" xml:space="preserve">
+    <value>設定檔</value>
   </data>
   <data name="GamepadProfileBadge_Default" xml:space="preserve">
     <value>App 預設</value>
@@ -897,10 +900,10 @@
     <value>觸控鍵盤 (OSK)</value>
   </data>
   <data name="GamepadMappingDescription.Text" xml:space="preserve">
-    <value>貓又願意為你的手把施一道咒，讓每個程式召喚出最順手的設定。</value>
+    <value>啟用將手把輸入映射為滑鼠或鍵盤。應用程式將使用預設設定檔，除非在 OmniCharm Game Bar 小工具上另行指定。</value>
   </data>
   <data name="GamepadMappingEmptyHint.Text" xml:space="preserve">
-    <value>還沒有施過咒的程式呢～在 Game Bar 的 OmniCharm 小工具中選擇「自訂此程式的手把映射」，貓又就會為它編一道新咒。</value>
+    <value>還沒有指派的程式。在 Game Bar 的 OmniCharm 小工具中選擇「自訂此程式的手把映射」來指派設定檔。</value>
   </data>
   <data name="GamepadMappingToolsSection.Text" xml:space="preserve">
     <value>工具</value>
@@ -1354,6 +1357,9 @@
   </data>
   <data name="GamepadMappingNavConflictNote.Text" xml:space="preserve">
     <value>提示：部分系統應用程式（如 Microsoft Store、Xbox 應用程式）已從設定檔指派中排除——這些應用的控制器導航使用 Windows 預設輸入處理。</value>
+  </data>
+  <data name="GamepadMappingGameDetectNote.Text" xml:space="preserve">
+    <value>遊戲偵測為盡力而為：依賴 Windows 對遊戲的記錄（對 Steam 遊戲較可靠）加上全螢幕判斷，因此部分遊戲可能無法辨識。你隨時可以在 OmniCharm 小工具上明確指派設定檔來覆寫它。</value>
   </data>
   <data name="AdvancedSection_Sound.Text" xml:space="preserve">
     <value>介面音效</value>

@@ -153,7 +153,7 @@
     <value>僅在預設平台設為 Steam Big Picture 時生效。</value>
   </data>
   <data name="Widget_MouseMode_Title.Text" xml:space="preserve">
-    <value>手把滑鼠模式</value>
+    <value>OmniNav</value>
   </data>
   <data name="Widget_Mode_Off.Content" xml:space="preserve">
     <value>關閉</value>

@@ -14,6 +14,22 @@
                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
             <TextBlock x:Uid="GamepadMappingTitle" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+
+            <!-- Gamepad Mouse Mode 主開關（自 Advanced 設定移來，置於標題正下方）。 -->
+            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock x:Uid="MouseModeSetting_Title" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <ToggleSwitch x:Name="MouseModeSwitch"
+                              Toggled="MouseModeSwitch_Toggled"
+                              MinWidth="0" VerticalAlignment="Center"
+                              UseSystemFocusVisuals="True"/>
+            </StackPanel>
+            <!-- 內建廠商手把映射（ROG Ally 等）時 mouse mode 停用提示 -->
+            <TextBlock x:Name="MouseModeBuiltInNote"
+                       x:Uid="MouseModeSetting_BuiltInMappingNote"
+                       Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                       FontSize="12" TextWrapping="Wrap" TextAlignment="Center"
+                       Visibility="Collapsed" Margin="0,0,0,4"/>
+
             <TextBlock x:Uid="GamepadMappingDescription" FontSize="18" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,4"/>
 
             <!-- 提示：系統應用已從指派中排除 -->
@@ -23,7 +39,22 @@
                        TextAlignment="Center"
                        Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                        MaxWidth="700"
+                       Margin="0,0,0,4"/>
+
+            <!-- 提示：遊戲偵測的限制 -->
+            <TextBlock x:Uid="GamepadMappingGameDetectNote"
+                       FontSize="13"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                       MaxWidth="700"
                        Margin="0,0,0,8"/>
+
+            <!-- Profiles 區段標題 -->
+            <TextBlock x:Uid="GamepadProfilesLabel"
+                       FontSize="14" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       HorizontalAlignment="Center"/>
 
             <Border x:Name="ListCard"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"

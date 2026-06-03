@@ -861,10 +861,13 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>Paste it into a GitHub Issue.</value>
   </data>
   <data name="Nav_GamepadMapping.Content" xml:space="preserve">
-    <value>Nekomata</value>
+    <value>OmniNav</value>
   </data>
   <data name="GamepadMappingTitle.Text" xml:space="preserve">
-    <value>Nekomata</value>
+    <value>OmniNav</value>
+  </data>
+  <data name="GamepadProfilesLabel.Text" xml:space="preserve">
+    <value>Profiles</value>
   </data>
   <data name="GamepadProfileBadge_Default" xml:space="preserve">
     <value>App default</value>
@@ -897,10 +900,10 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>Touch Keyboard (OSK)</value>
   </data>
   <data name="GamepadMappingDescription.Text" xml:space="preserve">
-    <value>Nekomata will weave a charm for your gamepad, conjuring the perfect bindings for each app.</value>
+    <value>Enable mapping gamepad inputs into mouse or keyboard. Apps will use the default profile unless specified on the OmniCharm Game Bar widget.</value>
   </data>
   <data name="GamepadMappingEmptyHint.Text" xml:space="preserve">
-    <value>No charmed apps yet~ Open the OmniCharm widget in Game Bar and choose “Customize gamepad mapping for this app” — Nekomata will weave a new charm for it.</value>
+    <value>No assigned apps yet. Open the OmniCharm widget in Game Bar and choose “Customize gamepad mapping for this app” to assign a profile.</value>
   </data>
   <data name="GamepadMappingToolsSection.Text" xml:space="preserve">
     <value>Tools</value>
@@ -1354,6 +1357,9 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   </data>
   <data name="GamepadMappingNavConflictNote.Text" xml:space="preserve">
     <value>Note: Some system apps (e.g. Microsoft Store, Xbox app) are excluded from profile assignment — gamepad navigation in those apps uses default Windows input handling.</value>
+  </data>
+  <data name="GamepadMappingGameDetectNote.Text" xml:space="preserve">
+    <value>Game detection is best-effort: it relies on Windows' record of games (mostly reliable for Steam titles) plus a fullscreen check, so some games may not be recognized. You can always assign a profile explicitly on the OmniCharm widget to override it.</value>
   </data>
   <data name="AdvancedSection_Sound.Text" xml:space="preserve">
     <value>Interface Sound</value>

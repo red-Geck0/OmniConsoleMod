@@ -297,14 +297,8 @@ namespace OmniConsole.Pages
             UsePhantomKeySteamInGameOverlaySwitch.IsOn = SettingsService.GetUsePhantomKeySteamInGameOverlay();
             UsePhantomKeySteamInGameOverlaySwitch.IsEnabled = true;
 
-            // 還原 Mouse Mode（Off/On）。On 對應現有 MouseModeAuto 值（PhantomKey 視為啟用）；
-            // per-app 細節走 OmniCharm widget 指派 profile（None profile 等同該 app 停用 mouse mode）。
-            // 內建廠商映射偵測命中時強制停用主開關。
-            bool builtInMapping = SettingsService.HasBuiltInGamepadMapping();
-            string currentMode = builtInMapping ? SettingsService.MouseModeOff : SettingsService.GetMouseMode();
-            MouseModeSwitch.IsOn = currentMode != SettingsService.MouseModeOff;
-
-            ApplyMouseModeEnabledState(builtInMapping);
+            // [MOVED] Gamepad Mouse Mode 開關已移至 OmniNav 頁（GamepadProfileListView.SyncMouseMode）；
+            // Advanced 頁不再持有該控制項，相關還原邏輯停用。
 
             // 還原導覽音效開關狀態
             NavigationSoundsSwitch.IsOn = SettingsService.GetEnableNavigationSounds();
@@ -901,15 +895,15 @@ namespace OmniConsole.Pages
             SettingsService.SetUsePhantomKeySteamInGameOverlay(UsePhantomKeySteamInGameOverlaySwitch.IsOn);
         }
 
-        /// <summary>
-        /// Mouse Mode ToggleSwitch 切換時立即儲存。Off=停用、On=啟用（以 MouseModeAuto 值儲存）。
-        /// </summary>
-        private void MouseModeSwitch_Toggled(object sender, RoutedEventArgs e)
-        {
-            string mode = MouseModeSwitch.IsOn ? SettingsService.MouseModeAuto : SettingsService.MouseModeOff;
-            SettingsService.SetMouseMode(mode);
-            ApplyMouseModeEnabledState();
-        }
+        // [MOVED] Mouse Mode 開關移至 OmniNav 頁（GamepadProfileListView）。
+        // 以下 handler / 反灰邏輯保留為註解，不刪除。
+        //
+        // private void MouseModeSwitch_Toggled(object sender, RoutedEventArgs e)
+        // {
+        //     string mode = MouseModeSwitch.IsOn ? SettingsService.MouseModeAuto : SettingsService.MouseModeOff;
+        //     SettingsService.SetMouseMode(mode);
+        //     ApplyMouseModeEnabledState();
+        // }
 
         /// <summary>
         /// 導覽音效 ToggleSwitch 切換時立即儲存，並即時切換 ElementSoundPlayer 全域狀態。
@@ -924,16 +918,13 @@ namespace OmniConsole.Pages
                     : Microsoft.UI.Xaml.ElementSoundPlayerState.Off;
         }
 
-        /// <summary>
-        /// 套用 Mouse Mode 反灰：內建廠商映射偵測命中（ROG Ally 家族）→ 強制停用主開關 + 顯示說明。
-        /// （per-profile 細節：CursorSpeed / Layered 由 profile 編輯器管，不再有頂層 layout/speed 設定）
-        /// </summary>
-        private void ApplyMouseModeEnabledState(bool? builtInMappingOverride = null)
-        {
-            bool builtIn = builtInMappingOverride ?? SettingsService.HasBuiltInGamepadMapping();
-            MouseModeSwitch.IsEnabled = !builtIn;
-            MouseModeBuiltInMappingNoteText.Visibility = builtIn ? Visibility.Visible : Visibility.Collapsed;
-        }
+        // [MOVED] 反灰邏輯隨 Mouse Mode 開關移至 OmniNav 頁（GamepadProfileListView.SyncMouseMode）。
+        // private void ApplyMouseModeEnabledState(bool? builtInMappingOverride = null)
+        // {
+        //     bool builtIn = builtInMappingOverride ?? SettingsService.HasBuiltInGamepadMapping();
+        //     MouseModeSwitch.IsEnabled = !builtIn;
+        //     MouseModeBuiltInMappingNoteText.Visibility = builtIn ? Visibility.Visible : Visibility.Collapsed;
+        // }
 
         // Game Bar 媒體櫃 / Passthrough 開關 UI 暫時隱藏（見 SettingsPage.xaml 註解），Toggled handler 一併停用。
         //
@@ -1394,10 +1385,10 @@ namespace OmniConsole.Pages
                     UsePhantomKeySteamInGameOverlaySwitch.IsOn = !sw.IsOn;
                     break;
 
-                // Mouse Mode 主開關（Off/On）
-                case ToggleSwitch sw when ReferenceEquals(sw, MouseModeSwitch):
-                    if (sw.IsEnabled) MouseModeSwitch.IsOn = !sw.IsOn;
-                    break;
+                // [MOVED] Mouse Mode 主開關移至 OmniNav 頁（GamepadProfileListView），其手把 A 鍵切換在該頁處理。
+                // case ToggleSwitch sw when ReferenceEquals(sw, MouseModeSwitch):
+                //     if (sw.IsEnabled) MouseModeSwitch.IsOn = !sw.IsOn;
+                //     break;
 
                 // 導覽音效開關
                 case ToggleSwitch sw when ReferenceEquals(sw, NavigationSoundsSwitch):

@@ -95,9 +95,36 @@ namespace OmniConsole.Controls
         /// <summary>是否有任何 profile（新模型下永遠為 true，至少含三個內建 profile）。</summary>
         public bool HasItems => _items.Count > 0;
 
+        /// <summary>避免 SyncMouseMode 設定 IsOn 時觸發 Toggled 回寫。</summary>
+        private bool _mmLoading;
+
+        /// <summary>同步 Gamepad Mouse Mode 開關狀態：依設定與內建廠商映射偵測。</summary>
+        public void SyncMouseMode()
+        {
+            bool builtIn = SettingsService.HasBuiltInGamepadMapping();
+            _mmLoading = true;
+            try
+            {
+                MouseModeSwitch.IsOn = !builtIn &&
+                    SettingsService.GetMouseMode() != SettingsService.MouseModeOff;
+                MouseModeSwitch.IsEnabled = !builtIn;
+                MouseModeBuiltInNote.Visibility = builtIn ? Visibility.Visible : Visibility.Collapsed;
+            }
+            finally { _mmLoading = false; }
+        }
+
+        /// <summary>Mouse Mode On/Off：寫入設定（On 以 Auto 值儲存，與舊模型相容）。</summary>
+        private void MouseModeSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_mmLoading) return;
+            SettingsService.SetMouseMode(
+                MouseModeSwitch.IsOn ? SettingsService.MouseModeAuto : SettingsService.MouseModeOff);
+        }
+
         /// <summary>從 GamepadProfileStore 重抓並重新整理清單。</summary>
         public void Refresh()
         {
+            SyncMouseMode();
             int prevIndex = ProfileList.SelectedIndex;
             _items.Clear();
             try

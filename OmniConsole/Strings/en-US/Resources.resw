@@ -184,7 +184,7 @@
     <value>MSI Center M</value>
   </data>
   <data name="AppDisplayName" xml:space="preserve">
-    <value>OmniConsole</value>
+    <value>OmniConsoleMod</value>
   </data>
   <data name="AppDescription" xml:space="preserve">
     <value>Custom Windows 11 Xbox Mode (FSE) Home shell for gaming PCs and handhelds.</value>
@@ -193,7 +193,7 @@
     <value>Custom Home Shell for Windows Xbox Mode (FSE).</value>
   </data>
   <data name="SettingsAppDisplayName" xml:space="preserve">
-    <value>OmniConsole Settings</value>
+    <value>OmniConsoleMod Settings</value>
   </data>
   <data name="SettingsAppDescription" xml:space="preserve">
     <value>Configure default gaming platform, Game Bar behavior, and custom launch targets.</value>

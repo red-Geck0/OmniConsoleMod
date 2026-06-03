@@ -121,7 +121,7 @@
     <value>Launching...</value>
   </data>
   <data name="SettingsTitle.Text" xml:space="preserve">
-    <value>OmniConsole Settings</value>
+    <value>OmniConsoleMod Settings</value>
   </data>
   <data name="SettingsDescription" xml:space="preserve">
     <value>Default platform: {0}</value>

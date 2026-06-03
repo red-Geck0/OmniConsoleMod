@@ -630,25 +630,25 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>Download &amp; Install</value>
   </data>
   <data name="UpdateCheck_NewVersion_Subtitle" xml:space="preserve">
-    <value>OmniConsole v{0} is available.</value>
+    <value>OmniConsoleMod v{0} is available.</value>
   </data>
   <data name="UpdateCheck_UpToDate_Subtitle" xml:space="preserve">
-    <value>OmniConsole is on the latest version.</value>
+    <value>OmniConsoleMod is on the latest version.</value>
   </data>
   <data name="UpdateCheck_Failed_Subtitle" xml:space="preserve">
     <value>Please check your internet connection and try again.</value>
   </data>
   <data name="UpdateAvailable_InfoBar" xml:space="preserve">
-    <value>OmniConsole v{0} is available.</value>
+    <value>OmniConsoleMod v{0} is available.</value>
   </data>
   <data name="UpdateAvailable_InfoBar_Launch_GameBar" xml:space="preserve">
-    <value>OmniConsole v{0} is available. Open OmniConsole Settings from Game Bar &gt; Library, then go to ☰ &gt; Advanced to download and install.</value>
+    <value>OmniConsoleMod v{0} is available. Open OmniConsole Settings from Game Bar &gt; Library, then go to ☰ &gt; Advanced to download and install.</value>
   </data>
   <data name="UpdateAvailable_InfoBar_Launch_StartMenu" xml:space="preserve">
-    <value>OmniConsole v{0} is available. Open OmniConsole Settings from Start &gt; All apps, then go to ☰ &gt; Advanced to download and install.</value>
+    <value>OmniConsoleMod v{0} is available. Open OmniConsole Settings from Start &gt; All apps, then go to ☰ &gt; Advanced to download and install.</value>
   </data>
   <data name="UpdateAvailable_InfoBar_Settings" xml:space="preserve">
-    <value>OmniConsole v{0} is available. Go to ☰ &gt; Advanced to download and install.</value>
+    <value>OmniConsoleMod v{0} is available. Go to ☰ &gt; Advanced to download and install.</value>
   </data>
   <data name="UpdateInfoBar_MissingPhantomLink_Title" xml:space="preserve">
     <value>OmniCharm Widget is available.</value>
@@ -675,7 +675,7 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>Download failed. Please try again.</value>
   </data>
   <data name="UpdateProgressDialog_Title" xml:space="preserve">
-    <value>Updating OmniConsole</value>
+    <value>Updating OmniConsoleMod</value>
   </data>
   <data name="UpdateProgressDialog_Hint" xml:space="preserve">
     <value>Do not close the app or shut down the console until the update finishes.</value>
@@ -687,10 +687,10 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>Installing OmniCharm widget (1 of 2)...</value>
   </data>
   <data name="UpdateProgress_Phase2Download" xml:space="preserve">
-    <value>Downloading OmniConsole (2 of 2)...</value>
+    <value>Downloading OmniConsoleMod (2 of 2)...</value>
   </data>
   <data name="UpdateProgress_Phase2Install" xml:space="preserve">
-    <value>Installing OmniConsole (2 of 2). The app will restart...</value>
+    <value>Installing OmniConsoleMod (2 of 2). The app will restart...</value>
   </data>
   <data name="ResumeUpdateDialog_Title" xml:space="preserve">
     <value>Resume update?</value>
@@ -714,13 +714,13 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>About</value>
   </data>
   <data name="AboutTitle.Text" xml:space="preserve">
-    <value>About OmniConsole</value>
+    <value>About OmniConsoleMod</value>
   </data>
   <data name="AboutDescription.Text" xml:space="preserve">
     <value>Version and environment details to help report upgrade or compatibility issues.</value>
   </data>
   <data name="AboutSection_Suite.Text" xml:space="preserve">
-    <value>OmniConsole Suite</value>
+    <value>OmniConsoleMod Suite</value>
   </data>
   <data name="AboutSection_Xfset.Text" xml:space="preserve">
     <value>XFSET (Xbox Full Screen Experience Tool)</value>
@@ -795,7 +795,7 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>GPU</value>
   </data>
   <data name="Label_OmniConsole.Text" xml:space="preserve">
-    <value>OmniConsole</value>
+    <value>OmniConsoleMod</value>
   </data>
   <data name="Label_PhantomBridge.Text" xml:space="preserve">
     <value>PhantomBridge</value>

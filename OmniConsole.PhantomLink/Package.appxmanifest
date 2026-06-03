@@ -3,8 +3,8 @@
   <Identity Name="4fa8e044-7ffa-4059-b034-e4111881d96e" Publisher="CN=8bit2qubit" Version="2.5.3.0" />
   <mp:PhoneIdentity PhoneProductId="4fa8e044-7ffa-4059-b034-e4111881d96e" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
-    <DisplayName>OmniConsole OmniCharm</DisplayName>
-    <PublisherDisplayName>8bit2qubit</PublisherDisplayName>
+    <DisplayName>OmniConsoleMod OmniCharm</DisplayName>
+    <PublisherDisplayName>red-Geck0</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
   <Dependencies>

@@ -869,6 +869,12 @@
   <data name="GamepadProfilesLabel.Text" xml:space="preserve">
     <value>設定檔</value>
   </data>
+  <data name="OmniNavModeSection.Text" xml:space="preserve">
+    <value>OmniNav 模式</value>
+  </data>
+  <data name="OmniNavModeTitle.Text" xml:space="preserve">
+    <value>啟用將手把輸入映射為滑鼠或鍵盤</value>
+  </data>
   <data name="GamepadProfileBadge_Default" xml:space="preserve">
     <value>App 預設</value>
   </data>
@@ -900,7 +906,7 @@
     <value>觸控鍵盤 (OSK)</value>
   </data>
   <data name="GamepadMappingDescription.Text" xml:space="preserve">
-    <value>啟用將手把輸入映射為滑鼠或鍵盤。應用程式將使用預設設定檔，除非在 OmniCharm Game Bar 小工具上另行指定。</value>
+    <value>應用程式將使用預設設定檔，除非在 OmniCharm Game Bar 小工具上另行指定。</value>
   </data>
   <data name="GamepadMappingEmptyHint.Text" xml:space="preserve">
     <value>還沒有指派的程式。在 Game Bar 的 OmniCharm 小工具中選擇「自訂此程式的手把映射」來指派設定檔。</value>

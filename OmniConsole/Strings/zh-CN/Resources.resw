@@ -875,6 +875,9 @@
   <data name="OmniNavModeTitle.Text" xml:space="preserve">
     <value>启用将手柄输入映射为鼠标或键盘</value>
   </data>
+  <data name="GamepadMappingPageDesc.Text" xml:space="preserve">
+    <value>将手柄变为鼠标和键盘，并管理可重用的映射配置方案。</value>
+  </data>
   <data name="GamepadProfileBadge_Default" xml:space="preserve">
     <value>应用默认</value>
   </data>

@@ -875,6 +875,9 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   <data name="OmniNavModeTitle.Text" xml:space="preserve">
     <value>Enable mapping gamepad inputs into mouse or keyboard</value>
   </data>
+  <data name="GamepadMappingPageDesc.Text" xml:space="preserve">
+    <value>Turn your gamepad into a mouse and keyboard, and manage reusable mapping profiles.</value>
+  </data>
   <data name="GamepadProfileBadge_Default" xml:space="preserve">
     <value>App default</value>
   </data>

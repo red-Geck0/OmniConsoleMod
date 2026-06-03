@@ -875,6 +875,9 @@
   <data name="OmniNavModeTitle.Text" xml:space="preserve">
     <value>啟用將手把輸入映射為滑鼠或鍵盤</value>
   </data>
+  <data name="GamepadMappingPageDesc.Text" xml:space="preserve">
+    <value>將手把變為滑鼠和鍵盤，並管理可重用的映射設定檔。</value>
+  </data>
   <data name="GamepadProfileBadge_Default" xml:space="preserve">
     <value>App 預設</value>
   </data>

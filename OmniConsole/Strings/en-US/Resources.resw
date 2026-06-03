@@ -869,6 +869,12 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   <data name="GamepadProfilesLabel.Text" xml:space="preserve">
     <value>Profiles</value>
   </data>
+  <data name="OmniNavModeSection.Text" xml:space="preserve">
+    <value>OmniNav Mode</value>
+  </data>
+  <data name="OmniNavModeTitle.Text" xml:space="preserve">
+    <value>Enable mapping gamepad inputs into mouse or keyboard</value>
+  </data>
   <data name="GamepadProfileBadge_Default" xml:space="preserve">
     <value>App default</value>
   </data>
@@ -900,7 +906,7 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
     <value>Touch Keyboard (OSK)</value>
   </data>
   <data name="GamepadMappingDescription.Text" xml:space="preserve">
-    <value>Enable mapping gamepad inputs into mouse or keyboard. Apps will use the default profile unless specified on the OmniCharm Game Bar widget.</value>
+    <value>Apps will use the default profile unless specified on the OmniCharm Game Bar widget.</value>
   </data>
   <data name="GamepadMappingEmptyHint.Text" xml:space="preserve">
     <value>No assigned apps yet. Open the OmniCharm widget in Game Bar and choose “Customize gamepad mapping for this app” to assign a profile.</value>

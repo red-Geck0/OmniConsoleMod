@@ -12,59 +12,69 @@
 
     <ScrollViewer Padding="0" VerticalScrollBarVisibility="Auto"
                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-        <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <!-- 與 Advanced / About 一致：頂端對齊、置中、最大寬 700，分段卡片排版。 -->
+        <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="700" Margin="0,24,0,24">
             <TextBlock x:Uid="GamepadMappingTitle" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,4"/>
 
-            <!-- Gamepad Mouse Mode 主開關（自 Advanced 設定移來，置於標題正下方）。 -->
-            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock x:Uid="MouseModeSetting_Title" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                <ToggleSwitch x:Name="MouseModeSwitch"
-                              Toggled="MouseModeSwitch_Toggled"
-                              MinWidth="0" VerticalAlignment="Center"
-                              UseSystemFocusVisuals="True"/>
-            </StackPanel>
-            <!-- 內建廠商手把映射（ROG Ally 等）時 mouse mode 停用提示 -->
-            <TextBlock x:Name="MouseModeBuiltInNote"
-                       x:Uid="MouseModeSetting_BuiltInMappingNote"
-                       Foreground="{ThemeResource SystemFillColorCautionBrush}"
-                       FontSize="12" TextWrapping="Wrap" TextAlignment="Center"
-                       Visibility="Collapsed" Margin="0,0,0,4"/>
+            <!-- ── Section 1：OmniNav Mode ── -->
+            <TextBlock x:Uid="OmniNavModeSection" FontSize="14" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1" CornerRadius="8"
+                    HorizontalAlignment="Stretch" MinWidth="700">
+                <Grid Padding="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-            <TextBlock x:Uid="GamepadMappingDescription" FontSize="18" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                    <FontIcon Glyph="&#xE962;" FontSize="24" Margin="0,0,16,0"
+                              VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
 
-            <!-- 提示：系統應用已從指派中排除 -->
-            <TextBlock x:Uid="GamepadMappingNavConflictNote"
-                       FontSize="13"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                       MaxWidth="700"
-                       Margin="0,0,0,4"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                        <!-- 標題：取代「Gamepad Mouse Mode」 -->
+                        <TextBlock x:Uid="OmniNavModeTitle" FontWeight="SemiBold" FontSize="16" TextWrapping="Wrap"/>
+                        <!-- 副標：使用預設 profile 之說明 -->
+                        <TextBlock x:Uid="GamepadMappingDescription"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   FontSize="14" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        <!-- 黃色提示：系統應用已排除 -->
+                        <TextBlock x:Uid="GamepadMappingNavConflictNote"
+                                   Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                   FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        <!-- 黃色提示：遊戲偵測限制 -->
+                        <TextBlock x:Uid="GamepadMappingGameDetectNote"
+                                   Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                   FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        <!-- 黃色提示：內建廠商映射時停用（預設隱藏） -->
+                        <TextBlock x:Name="MouseModeBuiltInNote"
+                                   x:Uid="MouseModeSetting_BuiltInMappingNote"
+                                   Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                   FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Visibility="Collapsed"/>
+                    </StackPanel>
 
-            <!-- 提示：遊戲偵測的限制 -->
-            <TextBlock x:Uid="GamepadMappingGameDetectNote"
-                       FontSize="13"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                       MaxWidth="700"
-                       Margin="0,0,0,8"/>
+                    <ToggleSwitch x:Name="MouseModeSwitch"
+                                  Toggled="MouseModeSwitch_Toggled"
+                                  FlowDirection="RightToLeft"
+                                  Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0"
+                                  UseSystemFocusVisuals="True"/>
+                </Grid>
+            </Border>
 
-            <!-- Profiles 區段標題 -->
-            <TextBlock x:Uid="GamepadProfilesLabel"
-                       FontSize="14" FontWeight="SemiBold"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                       HorizontalAlignment="Center"/>
-
+            <!-- ── Section 2：Profiles ── -->
+            <TextBlock x:Uid="GamepadProfilesLabel" FontSize="14" FontWeight="SemiBold"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
             <Border x:Name="ListCard"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="8"
                     Padding="4"
-                    HorizontalAlignment="Center"
-                    MinWidth="700"
-                    MaxWidth="700">
+                    HorizontalAlignment="Stretch"
+                    MinWidth="700">
                 <ListView x:Name="ProfileList"
                           SelectionMode="Single"
                           IsItemClickEnabled="True"
@@ -107,8 +117,7 @@
                 </ListView>
             </Border>
 
-            <!-- New profile：移到 list 下方；手把 Y 鍵改為 Set as default（在 ProfileList 上時觸發），
-                 New profile 僅可由滑鼠/觸控/A 鍵點擊此按鈕觸發 -->
+            <!-- New profile：列表下方；手把 Y 鍵改為 Set as default（在 ProfileList 上時觸發）。 -->
             <Button x:Name="NewProfileButton"
                     Click="NewProfileButton_Click"
                     HorizontalAlignment="Center"

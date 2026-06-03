@@ -499,7 +499,7 @@
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                   Padding="0">
-                    <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="700">
+                    <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="700" Margin="0,24,0,24">
                         <TextBlock x:Uid="AdvancedTitle" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,4"/>
                         <TextBlock x:Uid="AdvancedDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="18" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
@@ -788,7 +788,7 @@
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                   Padding="0">
-                    <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="700">
+                    <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Top" MaxWidth="700" Margin="0,24,0,24">
                         <TextBlock x:Uid="TroubleshootTitle" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,4"/>
                         <TextBlock x:Uid="TroubleshootDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="18" TextAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,8"/>
 

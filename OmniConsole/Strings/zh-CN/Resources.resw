@@ -121,7 +121,7 @@
     <value>正在启动...</value>
   </data>
   <data name="SettingsTitle.Text" xml:space="preserve">
-    <value>OmniConsole 设置</value>
+    <value>OmniConsoleMod 设置</value>
   </data>
   <data name="SettingsDescription" xml:space="preserve">
     <value>默认平台：{0}</value>
@@ -184,7 +184,7 @@
     <value>MSI Center M</value>
   </data>
   <data name="AppDisplayName" xml:space="preserve">
-    <value>OmniConsole</value>
+    <value>OmniConsoleMod</value>
   </data>
   <data name="AppDescription" xml:space="preserve">
     <value>为游戏 PC 与掌机设计的自定义 Windows 11 Xbox 模式 (FSE) 主页 Shell。</value>
@@ -193,7 +193,7 @@
     <value>为 Windows Xbox 模式 (FSE) 设计的自定义主页 Shell。</value>
   </data>
   <data name="SettingsAppDisplayName" xml:space="preserve">
-    <value>OmniConsole 设置</value>
+    <value>OmniConsoleMod 设置</value>
   </data>
   <data name="SettingsAppDescription" xml:space="preserve">
     <value>设置默认游戏平台、Game Bar 行为与自定义启动目标。</value>
@@ -630,25 +630,25 @@
     <value>下载并安装</value>
   </data>
   <data name="UpdateCheck_NewVersion_Subtitle" xml:space="preserve">
-    <value>OmniConsole v{0} 已可下载。</value>
+    <value>OmniConsoleMod v{0} 已可下载。</value>
   </data>
   <data name="UpdateCheck_UpToDate_Subtitle" xml:space="preserve">
-    <value>OmniConsole 当前为最新版本。</value>
+    <value>OmniConsoleMod 当前为最新版本。</value>
   </data>
   <data name="UpdateCheck_Failed_Subtitle" xml:space="preserve">
     <value>请检查网络连接后重试。</value>
   </data>
   <data name="UpdateAvailable_InfoBar" xml:space="preserve">
-    <value>OmniConsole v{0} 已可下载。</value>
+    <value>OmniConsoleMod v{0} 已可下载。</value>
   </data>
   <data name="UpdateAvailable_InfoBar_Launch_GameBar" xml:space="preserve">
-    <value>OmniConsole v{0} 已可下载。从“Game Bar &gt; 库”打开 OmniConsole 设置，前往“☰ &gt; 高级”下载并安装。</value>
+    <value>OmniConsoleMod v{0} 已可下载。从“Game Bar &gt; 库”打开 OmniConsole 设置，前往“☰ &gt; 高级”下载并安装。</value>
   </data>
   <data name="UpdateAvailable_InfoBar_Launch_StartMenu" xml:space="preserve">
-    <value>OmniConsole v{0} 已可下载。从“开始 &gt; 所有应用”打开 OmniConsole 设置，前往“☰ &gt; 高级”下载并安装。</value>
+    <value>OmniConsoleMod v{0} 已可下载。从“开始 &gt; 所有应用”打开 OmniConsole 设置，前往“☰ &gt; 高级”下载并安装。</value>
   </data>
   <data name="UpdateAvailable_InfoBar_Settings" xml:space="preserve">
-    <value>OmniConsole v{0} 已可下载。前往“☰ &gt; 高级”下载并安装。</value>
+    <value>OmniConsoleMod v{0} 已可下载。前往“☰ &gt; 高级”下载并安装。</value>
   </data>
   <data name="UpdateInfoBar_MissingPhantomLink_Title" xml:space="preserve">
     <value>OmniCharm 小组件已可安装。</value>
@@ -675,7 +675,7 @@
     <value>下载失败，请重试。</value>
   </data>
   <data name="UpdateProgressDialog_Title" xml:space="preserve">
-    <value>正在更新 OmniConsole</value>
+    <value>正在更新 OmniConsoleMod</value>
   </data>
   <data name="UpdateProgressDialog_Hint" xml:space="preserve">
     <value>更新完成前，请勿关闭应用或主机。</value>
@@ -687,10 +687,10 @@
     <value>正在安装 OmniCharm 小组件（1 / 2）...</value>
   </data>
   <data name="UpdateProgress_Phase2Download" xml:space="preserve">
-    <value>正在下载 OmniConsole（2 / 2）...</value>
+    <value>正在下载 OmniConsoleMod（2 / 2）...</value>
   </data>
   <data name="UpdateProgress_Phase2Install" xml:space="preserve">
-    <value>正在安装 OmniConsole（2 / 2），即将重新启动...</value>
+    <value>正在安装 OmniConsoleMod（2 / 2），即将重新启动...</value>
   </data>
   <data name="ResumeUpdateDialog_Title" xml:space="preserve">
     <value>是否继续更新？</value>
@@ -714,13 +714,13 @@
     <value>关于</value>
   </data>
   <data name="AboutTitle.Text" xml:space="preserve">
-    <value>关于 OmniConsole</value>
+    <value>关于 OmniConsoleMod</value>
   </data>
   <data name="AboutDescription.Text" xml:space="preserve">
     <value>显示版本与环境信息，帮助反馈升级或兼容性问题。</value>
   </data>
   <data name="AboutSection_Suite.Text" xml:space="preserve">
-    <value>OmniConsole Suite</value>
+    <value>OmniConsoleMod Suite</value>
   </data>
   <data name="AboutSection_Xfset.Text" xml:space="preserve">
     <value>XFSET (Xbox Full Screen Experience Tool)</value>
@@ -795,7 +795,7 @@
     <value>显卡</value>
   </data>
   <data name="Label_OmniConsole.Text" xml:space="preserve">
-    <value>OmniConsole</value>
+    <value>OmniConsoleMod</value>
   </data>
   <data name="Label_PhantomBridge.Text" xml:space="preserve">
     <value>PhantomBridge</value>

@@ -49,10 +49,18 @@
 	<Target Name="BuildPhantomKey" BeforeTargets="BeforeBuild">
 		<MSBuild Projects="..\OmniConsole.PhantomKey\OmniConsole.PhantomKey.vcxproj" Targets="Build" Properties="Configuration=$(Configuration);Platform=x64" />
 	</Target>
+	<!-- PhantomMute：注入遊戲行程的 XInput 攔截 DLL（x64）；隨 OmniConsole 一同建置並封裝。 -->
+	<Target Name="BuildPhantomMute" BeforeTargets="BeforeBuild">
+		<MSBuild Projects="..\OmniConsole.PhantomMute\OmniConsole.PhantomMute.vcxproj" Targets="Build" Properties="Configuration=$(Configuration);Platform=x64" />
+	</Target>
 	<ItemGroup>
 		<Content Include="..\OmniConsole.PhantomKey\x64\$(Configuration)\Steam.exe">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<Link>Steam.exe</Link>
+		</Content>
+		<Content Include="..\OmniConsole.PhantomMute\x64\$(Configuration)\OmniConsole.PhantomMute.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>OmniConsole.PhantomMute.dll</Link>
 		</Content>
 	</ItemGroup>
 

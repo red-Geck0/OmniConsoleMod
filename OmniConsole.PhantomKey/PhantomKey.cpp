@@ -13,6 +13,7 @@
 #include "MouseMode.h"
 #include "GamepadProfiles.h"
 #include "PingService.h"
+#include "XInputGuard.h"
 
 // ============================================================================
 // Profile 判斷小工具
@@ -95,6 +96,9 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
 
     // 啟動 ping 服務（健康檢查回應通道）：建立 message-only window，主程式可透過 SendMessageTimeout 量測主迴圈推進狀況
     PingService::Start();
+
+    // XInput 攔截：準備 shared-memory flag + 佈署 PhantomMute.dll。失敗時 Update() 為 no-op。
+    XInputGuard::Init();
 
     Log(L"[PhantomKey] Entering main loop.");
 
@@ -288,6 +292,10 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             }
         }
 
+        // XInput 攔截：layer 活躍時讓前景遊戲的 XInputGetState 回傳空狀態（避免 double-input）；
+        // 透過 shared-memory flag 即時切換，毋須重啟遊戲。注入只在前景遊戲改變時發生一次。
+        XInputGuard::Update(mouseModeActive, fgHwnd);
+
         // 自適應輪詢頻率
         if (viewPressed || viewWasPressed || menuPressed || menuWasPressed || mouseModeActive) {
             sleepMs = 8;        // 輸入偵測中 ~125Hz
@@ -362,6 +370,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     }
 
     // 清理資源（FSE 退出後 break 到此）
+    XInputGuard::Shutdown();
     ReleaseMutex(hMutex);
     CloseHandle(hMutex);
     Log(L"[PhantomKey] ended.");

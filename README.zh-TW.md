@@ -11,10 +11,10 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/8bit2qubit/OmniConsole/releases/latest"><img src="https://img.shields.io/github/v/release/8bit2qubit/OmniConsole?style=flat&color=blue" alt="最新版本"></a>
-<a href="https://github.com/8bit2qubit/OmniConsole/releases"><img src="https://img.shields.io/github/downloads/8bit2qubit/OmniConsole/total?style=flat" alt="總下載次數"></a>
+<a href="https://github.com/red-Geck0/OmniConsoleMod/releases/latest"><img src="https://img.shields.io/github/v/release/red-Geck0/OmniConsoleMod?style=flat&color=blue" alt="最新版本"></a>
+<a href="https://github.com/red-Geck0/OmniConsoleMod/releases"><img src="https://img.shields.io/github/downloads/red-Geck0/OmniConsoleMod/total?style=flat" alt="總下載次數"></a>
 <a href="#"><img src="https://img.shields.io/badge/tech-C%23%20%26%20C%2B%2B%20%7C%20.NET%208%20%7C%20WinUI%203-blueviolet.svg?style=flat" alt="技術堆疊"></a>
-<a href="https://github.com/8bit2qubit/OmniConsole/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20NC%201.0.0-blue?style=flat" alt="授權"></a>
+<a href="https://github.com/red-Geck0/OmniConsoleMod/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20NC%201.0.0-blue?style=flat" alt="授權"></a>
 </p>
 
 ## 💡 什麼是 OmniConsole？
@@ -64,7 +64,7 @@ OmniConsole 需要**完整掌機版**的 Xbox 模式 (FSE)。Microsoft 正逐步
 
 ### 1. 安裝 OmniConsole
 
-從[**發布頁面**](https://github.com/8bit2qubit/OmniConsole/releases/latest)下載最新版本。
+從[**發布頁面**](https://github.com/red-Geck0/OmniConsoleMod/releases/latest)下載最新版本。
 
 **方式 A：Install.bat（建議）**
 
@@ -146,7 +146,7 @@ OmniConsole 會在**首次啟動**或**應用程式更新後**彈出設定介面
 1.  **複製儲存庫**
 
     ```bash
-    git clone https://github.com/8bit2qubit/OmniConsole.git
+    git clone https://github.com/red-Geck0/OmniConsoleMod.git
     cd OmniConsole
     ```
 
@@ -162,11 +162,11 @@ OmniConsole 會在**首次啟動**或**應用程式更新後**彈出設定介面
 
 ## 🌟 星標歷史紀錄 (Star History)
 
-<a href="https://star-history.com/#8bit2qubit/OmniConsole&Date">
+<a href="https://star-history.com/#red-Geck0/OmniConsoleMod&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=8bit2qubit/OmniConsole&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=8bit2qubit/OmniConsole&type=Date" />
-    <img alt="星標歷史紀錄圖表" src="https://api.star-history.com/svg?repos=8bit2qubit/OmniConsole&type=Date" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=red-Geck0/OmniConsoleMod&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=red-Geck0/OmniConsoleMod&type=Date" />
+    <img alt="星標歷史紀錄圖表" src="https://api.star-history.com/svg?repos=red-Geck0/OmniConsoleMod&type=Date" />
   </picture>
 </a>
 
@@ -174,6 +174,6 @@ OmniConsole 會在**首次啟動**或**應用程式更新後**彈出設定介面
 
 ## 📄 授權
 
-OmniConsole 採用 [PolyForm Noncommercial License 1.0.0](https://github.com/8bit2qubit/OmniConsole/blob/main/LICENSE) 授權。
+OmniConsole 採用 [PolyForm Noncommercial License 1.0.0](https://github.com/red-Geck0/OmniConsoleMod/blob/main/LICENSE) 授權。
 
 在個人與非營利用途下，你可以自由使用、修改與散布 OmniConsole；衍生作須採同樣授權。完整條款請參閱 [PolyForm Noncommercial License 1.0.0 官方條款](https://polyformproject.org/licenses/noncommercial/1.0.0)。

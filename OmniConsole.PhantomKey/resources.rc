@@ -18,11 +18,11 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "CompanyName",      "8bit2qubit"
+            VALUE "CompanyName",      "red-Geck0"
             VALUE "FileDescription",  "OmniConsole Gamepad Input Mapper"
             VALUE "FileVersion",      VERSION_STR
             VALUE "InternalName",     "PhantomKey"
-            VALUE "LegalCopyright",   "Copyright (C) 2026 8bit2qubit"
+            VALUE "LegalCopyright",   "Copyright (C) 2026 red-Geck0"
             VALUE "OriginalFilename", "Steam.exe"
             VALUE "ProductName",      "OmniConsole"
             VALUE "ProductVersion",   VERSION_STR

@@ -9,7 +9,7 @@ namespace OmniConsole.PhantomLink.Services
 {
     /// <summary>
     /// 透過 PublisherCacheFolder 共用 INI 與主程式 / PhantomKey 交換設定。
-    /// 同 Publisher (CN=8bit2qubit) 的 MSIX 套件共用資料夾，於沙箱規格內共用設定。
+    /// 同 Publisher (CN=red-Geck0) 的 MSIX 套件共用資料夾，於沙箱規格內共用設定。
     /// </summary>
     internal static class PhantomKeyStore
     {

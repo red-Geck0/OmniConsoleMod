@@ -253,7 +253,7 @@ namespace OmniConsole.Controls
         /// <remarks>
         /// [UNUSED in this fork] 此 fork 將每列的 inline delete 按鈕從 XAML 中移除，改為
         /// 手把 X 鍵 / 清單頁底部 footer 提示鍵觸發 DeleteSelectedAsync()。
-        /// 保留此 handler 以維持與上游 (8bit2qubit/OmniConsole) 簽名一致，
+        /// 保留此 handler 以維持與上游 OmniConsole 簽名一致，
         /// 若上游恢復 inline delete 按鈕，此 handler 仍可直接連線。
         /// </remarks>
         private void DeleteItemButton_Click(object sender, RoutedEventArgs e)

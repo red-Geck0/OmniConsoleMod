@@ -10,11 +10,11 @@
 	IgnorableNamespaces="uap rescap">
 
 	<Identity
-		Name="b5fbce6b-2d7d-4da0-b419-4beb30e2b808"
-		Publisher="CN=8bit2qubit"
-		Version="2.5.4.0" />
+		Name="cc4eb8d7-a694-4b39-be86-edccdf890305"
+		Publisher="CN=red-Geck0"
+		Version="2.6.0.0" />
 
-	<mp:PhoneIdentity PhoneProductId="b5fbce6b-2d7d-4da0-b419-4beb30e2b808" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+	<mp:PhoneIdentity PhoneProductId="cc4eb8d7-a694-4b39-be86-edccdf890305" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
 	<Properties>
 		<DisplayName>OmniConsoleMod</DisplayName>

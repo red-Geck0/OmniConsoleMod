@@ -10,10 +10,33 @@ pengguna. Ubah di sini kalau mau ganti nama / author. Nama saat ini:
 > PENTING — JANGAN diubah saat rebranding (kalau diubah, update in-place rusak &
 > setting pengguna hilang):
 > - `<Identity Name=...>` di kedua `Package.appxmanifest`
-> - `Publisher="CN=8bit2qubit"` di kedua manifest (harus sama dengan subject
+> - `Publisher="CN=red-Geck0"` di kedua manifest (harus sama dengan subject
 >   sertifikat penandatangan)
-> - Sertifikat penandatangan (`.cer` / `.pfx`, `CN=8bit2qubit`)
+> - Sertifikat penandatangan (`.cer` / `.pfx`, `CN=red-Geck0`)
 > - JSON `"shell": "OmniConsole"` (ini fungsional, bukan teks tampilan)
+
+### Identitas paket (setelah pisah dari upstream)
+
+Fork ini memakai identitas sendiri, lepas penuh dari upstream `8bit2qubit`.
+Nilai konkret (menentukan update in-place & path folder shared setting):
+
+| Item | Nilai |
+|---|---|
+| Publisher | `CN=red-Geck0` |
+| Cert thumbprint (lokal di `Directory.Build.props`) | `CC77051FD762235A795F6C5F74788E03B6910498` |
+| Publisher hash (turunan dari Publisher) | `1dnwtebwr9ekg` |
+| Identity Name — main app | `cc4eb8d7-a694-4b39-be86-edccdf890305` |
+| Identity Name — widget | `7e76dfc4-2f28-431a-adee-dc76fdef9b57` |
+
+Package family name = `<Identity Name>_1dnwtebwr9ekg`, hardcoded di `PhantomKey.cpp`
+dan `UpdateCheckService.cs`. Kalau Publisher diganti lagi, hash WAJIB dihitung ulang
+(SHA-256 dari Publisher UTF-16LE → 8 byte pertama → base32 alfabet
+`0123456789abcdefghjkmnpqrstvwxyz`).
+
+> Referensi XFSET (path `C:\Program Files\8bit2qubit\...` + URL
+> `8bit2qubit/XboxFullScreenExperienceTool`) sengaja DIPERTAHANKAN — tool eksternal
+> nyata, bukan branding kita. LICENSE menyimpan "Required Notice" 8bit2qubit demi
+> kepatuhan PolyForm Noncommercial (ditambah baris fork red-Geck0).
 
 ---
 

@@ -80,7 +80,7 @@ const InputRule* FindRuleForForeground() {
 // ============================================================================
 //
 // [UNUSED in this fork] g_mouseModeTargets / IsMouseModeTarget 屬於上游
-// (8bit2qubit/OmniConsole) 的 Mouse Mode = Auto 白名單機制（限定特定 app
+// OmniConsole 的 Mouse Mode = Auto 白名單機制（限定特定 app
 // 啟用 mouse mode）。此 fork 改為「user-controlled per-app profile assignment」
 // 模型：Mouse Mode = On/Off，per-app 細節由 OmniCharm widget 指派 profile
 // 控制（assign "None" profile 等同該 app 停用）。
@@ -127,7 +127,7 @@ static const wchar_t* g_excludedPackagedAppTitles[] = {
 // （AUMID 形如 <PFN>!<AppId>，搜尋的目標子字串實質為 PFN）
 static const wchar_t* g_excludedPackagedAppPfnSubstrings[] = {
     L"Microsoft.WindowsStore",                      // Microsoft Store（packaged 但自跑 exe；保留硬擋避免使用者誤指派造成 Store 內遊戲手把導航衝突）
-    L"b5fbce6b-2d7d-4da0-b419-4beb30e2b808",        // OmniConsole 主程式自己
+    L"cc4eb8d7-a694-4b39-be86-edccdf890305",        // OmniConsole 主程式自己
 };
 
 // 大小寫不敏感的子字串搜尋；自寫實作（CRT 無 case-insensitive 版的 wcsstr）

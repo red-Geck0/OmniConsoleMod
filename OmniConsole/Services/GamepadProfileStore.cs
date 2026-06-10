@@ -100,7 +100,7 @@ namespace OmniConsole.Services
             "Microsoft.GamingApp",                      // Xbox App
             "B9ECED6F.ArmouryCrateSE",                  // Armoury Crate SE
             "Microsoft.WindowsStore",                   // Microsoft Store（避免使用者誤指派造成 Store 內手把導航衝突）
-            "b5fbce6b-2d7d-4da0-b419-4beb30e2b808",     // OmniConsole 主程式自己（packaged）
+            "cc4eb8d7-a694-4b39-be86-edccdf890305",     // OmniConsole 主程式自己（packaged）
         };
 
         // ── 內建 profile id 判定 ──────────────────────────────────────────────

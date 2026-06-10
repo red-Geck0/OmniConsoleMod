@@ -59,7 +59,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
 
     // 驗證 OmniConsole MSIX 套件是否已安裝
     {
-        const wchar_t* familyName = L"b5fbce6b-2d7d-4da0-b419-4beb30e2b808_n7gpkx2kypjte";
+        const wchar_t* familyName = L"cc4eb8d7-a694-4b39-be86-edccdf890305_1dnwtebwr9ekg";
         UINT32 count = 0, bufLen = 0;
         (void)FindPackagesByPackageFamily(familyName, PACKAGE_FILTER_HEAD, &count, NULL, &bufLen, NULL, NULL);
         if (count == 0) {

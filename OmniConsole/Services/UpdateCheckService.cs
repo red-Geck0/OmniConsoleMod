@@ -22,7 +22,7 @@ namespace OmniConsole.Services
         private const string GitHubApiUrl = "https://api.github.com/repos/red-Geck0/OmniConsoleMod/releases/latest";
         private const string ReleasePageUrl = "https://github.com/red-Geck0/OmniConsoleMod/releases/latest";
 
-        public const string PhantomLinkFamilyName = "4fa8e044-7ffa-4059-b034-e4111881d96e_n7gpkx2kypjte";
+        public const string PhantomLinkFamilyName = "7e76dfc4-2f28-431a-adee-dc76fdef9b57_1dnwtebwr9ekg";
 
         public static string ReleaseNotesUrl => ReleasePageUrl;
 

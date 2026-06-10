@@ -11,10 +11,10 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/8bit2qubit/OmniConsole/releases/latest"><img src="https://img.shields.io/github/v/release/8bit2qubit/OmniConsole?style=flat&color=blue" alt="Latest Release"></a>
-<a href="https://github.com/8bit2qubit/OmniConsole/releases"><img src="https://img.shields.io/github/downloads/8bit2qubit/OmniConsole/total?style=flat" alt="Total Downloads"></a>
+<a href="https://github.com/red-Geck0/OmniConsoleMod/releases/latest"><img src="https://img.shields.io/github/v/release/red-Geck0/OmniConsoleMod?style=flat&color=blue" alt="Latest Release"></a>
+<a href="https://github.com/red-Geck0/OmniConsoleMod/releases"><img src="https://img.shields.io/github/downloads/red-Geck0/OmniConsoleMod/total?style=flat" alt="Total Downloads"></a>
 <a href="#"><img src="https://img.shields.io/badge/tech-C%23%20%26%20C%2B%2B%20%7C%20.NET%208%20%7C%20WinUI%203-blueviolet.svg?style=flat" alt="Tech"></a>
-<a href="https://github.com/8bit2qubit/OmniConsole/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20NC%201.0.0-blue?style=flat" alt="License"></a>
+<a href="https://github.com/red-Geck0/OmniConsoleMod/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20NC%201.0.0-blue?style=flat" alt="License"></a>
 </p>
 
 ## 💡 What is OmniConsole?
@@ -64,7 +64,7 @@ OmniConsole requires the **Full Handheld edition** of Xbox Mode (FSE). Microsoft
 
 ### 1. Install OmniConsole
 
-Download the latest release from the [**Releases Page**](https://github.com/8bit2qubit/OmniConsole/releases/latest).
+Download the latest release from the [**Releases Page**](https://github.com/red-Geck0/OmniConsoleMod/releases/latest).
 
 **Option A: Install.bat (Recommended)**
 
@@ -146,7 +146,7 @@ If you run into issues caused by a Windows bug, such as Game Bar failing to open
 1.  **Clone the Repository**
 
     ```bash
-    git clone https://github.com/8bit2qubit/OmniConsole.git
+    git clone https://github.com/red-Geck0/OmniConsoleMod.git
     cd OmniConsole
     ```
 
@@ -162,11 +162,11 @@ If you run into issues caused by a Windows bug, such as Game Bar failing to open
 
 ## 🌟 Star History
 
-<a href="https://star-history.com/#8bit2qubit/OmniConsole&Date">
+<a href="https://star-history.com/#red-Geck0/OmniConsoleMod&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=8bit2qubit/OmniConsole&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=8bit2qubit/OmniConsole&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=8bit2qubit/OmniConsole&type=Date" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=red-Geck0/OmniConsoleMod&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=red-Geck0/OmniConsoleMod&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=red-Geck0/OmniConsoleMod&type=Date" />
   </picture>
 </a>
 
@@ -174,6 +174,6 @@ If you run into issues caused by a Windows bug, such as Game Bar failing to open
 
 ## 📄 License
 
-OmniConsole is licensed under the [PolyForm Noncommercial License 1.0.0](https://github.com/8bit2qubit/OmniConsole/blob/main/LICENSE).
+OmniConsole is licensed under the [PolyForm Noncommercial License 1.0.0](https://github.com/red-Geck0/OmniConsoleMod/blob/main/LICENSE).
 
 You are free to use, modify, and redistribute OmniConsole for personal and nonprofit use under the same license. For the full terms, see the [official PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0).

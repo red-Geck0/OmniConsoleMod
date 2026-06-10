@@ -10,7 +10,7 @@ namespace OmniConsole.Services
     /// 管理應用程式設定的持久化讀寫。
     /// UI 狀態儲存於 ApplicationData.Current.LocalSettings。
     /// PhantomKey / PhantomLink 共用的設定寫入 PublisherCacheFolder\OmniConsoleShared\Shared.ini，
-    /// 同 Publisher (CN=8bit2qubit) 的 MSIX 套件皆可共用。
+    /// 同 Publisher (CN=red-Geck0) 的 MSIX 套件皆可共用。
     /// </summary>
     public static class SettingsService
     {
@@ -639,7 +639,7 @@ namespace OmniConsole.Services
 
         // ─────────────────────────────────────────────────────────────────────
         // [UNUSED in this fork] MouseModeLayout / CursorSpeedPercent (below) are
-        // upstream (8bit2qubit/OmniConsole) global settings. This fork moved
+        // upstream OmniConsole global settings. This fork moved
         // both to per-profile values in GamepadProfiles.json (see
         // GamepadProfileEditor's Cursor Speed combo per profile; layout is
         // implicit per profile bindings). PhantomKey no longer reads

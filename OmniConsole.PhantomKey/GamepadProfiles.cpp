@@ -618,17 +618,33 @@ static bool IsForegroundFullscreen(HWND hwnd) {
            abs(wr.bottom - m.bottom) <= tol;
 }
 
+// 訊號 3：exe 位於知名遊戲啟動器的安裝目錄（純字串比對，cheap）。
+// 補強 reg=0 的非 Steam 登記遊戲（如 Steam/Epic/Xbox/GOG 安裝目錄內的遊戲）。
+static bool IsExeInGameLauncherDir(const std::wstring& fullPath) {
+    if (fullPath.empty()) return false;
+    std::wstring p; p.reserve(fullPath.size());
+    for (wchar_t c : fullPath) p.push_back((c >= L'A' && c <= L'Z') ? (wchar_t)(c + 32) : c);
+    static const wchar_t* kDirs[] = {
+        L"\\steamapps\\common\\",
+        L"\\epic games\\",
+        L"\\xboxgames\\",
+        L"\\gog galaxy\\games\\",
+    };
+    for (auto d : kDirs) if (p.find(d) != std::wstring::npos) return true;
+    return false;
+}
+
 bool IsForegroundLikelyGame(const std::wstring& fullPath, HWND fgHwnd) {
-    // 訊號 1：GameConfigStore 登記（以 fullPath 為鍵快取，僅路徑改變時掃 registry，避免每 tick I/O）
+    // 訊號 1+3：GameConfigStore 登記 或 遊戲啟動器目錄（皆以 fullPath 為鍵快取，僅路徑改變時重算）
     if (!fullPath.empty()) {
         static std::wstring cachedPath;
-        static bool         cachedReg = false;
+        static bool         cachedPathSig = false;
         std::wstring norm = NormalizePath(fullPath);
         if (norm != cachedPath) {
             cachedPath = norm;
-            cachedReg  = IsExeInGameConfigStore(fullPath);
+            cachedPathSig = IsExeInGameConfigStore(fullPath) || IsExeInGameLauncherDir(fullPath);
         }
-        if (cachedReg) return true;
+        if (cachedPathSig) return true;
     }
     // 訊號 2：borderless / exclusive 全螢幕（user32 查詢，cheap，每 tick 算亦可忽略）
     return IsForegroundFullscreen(fgHwnd);
@@ -638,7 +654,8 @@ const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& sto
                                                   const std::wstring& procName,
                                                   const std::wstring& fullPath,
                                                   HWND fgHwnd,
-                                                  bool* provisionalOut) {
+                                                  ResolveOutcome* outcomeOut) {
+    auto setOutcome = [&](ResolveOutcome o) { if (outcomeOut) *outcomeOut = o; };
     std::wstring assignedId;
     std::wstring aumid;  // 提到外層供 diag 填入
     const bool isAfh = (!procName.empty() &&
@@ -684,17 +701,25 @@ const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& sto
     // 此時不可靠：不該用全螢幕去猜「遊戲」（會把 OGL 之類已指派的 app 誤判成遊戲預設），
     // 也不該被呼叫端快取鎖定（須重試到 AUMID 出現）。
     const bool provisional = isAfh && aumid.empty();
-    if (provisionalOut) *provisionalOut = provisional;
 
-    // 命中 assignment → 用其 profile
-    if (const GamepadProfile* assigned = FindProfileById(store, assignedId))
+    // 命中 assignment → 用其 profile（即使 provisional 也算命中，但仍標記 Provisional 讓呼叫端重試）
+    if (const GamepadProfile* assigned = FindProfileById(store, assignedId)) {
+        setOutcome(provisional ? ResolveOutcome::Provisional : ResolveOutcome::Assigned);
         return assigned;
+    }
+    if (provisional) {
+        setOutcome(ResolveOutcome::Provisional);
+        return FindProfileById(store, store.defaultProfileId);
+    }
 
     // 未指派 → 依前景是否為遊戲挑預設：遊戲用 gameDefaultProfileId，否則 defaultProfileId。
-    // 但 provisional（AFH 身分未就緒）時跳過遊戲猜測，先給非遊戲預設（呼叫端不快取，會重試）。
-    if (!provisional && IsForegroundLikelyGame(fullPath, fgHwnd)) {
-        if (const GamepadProfile* g = FindProfileById(store, store.gameDefaultProfileId))
+    if (IsForegroundLikelyGame(fullPath, fgHwnd)) {
+        if (const GamepadProfile* g = FindProfileById(store, store.gameDefaultProfileId)) {
+            setOutcome(ResolveOutcome::GameDefault);
             return g;
+        }
     }
-    return FindProfileById(store, store.defaultProfileId);
+    const GamepadProfile* d = FindProfileById(store, store.defaultProfileId);
+    setOutcome(d ? ResolveOutcome::PlainDefault : ResolveOutcome::NoProfile);
+    return d;
 }

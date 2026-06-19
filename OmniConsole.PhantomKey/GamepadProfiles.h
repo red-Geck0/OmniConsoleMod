@@ -78,18 +78,23 @@ unsigned long long GetGamepadProfilesLastWriteTime();
 // 自跑 exe 的 packaged（Notepad / SnippingTool 等）回空字串
 std::wstring GetForegroundAumid(HWND hwnd);
 
+// 前景解析結果類型（供呼叫端決定是否「鎖定」快取）：
+//   Provisional  — 身分尚未就緒（AFH 宿主 AUMID 未解析）→ 不快取，重試。
+//   Assigned     — 命中 assignment → 可立即鎖定。
+//   GameDefault  — 未指派但判定為遊戲 → 可立即鎖定（sticky）。
+//   PlainDefault — 未指派且非遊戲 → 暫不鎖定；呼叫端可在限定時間內續查 game-guess。
+//   NoProfile    — 連 default 都找不到。
+enum class ResolveOutcome { Provisional, Assigned, GameDefault, PlainDefault, NoProfile };
+
 // 解析前景 App 應套用的 profile：先查 assignment；未命中時依前景是否為遊戲
 // 回 gameDefaultProfileId 或 defaultProfileId 的 profile。
 // store 內無對應 profile（含 default 都找不到）時回 nullptr。
-//
-// provisionalOut 非 null 時回傳「身分是否尚未就緒」：ApplicationFrameHost 宿主 UWP 剛成為
-// 前景時，其 AUMID（須列舉子視窗找 CoreWindow）可能還沒解析出 → 此時解析不可靠。
-// 為 true 時呼叫端不應快取結果，須於後續 tick 重試，直到 AUMID 出現才鎖定正確 profile。
+// outcomeOut 非 null 時回傳上述結果類型（含 Provisional）。
 const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& store,
                                                   const std::wstring& procName,
                                                   const std::wstring& fullPath,
                                                   HWND fgHwnd,
-                                                  bool* provisionalOut = nullptr);
+                                                  ResolveOutcome* outcomeOut = nullptr);
 
 // 判定前景 App 是否「可能是遊戲」，兩個訊號擇一命中即視為遊戲：
 //   1. 前景 exe 登記於 HKCU\System\GameConfigStore\Children（Windows GameDVR / Game Bar

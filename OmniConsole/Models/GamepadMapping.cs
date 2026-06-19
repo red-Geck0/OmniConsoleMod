@@ -189,6 +189,10 @@ namespace OmniConsole.Models
         public const string ClassicId = "classic";
         public const string GamingId = "gaming";
         public const string NoneId = "none";
+        // Apps / KeyboardOnly：非內建，僅於 first-run 種子（見 GamepadProfileStore.EnsureInitialized），
+        // 之後可被使用者永久刪除（不像內建會自我復原）。沿用既有 GUID 以維持與舊 store 相容。
+        public const string AppsId = "1bd3b4078abb4b77b50ce5d9db3e6b20";
+        public const string KeyboardOnlyId = "4b9b05e9c8e64b73b43ad8378bf54d45";
 
         // VK 常數
         private const int VK_RETURN = 0x0D;
@@ -200,6 +204,12 @@ namespace OmniConsole.Models
         private const int VK_UP = 0x26;
         private const int VK_RIGHT = 0x27;
         private const int VK_DOWN = 0x28;
+        private const int VK_BACK = 0x08;   // Backspace
+        private const int VK_HOME = 0x24;
+        private const int VK_END = 0x23;
+        private const int VK_INSERT = 0x2D;
+        private const int VK_C = 0x43;
+        private const int VK_R = 0x52;
 
         /// <summary>內建 OmniNav 配置（與 C++ MakeOmniNav() 逐鍵相同）。</summary>
         public static Dictionary<GamepadInputId, GamepadAction> OmniNav()
@@ -249,8 +259,64 @@ namespace OmniConsole.Models
             };
         }
 
+        /// <summary>內建 Gaming 配置。</summary>
+        public static Dictionary<GamepadInputId, GamepadAction> Gaming()
+        {
+            return new Dictionary<GamepadInputId, GamepadAction>
+            {
+                [GamepadInputId.A] = new GamepadAction { Kind = GamepadActionKind.MouseButton, Which = GamepadMouseWhich.Left },
+                [GamepadInputId.B] = new GamepadAction { Kind = GamepadActionKind.MouseButton, Which = GamepadMouseWhich.Right },
+                [GamepadInputId.X] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_BACK },
+                [GamepadInputId.Y] = new GamepadAction { Kind = GamepadActionKind.TouchKeyboard, Vkb = VkbMethod.Com },
+                [GamepadInputId.LB] = new GamepadAction { Kind = GamepadActionKind.KeyCombo, Vk = VK_INSERT, Mods = GamepadModifier.None },
+                [GamepadInputId.RB] = new GamepadAction { Kind = GamepadActionKind.KeyCombo, Vk = VK_C, Mods = GamepadModifier.Alt },
+                [GamepadInputId.LT] = new GamepadAction { Kind = GamepadActionKind.KeyCombo, Vk = VK_R, Mods = GamepadModifier.Alt },
+                [GamepadInputId.RT] = new GamepadAction { Kind = GamepadActionKind.KeyCombo, Vk = VK_R, Mods = GamepadModifier.Shift | GamepadModifier.Alt },
+                [GamepadInputId.RS] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_TAB },
+                [GamepadInputId.DPadUp] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_PRIOR },
+                [GamepadInputId.DPadDown] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_NEXT },
+                [GamepadInputId.DPadLeft] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_HOME },
+                [GamepadInputId.DPadRight] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_END },
+                [GamepadInputId.LStick] = new GamepadAction { Kind = GamepadActionKind.StickScroll },
+                [GamepadInputId.RStick] = new GamepadAction { Kind = GamepadActionKind.StickCursor },
+            };
+        }
+
+        /// <summary>內建 Apps 配置（與 OmniNav 相近，X=Backspace、Y=螢幕鍵盤）。</summary>
+        public static Dictionary<GamepadInputId, GamepadAction> Apps()
+        {
+            return new Dictionary<GamepadInputId, GamepadAction>
+            {
+                [GamepadInputId.A] = new GamepadAction { Kind = GamepadActionKind.MouseButton, Which = GamepadMouseWhich.Left },
+                [GamepadInputId.B] = new GamepadAction { Kind = GamepadActionKind.MouseButton, Which = GamepadMouseWhich.Right },
+                [GamepadInputId.X] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_BACK },
+                [GamepadInputId.Y] = new GamepadAction { Kind = GamepadActionKind.TouchKeyboard, Vkb = VkbMethod.Com },
+                [GamepadInputId.LB] = new GamepadAction { Kind = GamepadActionKind.KeyCombo, Vk = VK_TAB, Mods = GamepadModifier.Ctrl | GamepadModifier.Shift },
+                [GamepadInputId.RB] = new GamepadAction { Kind = GamepadActionKind.KeyCombo, Vk = VK_TAB, Mods = GamepadModifier.Ctrl },
+                [GamepadInputId.LT] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_ESCAPE },
+                [GamepadInputId.RT] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_RETURN },
+                [GamepadInputId.LS] = new GamepadAction { Kind = GamepadActionKind.KeyCombo, Vk = VK_TAB, Mods = GamepadModifier.Shift },
+                [GamepadInputId.RS] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_TAB },
+                [GamepadInputId.DPadUp] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_UP },
+                [GamepadInputId.DPadDown] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_DOWN },
+                [GamepadInputId.DPadLeft] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_LEFT },
+                [GamepadInputId.DPadRight] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = VK_RIGHT },
+                [GamepadInputId.LStick] = new GamepadAction { Kind = GamepadActionKind.StickCursor },
+                [GamepadInputId.RStick] = new GamepadAction { Kind = GamepadActionKind.StickScroll },
+            };
+        }
+
+        /// <summary>內建 KeyboardOnly 配置（只有 Y=螢幕鍵盤，其餘皆 None）。</summary>
+        public static Dictionary<GamepadInputId, GamepadAction> KeyboardOnly()
+        {
+            return new Dictionary<GamepadInputId, GamepadAction>
+            {
+                [GamepadInputId.Y] = new GamepadAction { Kind = GamepadActionKind.TouchKeyboard, Vkb = VkbMethod.Com },
+            };
+        }
+
         /// <summary>
-        /// 產生四份內建 profile（OmniNav / Classic / Gaming / None）。
+        /// 產生內建 profile（OmniNav / Classic / Gaming / None / Apps / KeyboardOnly）。
         /// first-run 種子與 reset-to-default 皆取自此；每次呼叫產生全新物件。
         /// None profile 有空映射，指派給 app 等同停用 mouse mode（黑名單效果）。
         /// </summary>
@@ -286,7 +352,7 @@ namespace OmniConsole.Models
                     Name = "Gaming",
                     IsBuiltIn = true,
                     IsReadOnly = false,
-                    CursorSpeedPercent = 100,
+                    CursorSpeedPercent = 75,
                     DpadAutoRepeat = true,
                     Layered = new ProfileLayered
                     {
@@ -294,7 +360,7 @@ namespace OmniConsole.Models
                         TriggerKey = GamepadInputId.RS,
                         ActivationMode = ProfileActivationMode.HoldRelease
                     },
-                    Bindings = OmniNav()
+                    Bindings = Gaming()
                 },
                 new GamepadProfile
                 {

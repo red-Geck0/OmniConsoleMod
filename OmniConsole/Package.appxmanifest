@@ -12,7 +12,7 @@
 	<Identity
 		Name="cc4eb8d7-a694-4b39-be86-edccdf890305"
 		Publisher="CN=red-Geck0"
-		Version="2.6.0.0" />
+		Version="2.6.1.0" />
 
 	<mp:PhoneIdentity PhoneProductId="cc4eb8d7-a694-4b39-be86-edccdf890305" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

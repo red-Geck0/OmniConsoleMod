@@ -133,10 +133,15 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     // GetApplicationUserModelId）與 ApplicationFrameHost 的 EnumChildWindows，昂貴。
     // 結果僅依前景 HWND（同視窗永屬同行程 → 同 profile），故以 HWND 為鍵快取。
     // 注意：cachedProfile 指向 profileStore 內部；profileStore 重載時必須失效（見下方 reload 區塊）。
-    // 以 HWND 為唯一鍵：同一視窗的「首次成功解析」結果即鎖定，整個視窗生命週期不再重算
-    // （游戲/非游戲判定只在首次認定，之後不因全螢幕切換等動態訊號而變動）。
+    // Sticky-upward：昂貴的 assignment 解析以 HWND 為鍵；但「非遊戲」判定不立即鎖死——
+    // 未指派且暫判非遊戲（PlainDefault）時，在 10 秒觀察窗內續查 game-guess（cheap），
+    // 讓 windowed→fullscreen-belakangan 的遊戲能被升級為 gameDefault。一旦判定為遊戲 /
+    // 命中 assignment / 超過 10 秒 → cacheHard 鎖定，之後直接用快取不再重算。
     HWND cachedProfileHwnd = nullptr;
     const GamepadProfile* cachedProfile = nullptr;
+    bool cacheHard = false;             // true = 已鎖定（assigned / game / 觀察逾時）
+    ULONGLONG profileWatchStartMs = 0;  // 此 HWND 開始觀察的時刻
+    const ULONGLONG kGameWatchMs = 10000; // 觀察窗上限：10 秒
 
     // 常駐主迴圈
     while (true) {
@@ -182,6 +187,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
                 // 前景身分已更新 → profile 解析快取失效，強制以新身分重解析
                 // （否則身分剛從空字串修復、但 (HWND,fullscreen) 鍵未變 → 仍回傳卡住的舊結果）
                 cachedProfileHwnd = nullptr;
+                cacheHard = false;
             }
         }
         std::wstring& currentFg = cachedFg;
@@ -232,6 +238,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
                 // profileStore 重新配置 → 舊的 cachedProfile 指標失效，清除快取
                 cachedProfileHwnd = nullptr;
                 cachedProfile = nullptr;
+                cacheHard = false;
                 {
                     std::vector<std::pair<std::wstring, std::wstring>> profileList;
                     for (const auto& p : profileStore.profiles) profileList.emplace_back(p.id, p.name);
@@ -267,24 +274,35 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             !config.hasBuiltInGamepadMapping &&
             !config.widgetActive &&
             !IsMouseModeForceExcluded(currentFg)) {
-            // 以前景 HWND 快取解析結果：同視窗免重做 AUMID 解析 / EnumChildWindows（每 tick 昂貴）。
-            // 首次成功解析即鎖定，視窗生命週期內不再重算（游戲/非游戲判定不隨後續狀態變動）。
-            // profileStore 重載或前景身分更新時 cachedProfileHwnd 已清為 nullptr（見上方），故不會回傳失效指標。
-            if (fgHwnd == cachedProfileHwnd) {
+            // Sticky-upward 快取：cacheHard 時直接用快取（assigned/game/逾時已鎖定）；
+            // 否則重解析。PlainDefault（未指派非遊戲）暫不鎖定，於 10 秒觀察窗內續查，
+            // 讓 windowed→fullscreen-belakangan 的遊戲能升級為 gameDefault。
+            if (fgHwnd == cachedProfileHwnd && cacheHard) {
                 activeProfile = cachedProfile;
             } else {
-                bool provisional = false;
-                activeProfile = ResolveProfileForForeground(profileStore, currentFg, currentFgPath, fgHwnd, &provisional);
-                // 只鎖定可靠（非 provisional）的解析。AFH 宿主 UWP 的 AUMID 尚未就緒時為 provisional →
-                // 不快取（cachedProfileHwnd 不更新）→ 下一 tick 重試，直到 AUMID 出現才鎖定正確 profile。
-                if (!provisional) {
-                    cachedProfileHwnd = fgHwnd;
+                ResolveOutcome oc = ResolveOutcome::PlainDefault;
+                activeProfile = ResolveProfileForForeground(profileStore, currentFg, currentFgPath, fgHwnd, &oc);
+                // AFH 宿主 AUMID 尚未就緒（Provisional）→ 不快取，下一 tick 重試。
+                if (oc != ResolveOutcome::Provisional) {
+                    if (fgHwnd != cachedProfileHwnd) {
+                        cachedProfileHwnd = fgHwnd;
+                        profileWatchStartMs = nowMs;   // 新視窗 → 重置觀察窗
+                    }
                     cachedProfile = activeProfile;
+                    // 鎖定條件：命中 assignment / 已判定遊戲 / 觀察逾時（10 秒仍非遊戲）。
+                    bool gameOrAssigned = (oc == ResolveOutcome::Assigned ||
+                                           oc == ResolveOutcome::GameDefault);
+                    bool watchExpired = (nowMs - profileWatchStartMs) >= kGameWatchMs;
+                    cacheHard = gameOrAssigned || watchExpired;
                 }
             }
-            if (activeProfile && !IsProfileEffectivelyEmpty(*activeProfile)) {
-                mouseModeActive = true;
+            if (activeProfile) {
+                // 一律回報已解析的 profile id（含空映射的 "None"），讓 Widget 能正確預選——
+                // 否則指派 None 的 app 不會更新 ActiveProfileId，Widget 會顯示舊 profile。
+                // Mouse Mode 仍只在非空 profile 時才真正啟用。
                 WriteActiveProfileId(activeProfile->id);
+                if (!IsProfileEffectivelyEmpty(*activeProfile))
+                    mouseModeActive = true;
             }
         }
 

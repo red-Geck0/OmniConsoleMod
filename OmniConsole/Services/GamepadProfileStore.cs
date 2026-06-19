@@ -178,12 +178,50 @@ namespace OmniConsole.Services
                 if (a.ProfileId == legacy) a.ProfileId = now;
         }
 
-        /// <summary>若 profile 檔尚不存在，以內建內容建立一份（讓 C++ 端有檔可讀）。</summary>
+        /// <summary>若 profile 檔尚不存在，以內建內容建立一份（讓 C++ 端有檔可讀）。
+        /// first-run 額外種子 Apps / KeyboardOnly 作為一般（可永久刪除）profile。</summary>
         public static void EnsureInitialized()
         {
             var path = ProfilesPath;
             if (string.IsNullOrEmpty(path)) return;
-            if (!File.Exists(path)) Save(Load());
+            if (!File.Exists(path))
+            {
+                var data = Load();
+                SeedStarterProfiles(data);
+                Save(data);
+            }
+        }
+
+        /// <summary>first-run 種子：加入 Apps / KeyboardOnly 作為一般 profile（IsBuiltIn=false）。
+        /// 非內建 → 不會自我復原，使用者可永久刪除。僅在初次建檔時呼叫。</summary>
+        private static void SeedStarterProfiles(GamepadProfileData data)
+        {
+            void AddIfMissing(GamepadProfile p)
+            {
+                if (!data.Profiles.Any(x => x.Id == p.Id)) data.Profiles.Add(p);
+            }
+            AddIfMissing(new GamepadProfile
+            {
+                Id = GamepadBuiltInLayouts.AppsId,
+                Name = "Apps",
+                IsBuiltIn = false,
+                IsReadOnly = false,
+                CursorSpeedPercent = 75,
+                DpadAutoRepeat = false,
+                Layered = new ProfileLayered { Enabled = false },
+                Bindings = GamepadBuiltInLayouts.Apps()
+            });
+            AddIfMissing(new GamepadProfile
+            {
+                Id = GamepadBuiltInLayouts.KeyboardOnlyId,
+                Name = "KeyboardOnly",
+                IsBuiltIn = false,
+                IsReadOnly = false,
+                CursorSpeedPercent = 100,
+                DpadAutoRepeat = false,
+                Layered = new ProfileLayered { Enabled = false },
+                Bindings = GamepadBuiltInLayouts.KeyboardOnly()
+            });
         }
 
         /// <summary>補齊／重新同步內建 profile，並讓內建排在清單前段。</summary>

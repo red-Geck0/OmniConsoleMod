@@ -7,9 +7,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("OmniConsole OmniCharm")]
 [assembly: AssemblyDescription("OmniConsole OmniCharm Game Bar Widget")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("8bit2qubit")]
+[assembly: AssemblyCompany("red-Geck0")]
 [assembly: AssemblyProduct("OmniConsole")]
-[assembly: AssemblyCopyright("Copyright (C) 2026 8bit2qubit")]
+[assembly: AssemblyCopyright("Copyright (C) 2026 red-Geck0")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

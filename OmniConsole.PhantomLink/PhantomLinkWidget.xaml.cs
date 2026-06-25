@@ -363,7 +363,7 @@ namespace OmniConsole.PhantomLink
                 blocked = aumid.IndexOf("Microsoft.GamingApp", StringComparison.OrdinalIgnoreCase) >= 0
                        || aumid.IndexOf("B9ECED6F.ArmouryCrateSE", StringComparison.OrdinalIgnoreCase) >= 0
                        || aumid.IndexOf("Microsoft.WindowsStore", StringComparison.OrdinalIgnoreCase) >= 0
-                       || aumid.IndexOf("b5fbce6b-2d7d-4da0-b419-4beb30e2b808", StringComparison.OrdinalIgnoreCase) >= 0;
+                       || aumid.IndexOf("cc4eb8d7-a694-4b39-be86-edccdf890305", StringComparison.OrdinalIgnoreCase) >= 0;
             }
 
             // packaged 優先用 aumid: 前綴，桌面 process 用 process: 前綴

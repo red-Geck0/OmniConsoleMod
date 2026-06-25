@@ -10,10 +10,10 @@ body:
       description: "Please check all boxes."
       options:
         - label: >-
-            I have **read the** [**README**](https://github.com/8bit2qubit/OmniConsole?tab=readme-ov-file#readme), including the **Prerequisites** and **Quick Start** sections.
+            I have **read the** [**README**](https://github.com/red-Geck0/OmniConsoleMod?tab=readme-ov-file#readme), including the **Prerequisites** and **Quick Start** sections.
           required: true
         - label: >-
-            I have searched the [**existing Issues**](https://github.com/8bit2qubit/OmniConsole/issues) to ensure my problem is not already reported.
+            I have searched the [**existing Issues**](https://github.com/red-Geck0/OmniConsoleMod/issues) to ensure my problem is not already reported.
           required: true
         - label: >-
             I understand this template is for **reproducible bugs only**. If this is a feature request, I am aware that the **source code is available** and I can build and implement it myself locally.

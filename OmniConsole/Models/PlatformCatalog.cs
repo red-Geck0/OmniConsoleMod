@@ -232,6 +232,27 @@ namespace OmniConsole.Models
                 ],
             },
 
+            // ── Shift Game Launcher ───────────────────────────────────────────
+            new()
+            {
+                Id = "ShiftGameLauncher",
+                DisplayNameKey = "Platform_ShiftGameLauncher",
+                IconAsset = "ms-appx:///Assets/Platforms/shift.png",
+                AvailabilityStrategy = new()
+                {
+                    Type = LaunchStrategyType.PackagedApp,
+                    PackageFamilyName = "HealthyBread.ShiftLauncher_w2r0zaqdfadz2",
+                },
+                LaunchStrategies =
+                [
+                    new()
+                    {
+                        Type = LaunchStrategyType.PackagedApp,
+                        PackageFamilyName = "HealthyBread.ShiftLauncher_w2r0zaqdfadz2",
+                    },
+                ],
+            },
+
             // ── 在此新增更多平台 ──────────────────────────────────────────────
             // new()
             // {

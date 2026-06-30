@@ -183,6 +183,9 @@
   <data name="Platform_MsiCenterM" xml:space="preserve">
     <value>MSI Center M</value>
   </data>
+  <data name="Platform_ShiftGameLauncher" xml:space="preserve">
+    <value>Shift Game Launcher</value>
+  </data>
   <data name="AppDisplayName" xml:space="preserve">
     <value>OmniConsoleMod</value>
   </data>

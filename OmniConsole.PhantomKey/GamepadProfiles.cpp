@@ -497,18 +497,26 @@ std::wstring GetForegroundAumid(HWND hwnd) {
 // 由 process handle 直接取 AUMID（涵蓋自跑 exe 的 packaged，例 Notepad / SnippingTool / WindowsTerminal）
 // 桌面 process 回 APPMODEL_ERROR_NO_PACKAGE，aumid 為空字串。
 // 對 ApplicationFrameHost.exe 自己呼會回 host 自己的 AUMID 而非宿主 UWP；由 FindGamepadProfileForForeground 上層特殊處理。
-static std::wstring GetAumidFromProcess(DWORD pid) {
-    if (pid == 0) return L"";
+// queryFailedOut（非 null 時）：true = 無法判定身分（pid 無效 / OpenProcess 被拒，常見於
+// elevated 行程或視窗剛出現的 race）；false = 成功判定（取得 AUMID，或確認為非 packaged Win32）。
+// 呼叫端用此區分「真的沒有 AUMID（Win32）」與「暫時讀不到（packaged 但被擋）」，後者視為 provisional。
+static std::wstring GetAumidFromProcess(DWORD pid, bool* queryFailedOut = nullptr) {
+    if (queryFailedOut) *queryFailedOut = false;
+    if (pid == 0) { if (queryFailedOut) *queryFailedOut = true; return L""; }
     HANDLE hp = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
-    if (hp == nullptr) return L"";
+    if (hp == nullptr) { if (queryFailedOut) *queryFailedOut = true; return L""; } // 被拒/transien → 身分不明
 
     UINT32 len = 0;
     LONG rc = GetApplicationUserModelId(hp, &len, nullptr);
-    if (rc != ERROR_INSUFFICIENT_BUFFER || len == 0) { CloseHandle(hp); return L""; }
+    if (rc != ERROR_INSUFFICIENT_BUFFER || len == 0) {
+        // 成功查詢但無 AUMID（APPMODEL_ERROR_NO_APPLICATION 等）→ 真正的 Win32 行程。
+        CloseHandle(hp);
+        return L"";
+    }
     std::wstring aumid(len, L'\0');
     rc = GetApplicationUserModelId(hp, &len, aumid.data());
     CloseHandle(hp);
-    if (rc != ERROR_SUCCESS) return L"";
+    if (rc != ERROR_SUCCESS) { if (queryFailedOut) *queryFailedOut = true; return L""; } // 第二次失敗 → transien
     while (!aumid.empty() && aumid.back() == L'\0') aumid.pop_back();
     return aumid;
 }
@@ -658,6 +666,7 @@ const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& sto
     auto setOutcome = [&](ResolveOutcome o) { if (outcomeOut) *outcomeOut = o; };
     std::wstring assignedId;
     std::wstring aumid;  // 提到外層供 diag 填入
+    bool aumidQueryFailed = false;  // true = 身分查不到（OpenProcess 被拒/transien），非「真 Win32」
     const bool isAfh = (!procName.empty() &&
                         _wcsicmp(procName.c_str(), L"ApplicationFrameHost") == 0);
 
@@ -671,7 +680,7 @@ const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& sto
             DWORD hostedPid = GetHostedUwpPid(fgHwnd);
             if (hostedPid != 0) aumidPid = hostedPid;
         }
-        aumid = GetAumidFromProcess(aumidPid);
+        aumid = GetAumidFromProcess(aumidPid, &aumidQueryFailed);
 
         if (!aumid.empty()) {
             // 取到 AUMID：只比 kind=Aumid 的 assignment，未命中不回退 process 名稱
@@ -697,17 +706,18 @@ const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& sto
         }
     }
 
-    // ApplicationFrameHost 宿主 UWP 但 AUMID 還沒解析出 → 身分尚未就緒（provisional）。
-    // 此時不可靠：不該用全螢幕去猜「遊戲」（會把 OGL 之類已指派的 app 誤判成遊戲預設），
-    // 也不該被呼叫端快取鎖定（須重試到 AUMID 出現）。
-    const bool provisional = isAfh && aumid.empty();
+    // 身分未明（identityUnknown）：AFH 宿主 UWP 的 AUMID 還沒就緒，或 OpenProcess 被拒/transien
+    // （elevated 行程、視窗剛出現的 race）導致無法判定 AUMID。兩者皆「不可靠」。
+    const bool identityUnknown = aumid.empty() && (isAfh || aumidQueryFailed);
 
-    // 命中 assignment → 用其 profile（即使 provisional 也算命中，但仍標記 Provisional 讓呼叫端重試）
+    // 命中 assignment → 一律可靠，直接鎖定（即使身分查詢曾失敗，process+path 命中即確定）。
     if (const GamepadProfile* assigned = FindProfileById(store, assignedId)) {
-        setOutcome(provisional ? ResolveOutcome::Provisional : ResolveOutcome::Assigned);
+        setOutcome(ResolveOutcome::Assigned);
         return assigned;
     }
-    if (provisional) {
+    // 未命中 assignment 且身分未明 → provisional：不可靠地用全螢幕猜遊戲（會把已指派但暫時
+    // 讀不到身分的 app 誤鎖成 Gaming），也不該被呼叫端快取鎖定 → 先給非遊戲預設，重試到身分明朗。
+    if (identityUnknown) {
         setOutcome(ResolveOutcome::Provisional);
         return FindProfileById(store, store.defaultProfileId);
     }

@@ -233,18 +233,24 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             unsigned long long curProfilesMTime = GetGamepadProfilesLastWriteTime();
             if (curProfilesMTime != lastProfilesMTime) {
                 Log(L"[PhantomKey] GamepadProfiles.json changed, reloading profiles.");
-                lastProfilesMTime = curProfilesMTime;
-                profileStore = LoadGamepadProfileStore();
-                // profileStore 重新配置 → 舊的 cachedProfile 指標失效，清除快取
-                cachedProfileHwnd = nullptr;
-                cachedProfile = nullptr;
-                cacheHard = false;
-                {
-                    std::vector<std::pair<std::wstring, std::wstring>> profileList;
-                    for (const auto& p : profileStore.profiles) profileList.emplace_back(p.id, p.name);
-                    WriteProfileList(profileList, profileStore.defaultProfileId);
+                GamepadProfileStore newStore = LoadGamepadProfileStore();
+                // 防止「檔案寫到一半」被讀到 → 解析失敗回空 store 會清掉所有 profile 造成
+                // 一瞬間 mapping 失效。store 永遠至少含內建 profile，故 empty 必為讀取失敗：
+                // 此時保留舊 store 且不更新 mtime → 下一 tick 重試（待寫入完成）。
+                if (!newStore.profiles.empty()) {
+                    lastProfilesMTime = curProfilesMTime;
+                    profileStore = std::move(newStore);
+                    // profileStore 重新配置 → 舊的 cachedProfile 指標失效，清除快取
+                    cachedProfileHwnd = nullptr;
+                    cachedProfile = nullptr;
+                    cacheHard = false;
+                    {
+                        std::vector<std::pair<std::wstring, std::wstring>> profileList;
+                        for (const auto& p : profileStore.profiles) profileList.emplace_back(p.id, p.name);
+                        WriteProfileList(profileList, profileStore.defaultProfileId);
+                    }
+                    MouseMode::Reset();
                 }
-                MouseMode::Reset();
             }
 
             // localconfig.vdf 被改寫（使用者在 SteamBigPicture 調整 overlay 快捷鍵或開關）→ 即時重讀 SteamConfig

@@ -101,6 +101,7 @@ namespace OmniConsole.Services
             "B9ECED6F.ArmouryCrateSE",                  // Armoury Crate SE
             "Microsoft.WindowsStore",                   // Microsoft Store（避免使用者誤指派造成 Store 內手把導航衝突）
             "cc4eb8d7-a694-4b39-be86-edccdf890305",     // OmniConsole 主程式自己（packaged）
+            "HealthyBread.ShiftLauncher",               // Shift Game Launcher（packaged 版）
         };
 
         // ── 內建 profile id 判定 ──────────────────────────────────────────────

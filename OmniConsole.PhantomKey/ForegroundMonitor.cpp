@@ -128,6 +128,7 @@ static const wchar_t* g_excludedPackagedAppTitles[] = {
 static const wchar_t* g_excludedPackagedAppPfnSubstrings[] = {
     L"Microsoft.WindowsStore",                      // Microsoft Store（packaged 但自跑 exe；保留硬擋避免使用者誤指派造成 Store 內遊戲手把導航衝突）
     L"cc4eb8d7-a694-4b39-be86-edccdf890305",        // OmniConsole 主程式自己
+    L"HealthyBread.ShiftLauncher",                  // Shift Game Launcher（packaged 版）
 };
 
 // 大小寫不敏感的子字串搜尋；自寫實作（CRT 無 case-insensitive 版的 wcsstr）

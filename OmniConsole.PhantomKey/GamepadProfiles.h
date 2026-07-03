@@ -74,8 +74,9 @@ GamepadProfileStore LoadGamepadProfileStore();
 // 回傳 GamepadProfiles.json 的最後寫入時間（FILETIME 壓成 uint64_t）；不存在回 0
 unsigned long long GetGamepadProfilesLastWriteTime();
 
-// 取前景視窗的 AUMID — 只對 ApplicationFrameHost 宿主的 UWP 有效；
-// 自跑 exe 的 packaged（Notepad / SnippingTool 等）回空字串
+// 取前景視窗的 AUMID：先試視窗屬性存放區（AFH 宿主 UWP），空則回退以前景行程直接取
+// （涵蓋自跑 exe 的 packaged app，例 Shift Game Launcher packaged 版 / Microsoft Store）。
+// 非 packaged 桌面 process 回空字串。
 std::wstring GetForegroundAumid(HWND hwnd);
 
 // 前景解析結果類型（供呼叫端決定是否「鎖定」快取）：

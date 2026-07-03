@@ -476,22 +476,30 @@ unsigned long long GetGamepadProfilesLastWriteTime() {
 
 // 取前景視窗的 AUMID — SHGetPropertyStoreForWindow + PKEY_AppUserModel_ID
 // 注意：只對 ApplicationFrameHost 宿主 UWP 有效；自跑 exe 的 packaged（Notepad / SnippingTool 等）回空字串
+static std::wstring GetAumidFromProcess(DWORD pid, bool* queryFailedOut);  // 前置宣告（定義見下方）
+
 std::wstring GetForegroundAumid(HWND hwnd) {
     if (!hwnd) return L"";
-    IPropertyStore* store = nullptr;
-    HRESULT hr = SHGetPropertyStoreForWindow(hwnd, IID_PPV_ARGS(&store));
-    if (FAILED(hr) || !store) return L"";
 
+    // 1. 視窗屬性存放區（AFH 宿主 UWP 及部分 packaged 視窗）
     std::wstring result;
-    PROPVARIANT pv;
-    PropVariantInit(&pv);
-    hr = store->GetValue(PKEY_AppUserModel_ID, &pv);
-    if (SUCCEEDED(hr) && pv.vt == VT_LPWSTR && pv.pwszVal) {
-        result = pv.pwszVal;
+    IPropertyStore* store = nullptr;
+    if (SUCCEEDED(SHGetPropertyStoreForWindow(hwnd, IID_PPV_ARGS(&store))) && store) {
+        PROPVARIANT pv;
+        PropVariantInit(&pv);
+        if (SUCCEEDED(store->GetValue(PKEY_AppUserModel_ID, &pv)) && pv.vt == VT_LPWSTR && pv.pwszVal)
+            result = pv.pwszVal;
+        PropVariantClear(&pv);
+        store->Release();
     }
-    PropVariantClear(&pv);
-    store->Release();
-    return result;
+    if (!result.empty()) return result;
+
+    // 2. 回退：以前景行程直接取 AUMID —— 涵蓋自跑 exe 的 packaged app（Shift Game Launcher
+    //    packaged 版、Microsoft Store 等），其視窗未必在 property store 暴露 AUMID。
+    //    非 packaged 桌面 process 仍回空字串。
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hwnd, &pid);
+    return GetAumidFromProcess(pid, nullptr);
 }
 
 // 由 process handle 直接取 AUMID（涵蓋自跑 exe 的 packaged，例 Notepad / SnippingTool / WindowsTerminal）

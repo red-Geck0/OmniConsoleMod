@@ -125,6 +125,15 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     HWND lastFgHwnd = nullptr;
     std::wstring cachedFg, cachedFgPath;
 
+    // 身分解析逾時：OpenProcess / QueryFullProcessImageName 短暫失敗屬正常（視窗剛出現時的
+    // race），故失敗時不更新 lastFgHwnd、下一 tick 重試（見下方偵測邏輯）。但若同一個新 HWND
+    // 持續解析失敗超過此時限（例如受保護行程長期無法查詢），代表身分「查不到」而非「暫時查不到」；
+    // 此時放棄沿用舊 HWND 的快取身分（否則會誤把已離開前景的舊 app 身分套用到新 app 上），
+    // 改提交「身分不明」（procName/fullPath 皆空），交由下游走一般未指派 app 的預設路徑。
+    HWND pendingFgHwnd = nullptr;
+    ULONGLONG pendingSinceMs = 0;
+    const ULONGLONG kIdentityUnknownTimeoutMs = 2000; // 逾時上限：2 秒
+
     // mtime 輪詢節流：輸入活躍時主迴圈跑 ~125Hz，但設定檔變更偵測不需這麼高頻。
     // 以時間為基準每 ~50ms 才 stat 一次三個檔案，砍掉活躍輸入時大量無謂的檔案系統查詢。
     ULONGLONG lastMtimeCheck = 0;
@@ -169,18 +178,15 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
 
         // 前景視窗 HWND（GetForegroundWindow 極輕量，回傳快取值）。
         HWND fgHwnd = GetForegroundWindow();
+        ULONGLONG nowMs = GetTickCount64();
 
         // 前景程式變化偵測 → 重新讀取設定 + 重設 Mouse Mode 狀態 + FSE 退出檢查
         // 僅在 HWND 改變時才重查行程名/路徑（避免每 tick OpenProcess + 字串配置）。
         if (fgHwnd != lastFgHwnd) {
             std::wstring fg, fgPath;
             GetForegroundProcessInfo(fg, fgPath);
-            // 只在查詢成功（取得行程名）時才更新快取並標記此 HWND 已處理。
-            // 視窗剛出現時 OpenProcess / QueryFullProcessImageName 可能短暫失敗回空字串；
-            // 若把空身分快取住，整個 session 都會用空身分解析 → assignment 比不中 →
-            // 落到全螢幕遊戲預設（Gaming）並卡住（已指派 profile 的 app 被自動換掉）。
-            // 失敗則不更新 lastFgHwnd，下一 tick 重試。
             if (!fg.empty()) {
+                // 查詢成功 → 提交新身分，清除逾時追蹤狀態。
                 lastFgHwnd    = fgHwnd;
                 cachedFg      = fg;
                 cachedFgPath  = fgPath;
@@ -188,7 +194,24 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
                 // （否則身分剛從空字串修復、但 (HWND,fullscreen) 鍵未變 → 仍回傳卡住的舊結果）
                 cachedProfileHwnd = nullptr;
                 cacheHard = false;
+                pendingFgHwnd = nullptr;
+            } else if (pendingFgHwnd != fgHwnd) {
+                // 這個新 HWND 首次查詢失敗：開始計時，暫不放棄舊快取（下一 tick 重試）。
+                pendingFgHwnd  = fgHwnd;
+                pendingSinceMs = nowMs;
+            } else if (nowMs - pendingSinceMs >= kIdentityUnknownTimeoutMs) {
+                // 同一 HWND 持續查詢失敗超過逾時 → 放棄沿用舊 app 快取身分，改提交「身分不明」
+                // （空字串），避免無限期誤套用已離開前景的舊 app 身分到目前這個新視窗。
+                Log(L"[PhantomKey] Identity query timed out (>%dms) for new foreground window; "
+                    L"treating as unknown (was [%s]).", (int)kIdentityUnknownTimeoutMs, cachedFg.c_str());
+                lastFgHwnd    = fgHwnd;
+                cachedFg.clear();
+                cachedFgPath.clear();
+                cachedProfileHwnd = nullptr;
+                cacheHard = false;
+                pendingFgHwnd = nullptr;
             }
+            // 否則：仍在逾時窗內，維持舊快取不變，下一 tick 重試。
         }
         std::wstring& currentFg = cachedFg;
         std::wstring& currentFgPath = cachedFgPath;
@@ -216,7 +239,6 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
 
         // 設定檔變更偵測（mtime 輪詢）：每 ~50ms 才 stat 一次三個檔案，避免活躍輸入時 ~125Hz 的無謂檔案系統查詢。
         // 設定變更為使用者操作觸發（非即時性需求），50ms 延遲偵測對體感無影響。
-        ULONGLONG nowMs = GetTickCount64();
         if (nowMs - lastMtimeCheck >= 50) {
             lastMtimeCheck = nowMs;
 

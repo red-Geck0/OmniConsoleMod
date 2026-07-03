@@ -1,3 +1,5 @@
+using Microsoft.UI.Xaml;
+
 namespace OmniConsole.Models
 {
     /// <summary>
@@ -26,5 +28,22 @@ namespace OmniConsole.Models
         /// 卡片透明度：已安裝為 1.0，未安裝為 0.2（視覺上呈現停用感）。
         /// </summary>
         public double CardOpacity => IsAvailable ? 1.0 : 0.2;
+
+        /// <summary>
+        /// 是否為使用者自訂平台（相對於系統內建平台）。系統/使用者平台合併於單一卡片網格後，
+        /// 右鍵匯出選單、X 編輯提示等原本「僅使用者索引標籤可用」的行為改依此旗標逐卡判定。
+        /// </summary>
+        public bool IsCustom { get; init; }
+
+        /// <summary>
+        /// 是否為卡片網格尾端固定的「新增自訂平台」動作卡（非真實平台，僅供觸發新增流程）。
+        /// </summary>
+        public bool IsAddNewCard { get; init; }
+
+        /// <summary>一般平台卡片內容（圖示 + 名稱）的可見度；為「新增」動作卡時隱藏。</summary>
+        public Visibility NormalCardVisibility => IsAddNewCard ? Visibility.Collapsed : Visibility.Visible;
+
+        /// <summary>「新增自訂平台」動作卡內容的可見度；一般平台卡片時隱藏。</summary>
+        public Visibility AddCardVisibility => IsAddNewCard ? Visibility.Visible : Visibility.Collapsed;
     }
 }

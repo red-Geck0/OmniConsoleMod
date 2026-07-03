@@ -45,9 +45,6 @@ namespace OmniConsole.Pages
         private List<PlatformCardItem> _cardItems = [];
         private string _selectedPlatformId = "";
 
-        // 目前顯示的平台分類索引標籤（System / User）
-        private string _currentCategoryTag = "System";
-
         // 目前顯示的設定導覽頁面（General / Advanced / Troubleshoot）
         private string _currentNavTag = "General";
 
@@ -253,18 +250,13 @@ namespace OmniConsole.Pages
             _currentNavTag = "General";
             VisualStateManager.GoToState(this, "General", false);
 
-            // 若目前選取的平台是使用者自訂的，自動切換到「使用者」索引標籤
-            var currentPlatform = SettingsService.GetDefaultPlatform();
-            bool isUserPlatform = PlatformCatalog.FindById(currentPlatform.Id) == null
-                && UserPlatformStore.FindById(currentPlatform.Id) != null;
-            _currentCategoryTag = isUserPlatform ? "User" : "System";
+            // 還原上次儲存的選取狀態；LoadPlatformCards 會依此還原 GridView 的選取項並捲入可視範圍
+            // （系統平台與使用者自訂平台合併於單一卡片網格，不再需要依平台歸屬切換索引標籤）。
+            _selectedPlatformId = SettingsService.GetDefaultPlatform().Id;
 
             // 初始化 NavigationView，預設選取第一個「一般」項目
             // 賦值觸發 SettingsNav_SelectionChanged → UpdateGamepadHints()，此時狀態已正確
             SettingsNav.SelectedItem = SettingsNav.MenuItems[0];
-            PlatformCategoryNav.SelectedItem = isUserPlatform
-                ? PlatformCategoryNav.MenuItems[1]
-                : PlatformCategoryNav.MenuItems[0];
             LoadPlatformCards();
 
             // 顯示版本號
@@ -272,16 +264,6 @@ namespace OmniConsole.Pages
 
             // FSE 不可用時反灰按鈕而非隱藏
             ResetGameBarButton.IsEnabled = FseService.CanActivate();
-
-            // 還原上次儲存的選取狀態
-            var current = SettingsService.GetDefaultPlatform();
-            _selectedPlatformId = current.Id;
-
-            var selectedCard = _cardItems.FirstOrDefault(c => c.Id == _selectedPlatformId);
-            if (selectedCard != null)
-            {
-                PlatformGridView.SelectedItem = selectedCard;
-            }
 
             UpdateSettingsDescription();
 
@@ -344,14 +326,13 @@ namespace OmniConsole.Pages
         // ── VSM 狀態輔助方法 ─────────────────────────────────────────────────────
 
         /// <summary>
-        /// 依目前導覽頁面、分類索引標籤及免責聲明同意狀態，更新底部手把提示列的按鍵圖示。
-        /// 應於 <see cref="_currentNavTag"/> 或 <see cref="_currentCategoryTag"/> 變更後呼叫。
+        /// 依目前導覽頁面更新底部手把提示列的按鍵圖示。應於 <see cref="_currentNavTag"/> 變更後呼叫。
         /// </summary>
         private void UpdateGamepadHints()
         {
             if (_currentNavTag == "GamepadMapping")
             {
-                // 先把 General 頁的 Y/X/LBRB 等 setter 清回基礎狀態，再套用編輯器/清單頁專屬手把提示列
+                // 先把 General 頁的 Y/X 等 setter 清回基礎狀態，再套用編輯器/清單頁專屬手把提示列
                 VisualStateManager.GoToState(this, "NonGeneralPage", false);
                 bool editor = IsGamepadMappingEditorVisible;
                 VisualStateManager.GoToState(this, editor ? "GamepadMappingEditorTab" : "GamepadMappingListTab", false);
@@ -378,15 +359,40 @@ namespace OmniConsole.Pages
             GamepadHintBSaveReturn.Visibility = Visibility.Collapsed;
             GamepadHintExit.Visibility = Visibility.Visible;
 
-            bool showYX = _currentCategoryTag == "User" && SettingsService.GetCustomPlatformConsentAccepted();
-            string state = showYX ? "UserTabWithConsent"
-                : _currentCategoryTag == "User" ? "UserTabNoConsent"
-                : "SystemTab";
-            VisualStateManager.GoToState(this, state, false);
+            // 系統/使用者平台合併於單一卡片網格，不再有索引標籤：
+            // Y（新增）一律可用（首次新增會先跳出免責聲明對話方塊）；
+            // X（編輯）依目前焦點卡片是否為自訂平台動態決定，見 UpdateEditHintVisibility；
+            // Menu（直接啟動）僅需 FSE 啟用中。
+            GamepadHintY.Visibility = Visibility.Visible;
+            UpdateEditHintVisibility();
+            GamepadHintMenu.Visibility = FseService.IsActive() ? Visibility.Visible : Visibility.Collapsed;
+        }
 
-            // Menu 提示不依賴 VSM 結果，直接根據條件計算：非 UserTabNoConsent 且在 FSE 中才顯示
-            GamepadHintMenu.Visibility = (state != "UserTabNoConsent" && FseService.IsActive())
-                ? Visibility.Visible : Visibility.Collapsed;
+        /// <summary>
+        /// 依目前焦點是否落在自訂平台卡片上，更新 X（編輯）手把提示的可見度。
+        /// 於 <see cref="UpdateGamepadHints"/> 及 PlatformGridView 的 GotFocus 事件呼叫。
+        /// </summary>
+        private void UpdateEditHintVisibility()
+        {
+            if (_currentNavTag != "General") return;
+            // UpdateGamepadHints 可能在 ShowSettings 初始化早期、頁面尚未加入視覺樹（XamlRoot 尚未建立）
+            // 時就被觸發（例如指定 SettingsNav.SelectedItem 觸發 SelectionChanged）；此時呼叫
+            // FocusManager.GetFocusedElement(null) 會拋出 ArgumentException（WinRT: xamlRoot），
+            // 故需先確認 XamlRoot 已就緒。
+            if (this.XamlRoot == null)
+            {
+                GamepadHintX.Visibility = Visibility.Collapsed;
+                return;
+            }
+            var focused = FocusManager.GetFocusedElement(this.XamlRoot);
+            bool isCustomFocused = focused is GridViewItem { Content: PlatformCardItem { IsCustom: true } };
+            GamepadHintX.Visibility = isCustomFocused ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>PlatformGridView 焦點變更（含子項 GridViewItem 焦點事件的冒泡）：即時更新 X 編輯提示。</summary>
+        private void PlatformGridView_GotFocus(object sender, RoutedEventArgs e)
+        {
+            UpdateEditHintVisibility();
         }
 
 
@@ -726,12 +732,14 @@ namespace OmniConsole.Pages
         /// </summary>
         private async Task LoadPlatformAvailabilityAsync()
         {
+            // 「新增自訂平台」動作卡非真實平台，排除於可用性查詢外（其 IsAvailable 恆保持預設值 true）。
+            var checkable = _cardItems.Where(c => !c.IsAddNewCard).ToList();
             bool[] available = await Task.WhenAll(
-                _cardItems.Select(c => ProcessLauncherService.CheckPlatformAvailableAsync(c.Platform)));
+                checkable.Select(c => ProcessLauncherService.CheckPlatformAvailableAsync(c.Platform)));
 
-            for (int i = 0; i < _cardItems.Count; i++)
+            for (int i = 0; i < checkable.Count; i++)
             {
-                _cardItems[i].IsAvailable = available[i];
+                checkable[i].IsAvailable = available[i];
             }
 
             // 若目前選取的平台已停用，先調整選取的 Id
@@ -766,40 +774,48 @@ namespace OmniConsole.Pages
 
         /// <summary>
         /// 處理 GridView 選取狀態變更。
-        /// 若選取的平台不可用，則還原至上一個有效選取。
+        /// 「新增自訂平台」動作卡：還原為前次選取並改觸發新增流程，不視為一般選取。
+        /// 不可用的平台：自訂平台允許選取（以便透過 X 編輯修正路徑）；系統平台若有其他可用選項則還原。
         /// </summary>
         private void PlatformGridView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (PlatformGridView.SelectedItem is PlatformCardItem selected)
-            {
-                if (!selected.IsAvailable)
-                {
-                    if (_currentCategoryTag == "User")
-                    {
-                        // 使用者索引標籤：允許選取不可用的平台（以便透過 X 編輯修正路徑），但不儲存為預設
-                        return;
-                    }
+            if (PlatformGridView.SelectedItem is not PlatformCardItem selected) return;
 
-                    // 系統索引標籤：若有其他可用平台，還原為上一個有效選取
-                    if (_cardItems.Any(c => c.IsAvailable))
-                    {
-                        var previous = _cardItems.FirstOrDefault(c => c.Id == _selectedPlatformId);
-                        PlatformGridView.SelectedItem = previous;
-                        return;
-                    }
-                    // 所有系統平台都不可用：允許選取（啟動時會顯示錯誤訊息）
+            if (selected.IsAddNewCard)
+            {
+                var previousForAdd = _cardItems.FirstOrDefault(c => c.Id == _selectedPlatformId);
+                PlatformGridView.SelectedItem = previousForAdd;
+                _ = TryAddCustomPlatformAsync();
+                return;
+            }
+
+            if (!selected.IsAvailable)
+            {
+                if (selected.IsCustom)
+                {
+                    // 自訂平台：允許選取不可用的平台（以便透過 X 編輯修正路徑），但不儲存為預設
+                    return;
                 }
 
-                _selectedPlatformId = selected.Id;
-
-                // 選取即儲存：先查系統平台，再查使用者平台
-                var platform = PlatformCatalog.FindById(_selectedPlatformId)
-                    ?? UserPlatformStore.FindById(_selectedPlatformId)
-                    ?? PlatformCatalog.All[0];
-                SettingsService.SetDefaultPlatform(platform);
-                SettingsService.SaveCurrentVersion();
-                UpdateSettingsDescription();
+                // 系統平台：若有其他可用平台，還原為上一個有效選取
+                if (_cardItems.Any(c => c.IsAvailable && !c.IsAddNewCard))
+                {
+                    var previous = _cardItems.FirstOrDefault(c => c.Id == _selectedPlatformId);
+                    PlatformGridView.SelectedItem = previous;
+                    return;
+                }
+                // 完全沒有可用平台：允許選取（啟動時會顯示錯誤訊息）
             }
+
+            _selectedPlatformId = selected.Id;
+
+            // 選取即儲存：先查系統平台，再查使用者平台
+            var platform = PlatformCatalog.FindById(_selectedPlatformId)
+                ?? UserPlatformStore.FindById(_selectedPlatformId)
+                ?? PlatformCatalog.All[0];
+            SettingsService.SetDefaultPlatform(platform);
+            SettingsService.SaveCurrentVersion();
+            UpdateSettingsDescription();
         }
 
         /// <summary>
@@ -813,16 +829,16 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// GridView 大小變更時，依可用寬度計算每張卡片的尺寸，使卡片填滿整列。
+        /// GridView 大小變更時，依可用寬度計算每張卡片的尺寸，使卡片固定填滿 4 欄。
+        /// 容器本身有 MaxWidth（見 SettingsPage.xaml）限制卡片不會在寬螢幕上過度放大；
+        /// 寬度不足時卡片等比縮小，欄數恆為 4（不再依寬度切換 2/3/4 欄）。
         /// </summary>
         private void PlatformGridView_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             if (PlatformGridView.ItemsPanelRoot is ItemsWrapGrid wrapGrid)
             {
                 double availableWidth = e.NewSize.Width;
-                // 根據可用寬度決定欄數
-                // ≥1100px → 4 欄, ≥700px → 3 欄, <700px → 2 欄
-                int columns = availableWidth >= 1100 ? 4 : availableWidth >= 700 ? 3 : 2;
+                const int columns = 4;
                 double itemWidth = Math.Floor(availableWidth / columns);
                 double remainder = availableWidth - itemWidth * columns;
                 // 非整除且餘數極小時 ItemsWrapGrid 因精度問題換行，減 1 迴避
@@ -955,111 +971,111 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// 使用者接受自訂平台免責聲明後，儲存同意狀態並載入自訂平台卡片。
-        /// </summary>
-        private void CustomConsentAcceptButton_Click(object sender, RoutedEventArgs e)
-        {
-            SettingsService.SetCustomPlatformConsentAccepted(true);
-            LoadPlatformCards();
-            UpdateGamepadHints();
-        }
-
-        // ── 平台分類索引標籤切換 ──────────────────────────────────────────────
-
-        /// <summary>
-        /// 處理分類 NavigationView（系統/使用者）的選項變更。
-        /// </summary>
-        private void PlatformCategoryNav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
-        {
-            if (args.SelectedItemContainer is NavigationViewItem item && item.Tag is string tag)
-            {
-                SwitchCategoryTab(tag);
-            }
-        }
-
-        /// <summary>
-        /// 切換至指定的分類索引標籤並重新載入卡片。
-        /// </summary>
-        private void SwitchCategoryTab(string tag)
-        {
-            if (_currentCategoryTag == tag) return;
-            _currentCategoryTag = tag;
-
-            // 同步 NavigationView 選取狀態（LB/RB 肩鍵觸發時需要）
-            foreach (NavigationViewItem navItem in PlatformCategoryNav.MenuItems.Cast<NavigationViewItem>())
-            {
-                if (navItem.Tag is string t && t == tag)
-                {
-                    PlatformCategoryNav.SelectedItem = navItem;
-                    break;
-                }
-            }
-
-            LoadPlatformCards();
-            UpdateGamepadHints();
-            // NavigationViewItem 預設無 Sound 觸發，補 Invoke 音；走 PlaySound 共用 50ms 去重表，
-            // 避免「手把 LB/RB → SwitchCategoryTab → PlatformCategoryNav.SelectedItem 賦值 → SelectionChanged → 再進 SwitchCategoryTab」連鎖播兩次
-            GamepadNavigationService.PlaySound(Microsoft.UI.Xaml.ElementSoundKind.Invoke);
-        }
-
-        /// <summary>
-        /// 根據目前分類索引標籤載入對應的平台卡片清單。
-        /// 使用者索引標籤需先通過免責聲明同意檢查。
+        /// 載入平台卡片清單：系統內建平台與使用者自訂平台合併於單一卡片網格（不再分索引標籤），
+        /// 尾端固定附加一張「新增自訂平台」動作卡。
         /// </summary>
         private void LoadPlatformCards()
         {
-            bool isUserTab = _currentCategoryTag == "User";
-            bool isConsented = SettingsService.GetCustomPlatformConsentAccepted();
+            var systemCards = PlatformCatalog.All
+                .Select(p => new PlatformCardItem
+                {
+                    Platform = p,
+                    DisplayName = ProcessLauncherService.GetPlatformDisplayName(p),
+                    IsCustom = false,
+                });
 
-            // 使用者索引標籤未同意時：顯示免責聲明，隱藏卡片和手把提示
-            VisualStateManager.GoToState(this, (isUserTab && !isConsented) ? "ConsentVisible" : "GridViewVisible", false);
+            var userCards = UserPlatformStore.GetAllDefinitions()
+                .Select(p => new PlatformCardItem
+                {
+                    Platform = p,
+                    DisplayName = UserPlatformStore.FindEntryById(p.Id)?.DisplayName ?? p.Id,
+                    IsCustom = true,
+                });
 
-            if (isUserTab)
+            var addNewCard = new PlatformCardItem
             {
-                // 使用者自訂平台
-                var userDefinitions = UserPlatformStore.GetAllDefinitions();
-                _cardItems = userDefinitions
-                    .Select(p => new PlatformCardItem
-                    {
-                        Platform = p,
-                        DisplayName = UserPlatformStore.FindEntryById(p.Id)?.DisplayName ?? p.Id,
-                    })
-                    .ToList();
-            }
-            else
-            {
-                // 系統內建平台
-                _cardItems = PlatformCatalog.All
-                    .Select(p => new PlatformCardItem
-                    {
-                        Platform = p,
-                        DisplayName = ProcessLauncherService.GetPlatformDisplayName(p),
-                    })
-                    .ToList();
-            }
+                Platform = new PlatformDefinition
+                {
+                    Id = "__add_new__",
+                    DisplayNameKey = "",
+                    // IconAsset 需為合法 URI（即使該 Image 因 NormalCardVisibility=Collapsed 不會顯示）：
+                    // x:Bind 仍會在容器實體化時將此值套用到 Image.Source，空字串會讓 new Uri("") 拋出
+                    // UriFormatException 導致整個 GridView（進而整個 Settings 頁）載入失敗。隨便指向一個
+                    // 保證存在的既有資源即可，畫面上看不到。
+                    IconAsset = "ms-appx:///Assets/Platforms/steam.png",
+                    LaunchStrategies = [],
+                    AvailabilityStrategy = new LaunchStrategy { Type = LaunchStrategyType.Executable },
+                },
+                DisplayName = "",
+                IsAddNewCard = true,
+            };
+
+            _cardItems = systemCards.Concat(userCards).Append(addNewCard).ToList();
 
             PlatformGridView.ItemsSource = _cardItems;
 
-            // 還原選取狀態
+            // 還原選取狀態並捲入可視範圍（合併清單可能超出單頁高度）
             var selectedCard = _cardItems.FirstOrDefault(c => c.Id == _selectedPlatformId);
             if (selectedCard != null)
             {
                 PlatformGridView.SelectedItem = selectedCard;
+                PlatformGridView.ScrollIntoView(selectedCard);
             }
 
             // 非同步查詢可用性
             _ = LoadPlatformAvailabilityAsync();
         }
 
+        // ── 自訂平台新增／匯入（含首次免責聲明） ─────────────────────────────────
+
+        /// <summary>
+        /// 觸發「新增自訂平台」流程：尚未接受免責聲明時先跳出同意對話方塊，
+        /// 接受後才開啟 <see cref="ShowPlatformEditDialogAsync"/>（新增模式）。
+        /// 取消／拒絕同意則整個流程中止，不開啟新增對話方塊。
+        /// </summary>
+        private async Task TryAddCustomPlatformAsync()
+        {
+            if (!SettingsService.GetCustomPlatformConsentAccepted())
+            {
+                bool accepted = await ShowCustomPlatformConsentDialogAsync();
+                if (!accepted) return;
+                SettingsService.SetCustomPlatformConsentAccepted(true);
+            }
+            await ShowPlatformEditDialogAsync(null);
+        }
+
+        /// <summary>
+        /// 顯示自訂平台功能免責聲明對話方塊，回傳使用者是否點選「我了解並接受」。
+        /// </summary>
+        private async Task<bool> ShowCustomPlatformConsentDialogAsync()
+        {
+            if (_isDialogOpen) return false;
+            _isDialogOpen = true;
+            try
+            {
+                var dialog = new CustomPlatformConsentDialog(this.XamlRoot, _resourceLoader);
+                StopGamepadPolling();
+                var result = await dialog.ShowAsync();
+                StartGamepadPolling();
+                return result == ContentDialogResult.Primary && dialog.Accepted;
+            }
+            finally
+            {
+                _isDialogOpen = false;
+            }
+        }
+
         // ── 平台匯出 / 匯入 ───────────────────────────────────────────────────
 
         /// <summary>
-        /// 卡片右鍵選單開啟前呼叫：非使用者索引標籤時直接關閉 flyout，不顯示選單。
+        /// 卡片右鍵選單開啟前呼叫：非自訂平台卡片（系統平台／新增動作卡）直接關閉 flyout，不顯示選單。
         /// </summary>
         private void CardContextMenu_Opening(object sender, object e)
         {
-            if (_currentCategoryTag != "User")
-                (sender as MenuFlyout)?.Hide();
+            var flyout = sender as MenuFlyout;
+            var card = (flyout?.Target as FrameworkElement)?.DataContext as PlatformCardItem;
+            if (card is not { IsCustom: true })
+                flyout?.Hide();
         }
 
         /// <summary>
@@ -1082,11 +1098,20 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// 使用者索引標籤右側「匯入」按鈕點選時，顯示 ImportPlatformDialog。
+        /// 「匯入」按鈕點選時，顯示 ImportPlatformDialog（尚未接受自訂平台免責聲明時先跳出同意對話方塊）。
         /// 驗證通過後寫入 UserPlatformStore 並重新載入卡片。
         /// </summary>
         private async void ImportPlatformButton_Click(object sender, RoutedEventArgs e)
         {
+            if (_isDialogOpen) return;
+
+            if (!SettingsService.GetCustomPlatformConsentAccepted())
+            {
+                bool accepted = await ShowCustomPlatformConsentDialogAsync();
+                if (!accepted) return;
+                SettingsService.SetCustomPlatformConsentAccepted(true);
+            }
+
             if (_isDialogOpen) return;
             _isDialogOpen = true;
 
@@ -1115,21 +1140,20 @@ namespace OmniConsole.Pages
         // ── 平台編輯對話方塊 ──────────────────────────────────────────────────
 
         /// <summary>
-        /// 底部提示列「Y 新增」按鈕的滑鼠點選處理。
+        /// 底部提示列「Y 新增」按鈕的滑鼠點選處理（一律可用，見 TryAddCustomPlatformAsync）。
         /// </summary>
         private void AddPlatformHintButton_Click(object sender, RoutedEventArgs e)
         {
-            _ = ShowPlatformEditDialogAsync(null);
+            _ = TryAddCustomPlatformAsync();
         }
 
         /// <summary>
         /// 底部提示列「X 編輯」按鈕的滑鼠點選處理。
-        /// 編輯目前 GridView 中選取的使用者平台。
+        /// 編輯目前 GridView 中選取的自訂平台。
         /// </summary>
         private void EditPlatformHintButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_currentCategoryTag != "User") return;
-            if (PlatformGridView.SelectedItem is PlatformCardItem card)
+            if (PlatformGridView.SelectedItem is PlatformCardItem { IsCustom: true } card)
             {
                 var entry = UserPlatformStore.FindEntryById(card.Id);
                 if (entry != null)
@@ -1233,23 +1257,14 @@ namespace OmniConsole.Pages
                 }
                 else if (result == ContentDialogResult.Secondary && isEdit && existingEntry != null)
                 {
-                    // 刪除平台：從 Store 移除後，視剩餘數量決定留在使用者索引標籤或切回系統索引標籤
+                    // 刪除平台：從 Store 移除後重新載入合併卡片清單。
                     UserPlatformStore.Delete(existingEntry.Id);
 
                     var remainingUser = UserPlatformStore.GetAllDefinitions();
-                    if (remainingUser.Count > 0)
-                    {
-                        // 使用者索引標籤仍有其他平台，留在使用者索引標籤並選取第一個
-                        _selectedPlatformId = remainingUser[0].Id;
-                        LoadPlatformCards();
-                    }
-                    else
-                    {
-                        // 使用者索引標籤已無平台，切換至系統索引標籤
-                        _selectedPlatformId = PlatformCatalog.All[0].Id;
-                        _currentCategoryTag = "";
-                        SwitchCategoryTab("System");
-                    }
+                    _selectedPlatformId = remainingUser.Count > 0
+                        ? remainingUser[0].Id
+                        : PlatformCatalog.All[0].Id;
+                    LoadPlatformCards();
                 }
             }
             finally
@@ -1269,13 +1284,14 @@ namespace OmniConsole.Pages
         {
             if (_gamepadNavigationService == null)
             {
+                // LB/RB 未綁定：平台卡片網格已合併系統/自訂平台，不再有索引標籤可切換。
                 _gamepadNavigationService = new GamepadNavigationService(
                     this.SettingsNav,
                     this.DispatcherQueue,
                     OnGamepadAButtonPressed,
                     OnGamepadBButtonPressed,
-                    OnGamepadLBPressed,
-                    OnGamepadRBPressed,
+                    onLBPressed: null,
+                    onRBPressed: null,
                     OnGamepadXButtonPressed,
                     OnGamepadYButtonPressed,
                     OnGamepadMenuButtonPressed,
@@ -1333,16 +1349,10 @@ namespace OmniConsole.Pages
 
             switch (focused)
             {
-                // 平台卡片：確認選取（不可用卡片不處理）
+                // 平台卡片：確認選取（不可用卡片不處理）。賦值 SelectedItem 會觸發
+                // PlatformGridView_SelectionChanged，由該處統一處理 _selectedPlatformId 與新增動作卡的分派。
                 case GridViewItem { Content: PlatformCardItem { IsAvailable: true } card }:
                     PlatformGridView.SelectedItem = card;
-                    _selectedPlatformId = card.Id;
-                    break;
-
-                // 分類索引標籤（系統 / 使用者）：透過 SwitchCategoryTab 統一切換
-                case NavigationViewItem navItem when PlatformCategoryNav.MenuItems.Contains(navItem):
-                    if (navItem.Tag is string categoryTag)
-                        SwitchCategoryTab(categoryTag);
                     break;
 
                 // 設定導覽項目（一般 / 進階 / 疑難排解）：選取頁面並收合側邊欄
@@ -1365,12 +1375,7 @@ namespace OmniConsole.Pages
                     ResetGameBarButton_Click(this, new RoutedEventArgs());
                     break;
 
-                // 自訂平台免責聲明接受按鈕：同意後解鎖使用者平台索引標籤
-                case Button btn when ReferenceEquals(btn, CustomConsentAcceptButton):
-                    CustomConsentAcceptButton_Click(this, new RoutedEventArgs());
-                    break;
-
-                // 匯入按鈕（使用者索引標籤可見時）：開啟匯入對話方塊
+                // 匯入按鈕：開啟匯入對話方塊（首次匯入會先跳出免責聲明）
                 case Button btn when ReferenceEquals(btn, ImportPlatformButton):
                     ImportPlatformButton_Click(this, new RoutedEventArgs());
                     break;
@@ -1458,27 +1463,7 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// 手把 LB 肩鍵：切換到上一個分類索引標籤。
-        /// </summary>
-        private void OnGamepadLBPressed()
-        {
-            if (_currentNavTag != "General") return;
-            if (_currentCategoryTag == "User")
-                SwitchCategoryTab("System");
-        }
-
-        /// <summary>
-        /// 手把 RB 肩鍵：切換到下一個分類索引標籤。
-        /// </summary>
-        private void OnGamepadRBPressed()
-        {
-            if (_currentNavTag != "General") return;
-            if (_currentCategoryTag == "System")
-                SwitchCategoryTab("User");
-        }
-
-        /// <summary>
-        /// 手把 Y 鍵：使用者索引標籤時觸發新增平台；Nekomata 清單頁將焦點 profile 設為預設。
+        /// 手把 Y 鍵：General 頁一律觸發新增自訂平台；GamepadMapping 清單頁將焦點 profile 設為預設。
         /// </summary>
         private void OnGamepadYButtonPressed()
         {
@@ -1490,24 +1475,20 @@ namespace OmniConsole.Pages
                 return;
             }
             if (_currentNavTag != "General") return;
-            if (_currentCategoryTag == "User" && SettingsService.GetCustomPlatformConsentAccepted())
-                _ = ShowPlatformEditDialogAsync(null);
+            _ = TryAddCustomPlatformAsync();
         }
 
         /// <summary>
-        /// 手把 X 鍵：使用者索引標籤時觸發編輯目前聚焦的平台。
+        /// 手把 X 鍵：觸發編輯目前聚焦的自訂平台（系統平台／新增動作卡無作用）。
         /// </summary>
         private void OnGamepadXButtonPressed()
         {
             // 手把映射分頁的 X 鍵 = 刪除（清單頁刪選中項；編輯器頁刪目前 profile）
             if (TryHandleGamepadMappingDeleteKey()) return;
             if (_currentNavTag != "General") return;
-            if (_currentCategoryTag != "User") return;
-            if (!SettingsService.GetCustomPlatformConsentAccepted()) return;
 
             var focused = FocusManager.GetFocusedElement(this.XamlRoot);
-            if (focused is GridViewItem gridViewItem &&
-                gridViewItem.Content is PlatformCardItem card)
+            if (focused is GridViewItem { Content: PlatformCardItem { IsCustom: true } card })
             {
                 var entry = UserPlatformStore.FindEntryById(card.Id);
                 if (entry != null)
@@ -1524,19 +1505,17 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// 手把 Menu（☰）鍵：直接啟動目前聚焦（或已選取）的平台，跳過手動 FSE 切換流程。
-        /// 僅在 FSE 模式中有效；自訂平台索引標籤需已接受同意聲明。
+        /// 手把 Menu（☰）鍵：直接啟動目前聚焦（或已選取）的平台，跳過手動 FSE 切換流程。僅在 FSE 模式中有效。
         /// 若焦點在可用的平台卡片上，先將其設為選取（同 A 鍵），再通知 MainWindow 啟動。
         /// </summary>
         private void OnGamepadMenuButtonPressed()
         {
             if (_currentNavTag != "General") return;
             if (!FseService.IsActive()) return;
-            if (_currentCategoryTag == "User" && !SettingsService.GetCustomPlatformConsentAccepted()) return;
 
-            // 若焦點在可用卡片上，先確認選取（更新預設平台）
+            // 若焦點在可用平台卡片上，先確認選取（更新預設平台）；「新增」動作卡不是可啟動的平台
             var focused = FocusManager.GetFocusedElement(this.XamlRoot);
-            if (focused is GridViewItem { Content: PlatformCardItem { IsAvailable: true } card })
+            if (focused is GridViewItem { Content: PlatformCardItem { IsAvailable: true, IsAddNewCard: false } card })
             {
                 PlatformGridView.SelectedItem = card;
                 _selectedPlatformId = card.Id;

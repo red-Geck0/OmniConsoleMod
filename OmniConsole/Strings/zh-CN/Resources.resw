@@ -349,17 +349,8 @@
   <data name="GamepadHint_OpenMenu.Text" xml:space="preserve">
     <value>打开菜单</value>
   </data>
-  <data name="Nav_SystemPlatforms.Content" xml:space="preserve">
-    <value>系统</value>
-  </data>
-  <data name="Nav_UserPlatforms.Content" xml:space="preserve">
-    <value>自定义</value>
-  </data>
   <data name="AddPlatformText.Text" xml:space="preserve">
     <value>添加</value>
-  </data>
-  <data name="GamepadHint_SwitchTab.Text" xml:space="preserve">
-    <value>切换选项卡</value>
   </data>
   <data name="GamepadHint_Add.Text" xml:space="preserve">
     <value>添加</value>
@@ -436,7 +427,10 @@
   <data name="PlatformDialog_ValidationArgsInvalid" xml:space="preserve">
     <value>启动参数包含不安全的字符。</value>
   </data>
-  <data name="CustomPlatform_ConsentTitle.Text" xml:space="preserve">
+  <data name="PlatformCard_AddCustom.Text" xml:space="preserve">
+    <value>添加自定义平台</value>
+  </data>
+  <data name="CustomPlatform_ConsentTitle" xml:space="preserve">
     <value>自定义平台支持（实验性功能）</value>
   </data>
   <data name="CustomPlatform_ConsentBody.Text" xml:space="preserve">
@@ -449,7 +443,7 @@
 
 点击“我了解并接受”即表示您已充分了解上述风险，并同意完全自行斟酌决定，承担使用此功能的一切责任与后果。</value>
   </data>
-  <data name="CustomPlatform_ConsentAccept.Content" xml:space="preserve">
+  <data name="CustomPlatform_ConsentAccept" xml:space="preserve">
     <value>我了解并接受</value>
   </data>
   <data name="PlatformDialog_ArgsLabel" xml:space="preserve">

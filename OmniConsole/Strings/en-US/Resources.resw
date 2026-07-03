@@ -349,17 +349,8 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   <data name="GamepadHint_OpenMenu.Text" xml:space="preserve">
     <value>Open Menu</value>
   </data>
-  <data name="Nav_SystemPlatforms.Content" xml:space="preserve">
-    <value>System</value>
-  </data>
-  <data name="Nav_UserPlatforms.Content" xml:space="preserve">
-    <value>Custom</value>
-  </data>
   <data name="AddPlatformText.Text" xml:space="preserve">
     <value>Add</value>
-  </data>
-  <data name="GamepadHint_SwitchTab.Text" xml:space="preserve">
-    <value>Switch tab</value>
   </data>
   <data name="GamepadHint_Add.Text" xml:space="preserve">
     <value>Add</value>
@@ -436,7 +427,10 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   <data name="PlatformDialog_ValidationArgsInvalid" xml:space="preserve">
     <value>Arguments contain potentially unsafe characters.</value>
   </data>
-  <data name="CustomPlatform_ConsentTitle.Text" xml:space="preserve">
+  <data name="PlatformCard_AddCustom.Text" xml:space="preserve">
+    <value>Add Custom Platform</value>
+  </data>
+  <data name="CustomPlatform_ConsentTitle" xml:space="preserve">
     <value>Custom Platform Support (Experimental)</value>
   </data>
   <data name="CustomPlatform_ConsentBody.Text" xml:space="preserve">
@@ -449,7 +443,7 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
 
 By clicking “I Understand and Accept”, you acknowledge these risks and agree to use this feature entirely at your own discretion and responsibility.</value>
   </data>
-  <data name="CustomPlatform_ConsentAccept.Content" xml:space="preserve">
+  <data name="CustomPlatform_ConsentAccept" xml:space="preserve">
     <value>I Understand and Accept</value>
   </data>
   <data name="PlatformDialog_ArgsLabel" xml:space="preserve">

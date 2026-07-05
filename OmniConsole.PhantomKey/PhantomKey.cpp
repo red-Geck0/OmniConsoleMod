@@ -82,8 +82,8 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     unsigned long long lastProfilesMTime = GetGamepadProfilesLastWriteTime();
     // 把 profile id+名稱清單同步到 Shared.ini，供 PhantomLink Widget 讀取
     {
-        std::vector<std::pair<std::wstring, std::wstring>> profileList;
-        for (const auto& p : profileStore.profiles) profileList.emplace_back(p.id, p.name);
+        std::vector<ProfileListEntry> profileList;
+        for (const auto& p : profileStore.profiles) profileList.push_back({ p.id, p.name, p.isReadOnly });
         WriteProfileList(profileList, profileStore.defaultProfileId);
     }
 
@@ -267,8 +267,8 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
                     cachedProfile = nullptr;
                     cacheHard = false;
                     {
-                        std::vector<std::pair<std::wstring, std::wstring>> profileList;
-                        for (const auto& p : profileStore.profiles) profileList.emplace_back(p.id, p.name);
+                        std::vector<ProfileListEntry> profileList;
+                        for (const auto& p : profileStore.profiles) profileList.push_back({ p.id, p.name, p.isReadOnly });
                         WriteProfileList(profileList, profileStore.defaultProfileId);
                     }
                     MouseMode::Reset();

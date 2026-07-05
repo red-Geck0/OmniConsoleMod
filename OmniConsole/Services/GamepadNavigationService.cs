@@ -341,6 +341,7 @@ namespace OmniConsole.Services
         private readonly Action? _onYButtonPressed;
         private readonly Action? _onMenuButtonPressed;
         private readonly Action? _onViewButtonPressed;
+        private readonly Action? _onNoFocusDetected;
 
         /// <summary>
         /// 初始化 <see cref="GamepadNavigationService"/> 類別的新執行個體。
@@ -355,7 +356,12 @@ namespace OmniConsole.Services
         /// <param name="onYButtonPressed">當按下手把 'Y' 鍵時觸發的委派動作（可選）。</param>
         /// <param name="onMenuButtonPressed">當按下手把 'Menu（☰）' 鍵時觸發的委派動作（可選）。</param>
         /// <param name="onViewButtonPressed">當按下手把 'View（⊞）' 鍵時觸發的委派動作（可選）。</param>
-        public GamepadNavigationService(UIElement searchRoot, DispatcherQueue dispatcherQueue, Action onAButtonPressed, Action? onBButtonPressed = null, Action? onLBPressed = null, Action? onRBPressed = null, Action? onXButtonPressed = null, Action? onYButtonPressed = null, Action? onMenuButtonPressed = null, Action? onViewButtonPressed = null)
+        /// <param name="onNoFocusDetected">
+        /// D-pad / 左類比搖桿嘗試移動焦點時，若當下完全沒有元件持有焦點就會呼叫此委派（可選）。
+        /// 呼叫方應趁機把焦點補到目前頁面/控制項的第一個可用元件（例如編輯器頁尚未成功設定初始焦點時）；
+        /// 這是自我修復用的最後防線，不管沒有焦點的確切成因為何都能救回，不需精準對症下藥。
+        /// </param>
+        public GamepadNavigationService(UIElement searchRoot, DispatcherQueue dispatcherQueue, Action onAButtonPressed, Action? onBButtonPressed = null, Action? onLBPressed = null, Action? onRBPressed = null, Action? onXButtonPressed = null, Action? onYButtonPressed = null, Action? onMenuButtonPressed = null, Action? onViewButtonPressed = null, Action? onNoFocusDetected = null)
         {
             _searchRoot = searchRoot;
             _onAButtonPressed = onAButtonPressed;
@@ -366,6 +372,7 @@ namespace OmniConsole.Services
             _onYButtonPressed = onYButtonPressed;
             _onMenuButtonPressed = onMenuButtonPressed;
             _onViewButtonPressed = onViewButtonPressed;
+            _onNoFocusDetected = onNoFocusDetected;
 
             _gamepadTimer = dispatcherQueue.CreateTimer();
             _gamepadTimer.Interval = TimeSpan.FromMilliseconds(33); // ~30 FPS（單按反應時間 ≤ 33ms 比 50ms 明顯靈敏）
@@ -704,6 +711,21 @@ namespace OmniConsole.Services
                 if (_activeComboBox != null)
                     return;
 
+                // 焦點落在「純內容容器」本身（例如 GamepadProfileEditor 的 EditorRoot ContentControl）、
+                // 而非其內部實際的互動控制項時，FocusManager.FindNextElement 從該處出發永遠找不到候選
+                // （D-pad 任何方向都卡死、只會播放「無法移動」音效）。這類容器不是使用者該停留的焦點
+                // 終點，即使技術上仍是 _searchRoot 的子系，也一律視為需要復原。用 exact-type 比對
+                // （非 is），避免誤傷 ComboBox / Button / ListViewItem 等實際繼承自 ContentControl
+                // 但本身就是合法互動目標的子類別。
+                if (focusedElement != null && focusedElement.GetType() == typeof(ContentControl))
+                {
+                    var restoreTarget = FocusManager.FindFirstFocusableElement(_searchRoot);
+                    DebugLogger.Log($"[GamepadNav] EnsureFocus: focused on bare ContentControl (dead end) → restoring to {restoreTarget?.GetType().Name ?? "null"}");
+                    if (restoreTarget is Control restoreControl)
+                        restoreControl.Focus(FocusState.Keyboard);
+                    return;
+                }
+
                 // 焦點在 _searchRoot 內 → 不干預
                 if (isDescendant)
                     return;
@@ -766,30 +788,53 @@ namespace OmniConsole.Services
                 }
 
                 var focused = FocusManager.GetFocusedElement(_searchRoot.XamlRoot);
+                DebugLogger.Log($"[GamepadNav] TryMoveGamepadFocus dir={direction} focusedBefore={(focused as FrameworkElement)?.Name ?? focused?.GetType().Name ?? "null"}");
+
+                // 完全沒有元件持有焦點 → 交給呼叫方的自我修復委派補焦點，成功後重新查一次目前焦點。
+                // 這樣不管沒有初始焦點的確切成因為何（版面時機、佇列優先序搶佔等）都能在使用者按下
+                // D-pad / 左類比搖桿的當下立刻救回，而不是每次都播「無法移動」音效卡住。
+                if (focused == null && _onNoFocusDetected != null)
+                {
+                    DebugLogger.Log("[GamepadNav] focused == null → invoking _onNoFocusDetected fallback");
+                    _onNoFocusDetected();
+                    focused = FocusManager.GetFocusedElement(_searchRoot.XamlRoot);
+                    DebugLogger.Log($"[GamepadNav] after fallback focused={(focused as FrameworkElement)?.Name ?? focused?.GetType().Name ?? "still null"}");
+                }
+                else if (focused == null)
+                {
+                    DebugLogger.Log("[GamepadNav] focused == null but _onNoFocusDetected is null (not wired)!");
+                }
+
                 if (focused is DependencyObject dep && IsDescendantOf(_searchRoot, dep))
                 {
                     // 焦點在 SearchRoot 內 → 先預查候選目標
                     var options = new FindNextElementOptions { SearchRoot = _searchRoot };
                     var candidate = FocusManager.FindNextElement(direction, options);
+                    DebugLogger.Log($"[GamepadNav] focused is inside searchRoot, candidate={(candidate as FrameworkElement)?.Name ?? candidate?.GetType().Name ?? "null"}");
 
                     // 撞牆防護：候選目標不是可互動控制項或無候選 → 播撞牆音、不移動焦點
-                    if (candidate is Control c && !c.IsTabStop) { PlaySound(ElementSoundKind.GoBack); return; }
-                    if (candidate == null) { PlaySound(ElementSoundKind.GoBack); return; }
+                    if (candidate is Control c && !c.IsTabStop) { DebugLogger.Log("[GamepadNav] candidate not IsTabStop, blocked"); PlaySound(ElementSoundKind.GoBack); return; }
+                    if (candidate == null) { DebugLogger.Log("[GamepadNav] candidate null, blocked"); PlaySound(ElementSoundKind.GoBack); return; }
 
                     _ = FocusManager.TryMoveFocusAsync(direction, options);
                     PlaySound(ElementSoundKind.Focus);
                 }
                 else
                 {
-                    // 焦點在 SearchRoot 外（如下拉選單 Popup）→ 自由導航，讓 Popup 內項目可移動
+                    // 焦點在 SearchRoot 外（如下拉選單 Popup，或完全沒有焦點）→ 自由導航
+                    DebugLogger.Log("[GamepadNav] focused is null or outside searchRoot, falling back to unscoped TryMoveFocus");
                     if (FocusManager.TryMoveFocus(direction))
                         PlaySound(ElementSoundKind.Focus);
                     else
+                    {
+                        DebugLogger.Log("[GamepadNav] unscoped TryMoveFocus also failed, playing blocked sound");
                         PlaySound(ElementSoundKind.GoBack);
+                    }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                DebugLogger.Log($"[GamepadNav] TryMoveGamepadFocus EXCEPTION: {ex}");
                 try { FocusManager.TryMoveFocus(direction); } catch { }
             }
         }

@@ -731,6 +731,26 @@ namespace OmniConsole.Services
         }
 
         /// <summary>
+        /// 取得是否啟用除錯日誌（DebugLogger）。預設 false——每次寫入都是同步檔案 I/O，
+        /// 手把導覽等高頻路徑（EnsureFocus 等）每秒可能觸發數十次，預設關閉以避免影響操作反應速度。
+        /// </summary>
+        public static bool GetEnableDebugLogging()
+        {
+            var settings = ApplicationData.Current.LocalSettings;
+            if (settings.Values.TryGetValue("EnableDebugLogging", out object? value) && value is bool enabled)
+                return enabled;
+            return false;
+        }
+
+        /// <summary>
+        /// 儲存是否啟用除錯日誌（DebugLogger）。
+        /// </summary>
+        public static void SetEnableDebugLogging(bool enabled)
+        {
+            ApplicationData.Current.LocalSettings.Values["EnableDebugLogging"] = enabled;
+        }
+
+        /// <summary>
         /// 偵測裝置是否內建廠商手把映射軟體（與 Mouse Mode 衝突需停用）。
         /// 目前清單僅包含 ROG Ally 家族（Armoury Crate SE）；未來可擴充其他掌機。
         /// HKLM 讀取不受 MSIX 虛擬化影響。

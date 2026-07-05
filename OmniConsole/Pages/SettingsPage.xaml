@@ -262,32 +262,19 @@
 
                         <StackPanel Grid.Row="0" HorizontalAlignment="Center" Spacing="8" Margin="0,0,0,16">
                             <TextBlock x:Uid="SettingsTitle" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center"/>
-                            <TextBlock x:Name="SettingsDescription" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="18" TextAlignment="Center"/>
+                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="18" TextAlignment="Center">
+                                <Run x:Name="SettingsDescriptionPrefix"/><Run x:Name="SettingsDescriptionPlatformName" FontWeight="Bold"/>
+                            </TextBlock>
                         </StackPanel>
 
                         <!-- 平台卡片區：系統平台與使用者自訂平台合併於單一卡片網格（不再分索引標籤）。
                              容器寬度上限 1100，使卡片固定 4 欄並隨可用寬度等比縮放（見 PlatformGridView_SizeChanged），
                              而非依寬度切換欄數。 -->
                         <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Stretch" MaxWidth="1100">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-
-                            <!-- 匯入按鈕：一律可見；首次匯入會先跳出自訂平台免責聲明對話方塊 -->
-                            <Button x:Name="ImportPlatformButton"
-                                    x:Uid="ImportPlatformButton"
-                                    Grid.Row="0"
-                                    HorizontalAlignment="Right"
-                                    Margin="0,0,0,8"
-                                    Click="ImportPlatformButton_Click"
-                                    Background="Transparent"
-                                    BorderBrush="Transparent"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-
-                            <!-- 平台選擇卡片網格：固定 4 欄，卡片尺寸依可用寬度縮放，垂直捲動 -->
+                            <!-- 平台選擇卡片網格：固定 4 欄，卡片尺寸依可用寬度縮放，垂直捲動。
+                                 匯入改由底部提示列 Y 鍵觸發（見 GamepadHintY），不再需要獨立的匯入按鈕；
+                                 新增自訂平台則由網格尾端的「+」動作卡觸發，故此處不再有頁首列。 -->
                             <GridView x:Name="PlatformGridView"
-                                      Grid.Row="1"
                                       SelectionMode="Single"
                                       SingleSelectionFollowsFocus="False"
                                       HorizontalAlignment="Stretch"
@@ -327,8 +314,11 @@
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="GridViewItem">
                                                     <Grid x:Name="RootGrid">
-                                                        <!-- 選取/懸停背景（圓角） -->
-                                                        <Border x:Name="BackgroundBorder" CornerRadius="14" Background="Transparent"/>
+                                                        <!-- 選取/懸停背景（圓角）。選取態改用 BorderBrush 描邊（非填滿），
+                                                             避免顏色透過卡片 8px Margin 的空隙外溢造成過粗的視覺邊框。
+                                                             Thickness=4，比手把/鍵盤焦點白框（3px）略粗一點以便區分。 -->
+                                                        <Border x:Name="BackgroundBorder" CornerRadius="14" Background="Transparent"
+                                                                BorderThickness="4" BorderBrush="Transparent"/>
                                                         <!-- 手把/鍵盤焦點白框（圓角） -->
                                                         <Border x:Name="FocusBorder" CornerRadius="14" BorderThickness="3" BorderBrush="Transparent"/>
                                                         <ContentPresenter x:Name="ContentPresenter"
@@ -350,17 +340,17 @@
                                                                 </VisualState>
                                                                 <VisualState x:Name="Selected">
                                                                     <VisualState.Setters>
-                                                                        <Setter Target="BackgroundBorder.Background" Value="{ThemeResource GridViewItemBackgroundSelected}"/>
+                                                                        <Setter Target="BackgroundBorder.BorderBrush" Value="{ThemeResource GridViewItemBackgroundSelected}"/>
                                                                     </VisualState.Setters>
                                                                 </VisualState>
                                                                 <VisualState x:Name="PointerOverSelected">
                                                                     <VisualState.Setters>
-                                                                        <Setter Target="BackgroundBorder.Background" Value="{ThemeResource GridViewItemBackgroundSelectedPointerOver}"/>
+                                                                        <Setter Target="BackgroundBorder.BorderBrush" Value="{ThemeResource GridViewItemBackgroundSelectedPointerOver}"/>
                                                                     </VisualState.Setters>
                                                                 </VisualState>
                                                                 <VisualState x:Name="PressedSelected">
                                                                     <VisualState.Setters>
-                                                                        <Setter Target="BackgroundBorder.Background" Value="{ThemeResource GridViewItemBackgroundSelectedPressed}"/>
+                                                                        <Setter Target="BackgroundBorder.BorderBrush" Value="{ThemeResource GridViewItemBackgroundSelectedPressed}"/>
                                                                     </VisualState.Setters>
                                                                 </VisualState>
                                                             </VisualStateGroup>
@@ -644,6 +634,64 @@
                                                   Toggled="NavigationSoundsSwitch_Toggled"
                                                   FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 疑難排解／除錯分類標題 -->
+                        <TextBlock x:Uid="AdvancedSection_Diagnostics" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Margin="2,0,0,0"/>
+
+                        <!-- 除錯日誌群組卡片 -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                HorizontalAlignment="Stretch"
+                                MinWidth="700">
+                            <StackPanel>
+                                <!-- 啟用除錯日誌開關 -->
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE9D9;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="DebugLoggingSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="DebugLoggingSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                    </StackPanel>
+
+                                    <ToggleSwitch x:Name="DebugLoggingSwitch"
+                                                  Toggled="DebugLoggingSwitch_Toggled"
+                                                  FlowDirection="RightToLeft"
+                                                  Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
+                                </Grid>
+
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+
+                                <!-- 開啟記錄檔資料夾 -->
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE838;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="OpenLogFolderSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="OpenLogFolderSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                    </StackPanel>
+
+                                    <Button x:Name="OpenLogFolderButton" x:Uid="OpenLogFolderButton"
+                                            Click="OpenLogFolderButton_Click"
+                                            Grid.Column="2" VerticalAlignment="Center"/>
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -1064,9 +1112,10 @@
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            VerticalAlignment="Center"/>
             </StackPanel>
-            <!-- Y 鍵新增提示（General 頁一律顯示，滑鼠可點選；首次新增會先跳出免責聲明對話方塊） -->
+            <!-- Y 鍵匯入提示（General 頁一律顯示，滑鼠可點選；首次匯入會先跳出免責聲明對話方塊）。
+                 新增自訂平台改由網格尾端的「+」動作卡觸發，Y 鍵不再需要肩負新增職責。 -->
             <Button x:Name="GamepadHintY" Visibility="Collapsed"
-                    Click="AddPlatformHintButton_Click"
+                    Click="ImportHintButton_Click"
                     Background="Transparent" BorderBrush="Transparent"
                     Padding="0" MinWidth="0" MinHeight="0"
                     IsTabStop="False">
@@ -1074,7 +1123,7 @@
                     <FontIcon Glyph="&#xF095;" FontSize="22"
                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                               VerticalAlignment="Center"/>
-                    <TextBlock x:Uid="GamepadHint_Add" FontSize="14"
+                    <TextBlock x:Uid="GamepadHint_Import" FontSize="14"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>

@@ -139,13 +139,13 @@ namespace OmniConsole.PhantomLink.Services
         // ── 公開 API：手把映射 profile 清單 ─────────────────────────────────
 
         /// <summary>
-        /// 讀取手把映射 profile 清單（id + 名稱）。
-        /// 來源：PhantomKey 解析 GamepadProfiles.json 後寫入 [Profiles] Count / IdN / NameN。
+        /// 讀取手把映射 profile 清單（id + 名稱 + 是否唯讀）。
+        /// 來源：PhantomKey 解析 GamepadProfiles.json 後寫入 [Profiles] Count / IdN / NameN / ReadOnlyN。
         /// 缺失或解析失敗回空清單。
         /// </summary>
-        public static List<(string Id, string Name)> GetProfileList()
+        public static List<(string Id, string Name, bool IsReadOnly)> GetProfileList()
         {
-            var result = new List<(string, string)>();
+            var result = new List<(string, string, bool)>();
             var s = Read("Profiles", "Count", "0");
             if (!int.TryParse(s, out int count) || count <= 0) return result;
             if (count > 256) count = 256;  // 防呆上限
@@ -154,7 +154,8 @@ namespace OmniConsole.PhantomLink.Services
                 string id = Read("Profiles", "Id" + i, string.Empty);
                 if (string.IsNullOrEmpty(id)) continue;
                 string name = Read("Profiles", "Name" + i, id);
-                result.Add((id, name));
+                bool isReadOnly = Read("Profiles", "ReadOnly" + i, "0") == "1";
+                result.Add((id, name, isReadOnly));
             }
             return result;
         }

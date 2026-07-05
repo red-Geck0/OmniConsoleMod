@@ -352,8 +352,8 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   <data name="AddPlatformText.Text" xml:space="preserve">
     <value>Add</value>
   </data>
-  <data name="GamepadHint_Add.Text" xml:space="preserve">
-    <value>Add</value>
+  <data name="GamepadHint_Import.Text" xml:space="preserve">
+    <value>Import</value>
   </data>
   <data name="GamepadHint_Edit.Text" xml:space="preserve">
     <value>Edit</value>
@@ -502,9 +502,6 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   </data>
   <data name="CardMenu_Export.Text" xml:space="preserve">
     <value>Export</value>
-  </data>
-  <data name="ImportPlatformButton.Content" xml:space="preserve">
-    <value>Import</value>
   </data>
   <data name="ImportPlatformDialog_Title" xml:space="preserve">
     <value>Import Platform</value>
@@ -1375,5 +1372,23 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   </data>
   <data name="NavigationSoundsSetting_Description.Text" xml:space="preserve">
     <value>Play sounds when navigating.</value>
+  </data>
+  <data name="AdvancedSection_Diagnostics.Text" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
+  <data name="DebugLoggingSetting_Title.Text" xml:space="preserve">
+    <value>Enable Debug Logging</value>
+  </data>
+  <data name="DebugLoggingSetting_Description.Text" xml:space="preserve">
+    <value>Records detailed operation logs to help diagnose issues. Off by default.</value>
+  </data>
+  <data name="OpenLogFolderSetting_Title.Text" xml:space="preserve">
+    <value>Log Folder</value>
+  </data>
+  <data name="OpenLogFolderSetting_Description.Text" xml:space="preserve">
+    <value>Open the folder containing the debug log file.</value>
+  </data>
+  <data name="OpenLogFolderButton.Content" xml:space="preserve">
+    <value>Open Folder</value>
   </data>
 </root>

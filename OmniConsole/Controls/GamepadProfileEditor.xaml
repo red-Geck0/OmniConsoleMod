@@ -18,8 +18,11 @@
                        TextWrapping="Wrap"
                        Visibility="Collapsed"/>
 
-            <!-- 可編輯區：唯讀 profile 時整區 IsEnabled=false（ContentControl 才有 IsEnabled） -->
-            <ContentControl x:Name="EditorRoot" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <!-- 可編輯區：唯讀 profile 時整區 IsEnabled=false（ContentControl 才有 IsEnabled）。
+                 IsTabStop=False：純內容容器，本身不該是焦點終點 —— ContentControl 預設 IsTabStop=True，
+                 會被 FocusManager.FindFirstFocusableElement / XYFocus 優先當成候選而卡在這裡，
+                 使其下方真正的互動控制項（NameBox/CursorSpeedCombo 等）永遠拿不到焦點。 -->
+            <ContentControl x:Name="EditorRoot" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" IsTabStop="False">
             <StackPanel Spacing="16">
 
                 <!-- 頁首：profile 名稱 -->

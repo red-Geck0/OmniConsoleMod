@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.Windows.ApplicationModel.Resources;
 using OmniConsole.Dialogs;
 using OmniConsole.Models;
@@ -140,15 +141,20 @@ namespace OmniConsole.Pages
         /// <summary>切到編輯器：載入目標 profile（profileId 為 null 則新建）→ 切 VSM → 更新提示按鈕 → 把焦點移到編輯器首個控制項。</summary>
         private void OpenEditorFor(string? profileId)
         {
+            DebugLogger.Log($"[SettingsPage] OpenEditorFor(profileId={profileId ?? "null"}) called");
             try
             {
                 GamepadProfileEditor.Load(profileId);
                 VisualStateManager.GoToState(this, "GamepadMappingEditorVisible", false);
                 UpdateGamepadHints();
-                // 以 Low 優先序排入佇列，確保 VSM 切換與版面配置完成後再設定焦點；
-                // 沒有起始焦點時 D-pad / XY 導航無法在編輯器內推進。
-                DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
-                    () => GamepadProfileEditor.FocusFirstControl());
+                // 直接同步呼叫，不透過 DispatcherQueue.TryEnqueue(Low, ...) 排隊：
+                // GamepadNavigationService 的手把輪詢計時器（33ms 間隔、Normal 優先序）在此時已經
+                // 在跑（見 SettingsPage.ShowSettings 的 StartGamepadPolling），會持續佔用佇列，
+                // 導致 Low 優先序的項目永遠排不到、FocusFirstControl 根本沒被執行到，
+                // 造成編輯器完全沒有起始焦點、D-pad 一直播放「無法移動」音效。
+                // FocusFirstControl 內部本身已有 Loaded 事件 + CompositionTarget.Rendering 重試機制
+                // 處理版面尚未就緒的情況，不需要靠 DispatcherQueue 優先序來延後執行。
+                GamepadProfileEditor.FocusFirstControl();
             }
             catch
             {
@@ -284,6 +290,7 @@ namespace OmniConsole.Pages
 
             // 還原導覽音效開關狀態
             NavigationSoundsSwitch.IsOn = SettingsService.GetEnableNavigationSounds();
+            DebugLoggingSwitch.IsOn = SettingsService.GetEnableDebugLogging();
 
             // Game Bar 媒體櫃 / Passthrough 開關 UI 暫時隱藏（見 SettingsPage.xaml 註解），強制走 SettingsService 預設值。
             //
@@ -336,6 +343,7 @@ namespace OmniConsole.Pages
                 VisualStateManager.GoToState(this, "NonGeneralPage", false);
                 bool editor = IsGamepadMappingEditorVisible;
                 VisualStateManager.GoToState(this, editor ? "GamepadMappingEditorTab" : "GamepadMappingListTab", false);
+                GamepadHintY.Visibility = Visibility.Collapsed;
                 GamepadHintMenu.Visibility = Visibility.Collapsed;
                 GamepadHintXDelete.Visibility = (editor ? GamepadProfileEditor.CanDelete : GamepadProfileList.HasItems)
                     ? Visibility.Visible : Visibility.Collapsed;
@@ -345,6 +353,7 @@ namespace OmniConsole.Pages
             if (_currentNavTag != "General")
             {
                 VisualStateManager.GoToState(this, "NonGeneralPage", false);
+                GamepadHintY.Visibility = Visibility.Collapsed;
                 GamepadHintMenu.Visibility = Visibility.Collapsed;
                 // 還原映射頁可能留下的特殊提示按鈕（離開時要藏回去；Exit 要顯示）
                 GamepadHintXDelete.Visibility = Visibility.Collapsed;
@@ -426,10 +435,28 @@ namespace OmniConsole.Pages
                 }
 
                 // 切換頁面後把焦點移到該頁首個控制項，避免焦點滯留在側邊選單。
-                // 以 Low 優先序排入佇列，確保新頁面已完成版面配置後才設定焦點。
-                DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
-                    () => FocusFirstElementForPage(tag));
+                // 不用 DispatcherQueue.TryEnqueue(Low, ...) 排隊：GamepadNavigationService 的手把輪詢
+                // 計時器（Normal 優先序、33ms 間隔）此時通常已在跑，會持續佔用佇列，讓 Low 優先序
+                // 項目遲遲排不到、焦點設定永遠沒機會執行。改掛 CompositionTarget.Rendering 逐影格重試。
+                StartFocusRetryLoop(tag);
             }
+        }
+
+        /// <summary>
+        /// 掛 CompositionTarget.Rendering，重複呼叫 FocusFirstElementForPage 數個影格（Focus() 呼叫本身
+        /// 是幂等的，重複呼叫無副作用），確保容器尚未 realize 的情況下最終仍能拿到焦點；逾時 1 秒後解除掛勾。
+        /// </summary>
+        private void StartFocusRetryLoop(string tag)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(1);
+            EventHandler<object>? onRendering = null;
+            onRendering = (s, e) =>
+            {
+                FocusFirstElementForPage(tag);
+                if (DateTime.UtcNow >= deadline)
+                    CompositionTarget.Rendering -= onRendering;
+            };
+            CompositionTarget.Rendering += onRendering;
         }
 
         /// <summary>切換設定頁後，把控制器焦點移到該頁的首個控制項。</summary>
@@ -825,7 +852,11 @@ namespace OmniConsole.Pages
         {
             var platform = SettingsService.GetDefaultPlatform();
             var name = ProcessLauncherService.GetPlatformDisplayName(platform);
-            SettingsDescription.Text = string.Format(_resourceLoader.GetString("SettingsDescription"), name);
+            // 拆成前綴 + 平台名稱兩個 Run，平台名稱套粗體。三語系版本 "{0}" 皆位於字串尾端。
+            string template = _resourceLoader.GetString("SettingsDescription");
+            int idx = template.IndexOf("{0}", StringComparison.Ordinal);
+            SettingsDescriptionPrefix.Text = idx >= 0 ? template.Substring(0, idx) : template;
+            SettingsDescriptionPlatformName.Text = name;
         }
 
         /// <summary>
@@ -932,6 +963,29 @@ namespace OmniConsole.Pages
                 enabled
                     ? Microsoft.UI.Xaml.ElementSoundPlayerState.On
                     : Microsoft.UI.Xaml.ElementSoundPlayerState.Off;
+        }
+
+        /// <summary>
+        /// 除錯日誌 ToggleSwitch 切換時立即儲存。關閉時 DebugLogger.Log 完全不做檔案 I/O，
+        /// 不影響手把導覽等高頻路徑的反應速度。
+        /// </summary>
+        private void DebugLoggingSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            SettingsService.SetEnableDebugLogging(DebugLoggingSwitch.IsOn);
+        }
+
+        /// <summary>開啟除錯記錄檔所在資料夾（File Explorer）。找不到資料夾時靜默略過。</summary>
+        private async void OpenLogFolderButton_Click(object sender, RoutedEventArgs e)
+        {
+            var path = DebugLogger.GetLogFolderPath();
+            if (string.IsNullOrEmpty(path)) return;
+            try
+            {
+                System.IO.Directory.CreateDirectory(path);
+                var folder = await StorageFolder.GetFolderFromPathAsync(path);
+                await Windows.System.Launcher.LaunchFolderAsync(folder);
+            }
+            catch { }
         }
 
         // [MOVED] 反灰邏輯隨 Mouse Mode 開關移至 OmniNav 頁（GamepadProfileListView.SyncMouseMode）。
@@ -1101,7 +1155,7 @@ namespace OmniConsole.Pages
         /// 「匯入」按鈕點選時，顯示 ImportPlatformDialog（尚未接受自訂平台免責聲明時先跳出同意對話方塊）。
         /// 驗證通過後寫入 UserPlatformStore 並重新載入卡片。
         /// </summary>
-        private async void ImportPlatformButton_Click(object sender, RoutedEventArgs e)
+        private async void ImportHintButton_Click(object sender, RoutedEventArgs e)
         {
             if (_isDialogOpen) return;
 
@@ -1138,14 +1192,6 @@ namespace OmniConsole.Pages
         }
 
         // ── 平台編輯對話方塊 ──────────────────────────────────────────────────
-
-        /// <summary>
-        /// 底部提示列「Y 新增」按鈕的滑鼠點選處理（一律可用，見 TryAddCustomPlatformAsync）。
-        /// </summary>
-        private void AddPlatformHintButton_Click(object sender, RoutedEventArgs e)
-        {
-            _ = TryAddCustomPlatformAsync();
-        }
 
         /// <summary>
         /// 底部提示列「X 編輯」按鈕的滑鼠點選處理。
@@ -1282,6 +1328,7 @@ namespace OmniConsole.Pages
         /// </summary>
         public void StartGamepadPolling()
         {
+            DebugLogger.Log($"[SettingsPage] StartGamepadPolling() called, serviceAlreadyExists={_gamepadNavigationService != null}");
             if (_gamepadNavigationService == null)
             {
                 // LB/RB 未綁定：平台卡片網格已合併系統/自訂平台，不再有索引標籤可切換。
@@ -1295,10 +1342,29 @@ namespace OmniConsole.Pages
                     OnGamepadXButtonPressed,
                     OnGamepadYButtonPressed,
                     OnGamepadMenuButtonPressed,
-                    OnGamepadViewButtonPressed
+                    OnGamepadViewButtonPressed,
+                    onNoFocusDetected: OnGamepadNoFocusDetected
                 );
             }
             _gamepadNavigationService.Start();
+        }
+
+        /// <summary>
+        /// GamepadNavigationService 偵測到「按下 D-pad / 左類比搖桿當下完全沒有元件持有焦點」時呼叫。
+        /// 自我修復用最後防線：不管沒有初始焦點的確切成因為何，直接依目前分頁補上第一個可用控制項的焦點。
+        /// </summary>
+        private void OnGamepadNoFocusDetected()
+        {
+            DebugLogger.Log($"[SettingsPage] OnGamepadNoFocusDetected() called, _currentNavTag={_currentNavTag}, IsGamepadMappingEditorVisible={IsGamepadMappingEditorVisible}");
+            if (_currentNavTag == "GamepadMapping")
+            {
+                if (IsGamepadMappingEditorVisible) GamepadProfileEditor.FocusFirstControl();
+                else GamepadProfileList.FocusList();
+            }
+            else
+            {
+                FocusFirstElementForPage(_currentNavTag);
+            }
         }
 
         /// <summary>
@@ -1373,11 +1439,6 @@ namespace OmniConsole.Pages
                 // 重設 Game Bar 按鈕：觸發殺行程並重新啟動 FSE 的備援流程
                 case Button btn when ReferenceEquals(btn, ResetGameBarButton):
                     ResetGameBarButton_Click(this, new RoutedEventArgs());
-                    break;
-
-                // 匯入按鈕：開啟匯入對話方塊（首次匯入會先跳出免責聲明）
-                case Button btn when ReferenceEquals(btn, ImportPlatformButton):
-                    ImportPlatformButton_Click(this, new RoutedEventArgs());
                     break;
 
                 // PhantomKey 手把輸入開關 — 已移除（FSE 常駐），保留註解以利復原
@@ -1463,7 +1524,7 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// 手把 Y 鍵：General 頁一律觸發新增自訂平台；GamepadMapping 清單頁將焦點 profile 設為預設。
+        /// 手把 Y 鍵：General 頁一律觸發匯入自訂平台；GamepadMapping 清單頁將焦點 profile 設為預設。
         /// </summary>
         private void OnGamepadYButtonPressed()
         {
@@ -1475,7 +1536,7 @@ namespace OmniConsole.Pages
                 return;
             }
             if (_currentNavTag != "General") return;
-            _ = TryAddCustomPlatformAsync();
+            ImportHintButton_Click(this, new RoutedEventArgs());
         }
 
         /// <summary>

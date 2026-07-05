@@ -80,7 +80,7 @@ void WriteSteamInGameOverlayShortcut(const std::wstring& shortcut) {
 // ── 手把映射 profile 清單寫入 ──────────────────────────────────────────────
 //
 // 靜態快取比對：清單未變則不寫，避免無謂 I/O 與 mtime 變動。
-void WriteProfileList(const std::vector<std::pair<std::wstring, std::wstring>>& profiles,
+void WriteProfileList(const std::vector<ProfileListEntry>& profiles,
                       const std::wstring& defaultProfileId) {
     auto path = GetSharedIniPath();
     if (path.empty()) return;
@@ -88,25 +88,28 @@ void WriteProfileList(const std::vector<std::pair<std::wstring, std::wstring>>& 
     static std::wstring lastSig;
     std::wstring sig;
     for (const auto& p : profiles) {
-        sig += p.first;  sig += L'\x01';
-        sig += p.second; sig += L'\x02';
+        sig += p.id;   sig += L'\x01';
+        sig += p.name; sig += L'\x02';
+        sig += (p.isReadOnly ? L'1' : L'0'); sig += L'\x04';
     }
     sig += L'\x03';
     sig += defaultProfileId;
     if (sig == lastSig) return;
     lastSig = sig;
 
-    // 先清整個 [Profiles] section（清掉上次殘留的 IdN/NameN），再重寫
+    // 先清整個 [Profiles] section（清掉上次殘留的 IdN/NameN/ReadOnlyN），再重寫
     WritePrivateProfileStringW(L"Profiles", nullptr, nullptr, path.c_str());
 
     std::wstring count = std::to_wstring(profiles.size());
     WritePrivateProfileStringW(L"Profiles", L"Count", count.c_str(), path.c_str());
     for (size_t i = 0; i < profiles.size(); ++i) {
         std::wstring idx = std::to_wstring(i);
-        std::wstring idKey   = L"Id"   + idx;
-        std::wstring nameKey = L"Name" + idx;
-        WritePrivateProfileStringW(L"Profiles", idKey.c_str(),   profiles[i].first.c_str(),  path.c_str());
-        WritePrivateProfileStringW(L"Profiles", nameKey.c_str(), profiles[i].second.c_str(), path.c_str());
+        std::wstring idKey       = L"Id"       + idx;
+        std::wstring nameKey     = L"Name"     + idx;
+        std::wstring readOnlyKey = L"ReadOnly" + idx;
+        WritePrivateProfileStringW(L"Profiles", idKey.c_str(),       profiles[i].id.c_str(),   path.c_str());
+        WritePrivateProfileStringW(L"Profiles", nameKey.c_str(),     profiles[i].name.c_str(), path.c_str());
+        WritePrivateProfileStringW(L"Profiles", readOnlyKey.c_str(), profiles[i].isReadOnly ? L"1" : L"0", path.c_str());
     }
     WritePrivateProfileStringW(L"Profiles", L"DefaultId", defaultProfileId.c_str(), path.c_str());
     Log(L"[Config] Wrote %d profile(s) to Shared.ini [Profiles].", (int)profiles.size());

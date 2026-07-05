@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using OmniConsole.Dialogs;
 using OmniConsole.Models;
 using OmniConsole.Services;
@@ -242,44 +243,58 @@ namespace OmniConsole.Controls
         /// NameBox 不可用（唯讀 profile EditorRoot 整段停用，或視窗尚未啟動 / 版面未完成）時，
         /// 退到 FocusManager.FindFirstFocusableElement 找實際可聚焦的控制項。
         ///
-        /// Protocol（widget 開編輯器）路徑下，呼叫時視窗可能剛啟動、版面/啟用狀態尚未完成 layout
-        /// pass，Focus(true→false) 失敗。採三段重試：
+        /// Protocol（widget 開編輯器，尤其視窗原本處於隱藏 / 尚未真正取得 Win32 前景焦點的冷啟動路徑）
+        /// 下，呼叫當下版面/視窗啟動狀態常常還沒就緒，Focus() 會失敗。採三段重試：
         ///   1) 立即嘗試（多數正常路徑直接命中）
         ///   2) 控制項未 Loaded → 掛 Loaded 後重試
-        ///   3) 已 Loaded 仍失敗 → 用 Dispatcher Low 排到下幾個 layout pass 之後再試（最多 5 次）
+        ///   3) 已 Loaded 仍失敗 → 掛 CompositionTarget.Rendering，每個實際算繪影格都重試一次，
+        ///      直到成功或逾時（3 秒）。比固定次數的 Dispatcher Low 佇列更可靠：
+        ///      不受視窗啟動 / 全螢幕 Presenter 切換等較長轉場搶走 Low 優先序時段影響。
         /// </summary>
         public void FocusFirstControl()
         {
+            DebugLogger.Log($"[GamepadProfileEditor] FocusFirstControl() called, IsLoaded={this.IsLoaded}, EditorRoot.IsEnabled={EditorRoot?.IsEnabled}");
             if (TryFocusFirstAvailable()) return;
 
             if (!this.IsLoaded)
             {
+                DebugLogger.Log("[GamepadProfileEditor] not loaded yet, hooking Loaded event");
                 RoutedEventHandler? handler = null;
                 handler = (s, e) =>
                 {
                     this.Loaded -= handler;
-                    if (!TryFocusFirstAvailable()) ScheduleFocusRetries(5);
+                    DebugLogger.Log("[GamepadProfileEditor] Loaded fired, retrying TryFocusFirstAvailable");
+                    if (!TryFocusFirstAvailable()) StartFocusRetryLoop();
                 };
                 this.Loaded += handler;
                 return;
             }
 
-            ScheduleFocusRetries(5);
+            StartFocusRetryLoop();
         }
 
         /// <summary>
-        /// 排入 Dispatcher Low queue 重試 TryFocusFirstAvailable，
-        /// 直到成功或耗盡次數。每次重試會經過完整的 layout pass，
-        /// 給予 ContentControl realization / IsEnabled 串聯 / 視窗啟動 時間落地。
+        /// 掛 CompositionTarget.Rendering，每一個實際算繪影格都嘗試一次 TryFocusFirstAvailable，
+        /// 直到成功或超過 3 秒逾時後自動解除掛勾。
         /// </summary>
-        private void ScheduleFocusRetries(int retries)
+        private void StartFocusRetryLoop()
         {
-            if (retries <= 0) return;
-            this.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            DebugLogger.Log("[GamepadProfileEditor] StartFocusRetryLoop: hooking CompositionTarget.Rendering");
+            var deadline = DateTime.UtcNow.AddSeconds(3);
+            int tickCount = 0;
+            EventHandler<object>? onRendering = null;
+            onRendering = (s, e) =>
             {
-                if (TryFocusFirstAvailable()) return;
-                ScheduleFocusRetries(retries - 1);
-            });
+                tickCount++;
+                bool ok = TryFocusFirstAvailable();
+                bool timedOut = DateTime.UtcNow >= deadline;
+                if (ok || timedOut)
+                {
+                    DebugLogger.Log($"[GamepadProfileEditor] retry loop ending, ticks={tickCount}, success={ok}, timedOut={timedOut}");
+                    CompositionTarget.Rendering -= onRendering;
+                }
+            };
+            CompositionTarget.Rendering += onRendering;
         }
 
         /// <summary>
@@ -291,15 +306,22 @@ namespace OmniConsole.Controls
         /// </summary>
         private bool TryFocusFirstAvailable()
         {
-            if (CursorSpeedCombo != null && CursorSpeedCombo.IsEnabled && CursorSpeedCombo.IsLoaded &&
-                CursorSpeedCombo.Focus(FocusState.Programmatic))
+            bool r1 = CursorSpeedCombo != null && CursorSpeedCombo.IsEnabled && CursorSpeedCombo.IsLoaded &&
+                CursorSpeedCombo.Focus(FocusState.Programmatic);
+            if (r1) { DebugLogger.Log("[GamepadProfileEditor] TryFocusFirstAvailable: CursorSpeedCombo focused OK"); return true; }
+
+            bool r2 = NameBox != null && NameBox.IsEnabled && NameBox.IsLoaded &&
+                NameBox.Focus(FocusState.Programmatic);
+            if (r2) { DebugLogger.Log("[GamepadProfileEditor] TryFocusFirstAvailable: NameBox focused OK"); return true; }
+
+            var fallback = FocusManager.FindFirstFocusableElement(this);
+            if (fallback is Control c && c.Focus(FocusState.Programmatic))
+            {
+                DebugLogger.Log($"[GamepadProfileEditor] TryFocusFirstAvailable: fallback {c.GetType().Name} focused OK");
                 return true;
-            if (NameBox != null && NameBox.IsEnabled && NameBox.IsLoaded &&
-                NameBox.Focus(FocusState.Programmatic))
-                return true;
-            if (FocusManager.FindFirstFocusableElement(this) is Control c &&
-                c.Focus(FocusState.Programmatic))
-                return true;
+            }
+
+            DebugLogger.Log($"[GamepadProfileEditor] TryFocusFirstAvailable FAILED: CursorSpeedCombo(null={CursorSpeedCombo == null},enabled={CursorSpeedCombo?.IsEnabled},loaded={CursorSpeedCombo?.IsLoaded}) NameBox(null={NameBox == null},enabled={NameBox?.IsEnabled},loaded={NameBox?.IsLoaded}) fallback={fallback?.GetType().Name ?? "null"}");
             return false;
         }
 

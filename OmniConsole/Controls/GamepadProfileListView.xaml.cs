@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using OmniConsole.Dialogs;
 using OmniConsole.Models;
 using OmniConsole.Services;
@@ -156,19 +157,39 @@ namespace OmniConsole.Controls
         /// <summary>將焦點程式化設給 ListView（清單頁進入時呼叫）。聚焦首列以利 D-pad 立即可用。</summary>
         public void FocusList()
         {
+            DebugLogger.Log("[GamepadProfileListView] FocusList() called");
             if (ProfileList == null) return;
             if (ProfileList.SelectedIndex < 0 && _items.Count > 0)
                 ProfileList.SelectedIndex = 0;
 
-            // 列項容器需 layout 完成後才能聚焦；用 dispatcher 延後一格
-            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            if (TryFocusSelectedRow()) return;
+
+            // 列項容器需 layout 完成後才能聚焦。不用 DispatcherQueue.TryEnqueue(Low, ...) 排隊：
+            // GamepadNavigationService 的手把輪詢計時器（Normal 優先序、33ms 間隔）此時通常已在跑，
+            // 會持續佔用佇列，讓 Low 優先序項目遲遲排不到。改掛 CompositionTarget.Rendering，
+            // 每個實際算繪影格都重試一次，直到成功或逾時（3 秒）。
+            var deadline = DateTime.UtcNow.AddSeconds(3);
+            EventHandler<object>? onRendering = null;
+            onRendering = (s, e) =>
             {
-                int idx = ProfileList.SelectedIndex >= 0 ? ProfileList.SelectedIndex : 0;
-                if (ProfileList.ContainerFromIndex(idx) is ListViewItem container)
-                    container.Focus(FocusState.Keyboard);
-                else
-                    ProfileList.Focus(FocusState.Keyboard);
-            });
+                if (TryFocusSelectedRow() || DateTime.UtcNow >= deadline)
+                    CompositionTarget.Rendering -= onRendering;
+            };
+            CompositionTarget.Rendering += onRendering;
+        }
+
+        /// <summary>嘗試把焦點放到目前選取列（或第一列）；容器尚未 realize 時回傳 false。</summary>
+        private bool TryFocusSelectedRow()
+        {
+            int idx = ProfileList.SelectedIndex >= 0 ? ProfileList.SelectedIndex : 0;
+            if (ProfileList.ContainerFromIndex(idx) is ListViewItem container)
+            {
+                bool r = container.Focus(FocusState.Keyboard);
+                DebugLogger.Log($"[GamepadProfileListView] TryFocusSelectedRow: container found, Focus()={r}");
+                return r;
+            }
+            DebugLogger.Log("[GamepadProfileListView] TryFocusSelectedRow: container not realized yet, falling back to ProfileList.Focus");
+            return ProfileList.Focus(FocusState.Keyboard);
         }
 
         /// <summary>取目前作用中的 row：先看焦點 ListViewItem（D-pad 移動只動焦點不更新 SelectedItem），回退到 SelectedItem。</summary>

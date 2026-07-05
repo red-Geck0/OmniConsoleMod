@@ -18,6 +18,13 @@ namespace OmniConsole.PhantomLink
     /// </summary>
     public sealed partial class PhantomLinkWidget : Page
     {
+        /// <summary>ProfileCombo 的 ComboBoxItem.Tag，攜帶 profile id 與唯讀旗標。</summary>
+        private sealed class ProfileTag
+        {
+            public string Id;
+            public bool IsReadOnly;
+        }
+
         private bool _loading;
         private bool _builtInMapping;
 
@@ -277,8 +284,8 @@ namespace OmniConsole.PhantomLink
             ProfileCombo.Items.Clear();
             try
             {
-                foreach (var (id, name) in PhantomKeyStore.GetProfileList())
-                    ProfileCombo.Items.Add(new ComboBoxItem { Content = name, Tag = id });
+                foreach (var (id, name, isReadOnly) in PhantomKeyStore.GetProfileList())
+                    ProfileCombo.Items.Add(new ComboBoxItem { Content = name, Tag = new ProfileTag { Id = id, IsReadOnly = isReadOnly } });
             }
             catch (Exception ex)
             {
@@ -298,7 +305,7 @@ namespace OmniConsole.PhantomLink
                 {
                     foreach (var item in ProfileCombo.Items)
                     {
-                        if (item is ComboBoxItem cbi && cbi.Tag is string id && id == preselectId)
+                        if (item is ComboBoxItem cbi && cbi.Tag is ProfileTag tag && tag.Id == preselectId)
                         {
                             ProfileCombo.SelectedItem = cbi;
                             break;
@@ -389,10 +396,15 @@ namespace OmniConsole.PhantomLink
         /// <summary>是否可把目前前景 App 指派到 profile（有有效 appId、無內建廠商映射）。</summary>
         private bool CanAssignForeground => _foregroundAppId != null && !_builtInMapping;
 
-        /// <summary>EditProfileBtn 啟用條件：下拉清單已選一個 profile。</summary>
+        /// <summary>
+        /// EditProfileBtn 啟用條件：下拉清單已選一個「非唯讀」profile。
+        /// 唯讀 profile（OmniNav / Classic）開編輯器後 EditorRoot 整段停用、無任何可聚焦控制項，
+        /// 手把使用者會卡在畫面上完全無法導覽 —— 故直接在入口把按鈕停用，避免落入該死路。
+        /// </summary>
         private void UpdateEditProfileEnabled()
         {
-            EditProfileBtn.IsEnabled = ProfileCombo.SelectedItem is ComboBoxItem;
+            var tag = (ProfileCombo.SelectedItem as ComboBoxItem)?.Tag as ProfileTag;
+            EditProfileBtn.IsEnabled = tag != null && !tag.IsReadOnly;
         }
 
         /// <summary>resw 安全查詢：不存在或擲例外時回退到 `fallback` 參數值。</summary>
@@ -506,7 +518,8 @@ namespace OmniConsole.PhantomLink
         {
             UpdateEditProfileEnabled();
             if (_loading) return;
-            if (!(ProfileCombo.SelectedItem is ComboBoxItem item) || !(item.Tag is string profileId)) return;
+            if (!(ProfileCombo.SelectedItem is ComboBoxItem item) || !(item.Tag is ProfileTag tag)) return;
+            string profileId = tag.Id;
             if (!CanAssignForeground) return;
 
             DebugLogger.Log($"[Widget] assign foreground [{_foregroundAppId}] → profile [{profileId}]");
@@ -528,7 +541,8 @@ namespace OmniConsole.PhantomLink
         /// </summary>
         private void EditProfileBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (!(ProfileCombo.SelectedItem is ComboBoxItem item) || !(item.Tag is string profileId)) return;
+            if (!(ProfileCombo.SelectedItem is ComboBoxItem item) || !(item.Tag is ProfileTag tag)) return;
+            string profileId = tag.Id;
             DebugLogger.Log("[Widget] EditProfileBtn_Click → PhantomBridge.OpenProfileEditor: " + profileId);
             try { PhantomBridgeHelper.CreateFactory().OpenProfileEditor(profileId); }
             catch (Exception ex) { DebugLogger.Log("[Widget] OpenProfileEditor FAIL: " + ex.Message); PhantomBridgeHelper.Invalidate(); }

@@ -104,4 +104,6 @@ const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& sto
 //      涵蓋現代無邊框全螢幕遊戲；排除 Shell（桌面 / 工作列）。
 // 純讀 registry + user32 查詢，無注入、無 hook。
 // 註：全螢幕為「首次認定」時的訊號之一；認定後不再因全螢幕切換而重算（呼叫端以 HWND 鎖定快取）。
-bool IsForegroundLikelyGame(const std::wstring& fullPath, HWND fgHwnd);
+// procName 用於排除已知非遊戲的啟動器/客戶端行程（例如桌面 Steam 的 steamwebhelper.exe 在手把裝置上
+// 常見以填滿螢幕的視窗執行，若不排除會被訊號 2 誤判成遊戲、自動套用 Gaming profile）。
+bool IsForegroundLikelyGame(const std::wstring& procName, const std::wstring& fullPath, HWND fgHwnd);

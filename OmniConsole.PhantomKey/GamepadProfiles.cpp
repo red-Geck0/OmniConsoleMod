@@ -650,7 +650,18 @@ static bool IsExeInGameLauncherDir(const std::wstring& fullPath) {
     return false;
 }
 
-bool IsForegroundLikelyGame(const std::wstring& fullPath, HWND fgHwnd) {
+// 已知的非遊戲啟動器/客戶端行程：即使目前視窗填滿螢幕，也不視為「可能是遊戲」。
+// 桌面 Steam（steamwebhelper.exe）在手把裝置上常見以填滿螢幕方式執行，若不排除
+// 會被單純的全螢幕訊號誤判成遊戲，導致自動套用 Gaming profile。
+static bool IsKnownNonGameProcess(const std::wstring& procName) {
+    static const wchar_t* kNames[] = { L"steamwebhelper" };
+    for (auto n : kNames) if (_wcsicmp(procName.c_str(), n) == 0) return true;
+    return false;
+}
+
+bool IsForegroundLikelyGame(const std::wstring& procName, const std::wstring& fullPath, HWND fgHwnd) {
+    if (IsKnownNonGameProcess(procName)) return false;
+
     // 訊號 1+3：GameConfigStore 登記 或 遊戲啟動器目錄（皆以 fullPath 為鍵快取，僅路徑改變時重算）
     if (!fullPath.empty()) {
         static std::wstring cachedPath;
@@ -731,7 +742,7 @@ const GamepadProfile* ResolveProfileForForeground(const GamepadProfileStore& sto
     }
 
     // 未指派 → 依前景是否為遊戲挑預設：遊戲用 gameDefaultProfileId，否則 defaultProfileId。
-    if (IsForegroundLikelyGame(fullPath, fgHwnd)) {
+    if (IsForegroundLikelyGame(procName, fullPath, fgHwnd)) {
         if (const GamepadProfile* g = FindProfileById(store, store.gameDefaultProfileId)) {
             setOutcome(ResolveOutcome::GameDefault);
             return g;

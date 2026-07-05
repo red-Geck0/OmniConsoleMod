@@ -1478,6 +1478,16 @@ namespace OmniConsole.Pages
                     AutoUpdateCheckSwitch.IsOn = !sw.IsOn;
                     break;
 
+                // 除錯日誌開關
+                case ToggleSwitch sw when ReferenceEquals(sw, DebugLoggingSwitch):
+                    DebugLoggingSwitch.IsOn = !sw.IsOn;
+                    break;
+
+                // 開啟記錄檔資料夾按鈕
+                case Button btn when ReferenceEquals(btn, OpenLogFolderButton):
+                    OpenLogFolderButton_Click(this, new RoutedEventArgs());
+                    break;
+
                 // 檢查更新按鈕
                 case Button btn when ReferenceEquals(btn, CheckForUpdatesButton):
                     CheckForUpdatesButton_Click(this, new RoutedEventArgs());

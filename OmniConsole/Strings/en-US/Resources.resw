@@ -1373,7 +1373,7 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   <data name="NavigationSoundsSetting_Description.Text" xml:space="preserve">
     <value>Play sounds when navigating.</value>
   </data>
-  <data name="AdvancedSection_Diagnostics.Text" xml:space="preserve">
+  <data name="TroubleshootSection_Diagnostics.Text" xml:space="preserve">
     <value>Diagnostics</value>
   </data>
   <data name="DebugLoggingSetting_Title.Text" xml:space="preserve">
@@ -1390,5 +1390,32 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   </data>
   <data name="OpenLogFolderButton.Content" xml:space="preserve">
     <value>Open Folder</value>
+  </data>
+  <data name="AdvancedSection_BootVideo.Text" xml:space="preserve">
+    <value>Boot Video</value>
+  </data>
+  <data name="BootVideoSetting_Title.Text" xml:space="preserve">
+    <value>Play Boot Video</value>
+  </data>
+  <data name="BootVideoSetting_Description.Text" xml:space="preserve">
+    <value>Play a short video while the default platform is launching. Falls back silently to the normal launch screen if disabled or if the video fails to play.</value>
+  </data>
+  <data name="BootVideoFileSetting_Title.Text" xml:space="preserve">
+    <value>Video File</value>
+  </data>
+  <data name="BootVideoFileSetting_None" xml:space="preserve">
+    <value>No video selected.</value>
+  </data>
+  <data name="BootVideoChooseButton.Content" xml:space="preserve">
+    <value>Choose Video</value>
+  </data>
+  <data name="BootVideoSyncSetting_Title.Text" xml:space="preserve">
+    <value>Play Video Before Launching</value>
+  </data>
+  <data name="BootVideoSyncSetting_Description.Text" xml:space="preserve">
+    <value>On: play the full video, then launch. Off: launch and play at the same time.</value>
+  </data>
+  <data name="FilePickerDialog_FilterVideo" xml:space="preserve">
+    <value>Video (*.mp4)</value>
   </data>
 </root>

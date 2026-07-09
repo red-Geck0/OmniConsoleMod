@@ -68,6 +68,55 @@ namespace OmniConsole.Services
         }
 
         /// <summary>
+        /// 檢查平台是否「看起來已經在跑」（僅涵蓋 Executable 策略；其餘策略類型一律回 false，
+        /// 也就是「無法判斷」而非「確定沒在跑」）。
+        /// 用途：Xbox Game Bar「Home」鍵在平台仍在前景執行時會讓 OmniConsole 冷啟動一個全新行程
+        /// （因為每次成功啟動平台後 OmniConsole 都會整個結束，見 App.ExitApp），此時若不特別檢查，
+        /// 開機影片等「啟動」相關的一次性畫面會被誤判成又一次全新啟動而重播。
+        /// 比對邏輯與 PhantomKeyService.IsRunning() 相同：用執行檔名稱粗篩候選行程，
+        /// 再以 MainModule.FileName 比對完整路徑，避免同名但不同來源的行程誤判。
+        /// </summary>
+        public static bool IsPlatformRunning(PlatformDefinition platform)
+        {
+            foreach (var strategy in platform.LaunchStrategies)
+            {
+                if (strategy.Type != LaunchStrategyType.Executable) continue;
+                if (string.IsNullOrEmpty(strategy.ExecutableName)) continue;
+
+                string exePath = Environment.ExpandEnvironmentVariables(strategy.ExecutableName);
+                if (!Path.IsPathRooted(exePath) && strategy.SearchPaths != null)
+                {
+                    foreach (string dir in strategy.SearchPaths)
+                    {
+                        string expandedDir = Environment.ExpandEnvironmentVariables(dir);
+                        string candidate = Path.Combine(expandedDir, exePath);
+                        if (File.Exists(candidate)) { exePath = candidate; break; }
+                    }
+                }
+                if (!Path.IsPathRooted(exePath)) continue; // 無法解析出完整路徑，無法可靠比對
+
+                string processName = Path.GetFileNameWithoutExtension(exePath);
+                try
+                {
+                    foreach (var proc in Process.GetProcessesByName(processName))
+                    {
+                        try
+                        {
+                            if (exePath.Equals(proc.MainModule?.FileName, StringComparison.OrdinalIgnoreCase))
+                                return true;
+                        }
+                        catch { /* MainModule 存取偶爾因權限/行程剛結束而失敗，略過該候選繼續檢查其它行程 */ }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugLogger.Log($"[ProcessLauncher] IsPlatformRunning check failed for {platform.Id}: {ex.Message}");
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
         /// 檢查指定平台是否已安裝（不觸發啟動）。
         /// </summary>
         public static Task<bool> CheckPlatformAvailableAsync(PlatformDefinition platform)

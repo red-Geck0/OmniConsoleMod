@@ -731,6 +731,86 @@ namespace OmniConsole.Services
         }
 
         /// <summary>
+        /// 取得是否啟用開機影片（啟動平台過渡期間播放）。預設 false（未設定影片時不啟用）。
+        /// </summary>
+        public static bool GetEnableBootVideo()
+        {
+            var settings = ApplicationData.Current.LocalSettings;
+            if (settings.Values.TryGetValue("EnableBootVideo", out object? value) && value is bool enabled)
+                return enabled;
+            return false;
+        }
+
+        /// <summary>
+        /// 儲存是否啟用開機影片。
+        /// </summary>
+        public static void SetEnableBootVideo(bool enabled)
+        {
+            ApplicationData.Current.LocalSettings.Values["EnableBootVideo"] = enabled;
+        }
+
+        /// <summary>
+        /// 取得開機影片檔名（存放於 LocalFolder/BootVideo/，見 BootVideoStore）。未設定回空字串。
+        /// </summary>
+        public static string GetBootVideoFileName()
+        {
+            var settings = ApplicationData.Current.LocalSettings;
+            if (settings.Values.TryGetValue("BootVideoFileName", out object? value) && value is string name)
+                return name;
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 儲存開機影片檔名。
+        /// </summary>
+        public static void SetBootVideoFileName(string fileName)
+        {
+            ApplicationData.Current.LocalSettings.Values["BootVideoFileName"] = fileName;
+        }
+
+        /// <summary>
+        /// 取得使用者匯入開機影片時的原始檔名（僅供設定頁顯示用，實際存檔用亂數檔名，
+        /// 見 BootVideoStore.ImportVideoAsync）。未設定回空字串。
+        /// </summary>
+        public static string GetBootVideoDisplayName()
+        {
+            var settings = ApplicationData.Current.LocalSettings;
+            if (settings.Values.TryGetValue("BootVideoDisplayName", out object? value) && value is string name)
+                return name;
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// 儲存使用者匯入開機影片時的原始檔名。
+        /// </summary>
+        public static void SetBootVideoDisplayName(string displayName)
+        {
+            ApplicationData.Current.LocalSettings.Values["BootVideoDisplayName"] = displayName;
+        }
+
+        /// <summary>
+        /// 取得開機影片與平台啟動的順序：true（預設）＝先播完影片才啟動平台（較保守，影片不會被
+        /// 平台視窗的 Z-order 蓋掉，但整體開機時間會拉長影片的長度）；false＝影片與平台啟動同時
+        /// 進行（LaunchPage 會在播放期間把自己釘到 Z-order 最上層，防止被平台視窗蓋掉，見
+        /// LaunchPage.xaml.cs 的 topmost 處理），平台可以趁影片播放期間在背景載入。
+        /// </summary>
+        public static bool GetBootVideoPlayBeforeLaunch()
+        {
+            var settings = ApplicationData.Current.LocalSettings;
+            if (settings.Values.TryGetValue("BootVideoPlayBeforeLaunch", out object? value) && value is bool sync)
+                return sync;
+            return true;
+        }
+
+        /// <summary>
+        /// 儲存開機影片與平台啟動的順序設定。
+        /// </summary>
+        public static void SetBootVideoPlayBeforeLaunch(bool playBeforeLaunch)
+        {
+            ApplicationData.Current.LocalSettings.Values["BootVideoPlayBeforeLaunch"] = playBeforeLaunch;
+        }
+
+        /// <summary>
         /// 取得是否啟用除錯日誌（DebugLogger）。預設 false——每次寫入都是同步檔案 I/O，
         /// 手把導覽等高頻路徑（EnsureFocus 等）每秒可能觸發數十次，預設關閉以避免影響操作反應速度。
         /// </summary>

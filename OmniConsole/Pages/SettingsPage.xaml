@@ -638,12 +638,12 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- 疑難排解／除錯分類標題 -->
-                        <TextBlock x:Uid="AdvancedSection_Diagnostics" FontSize="14" FontWeight="SemiBold"
+                        <!-- 開機影片分類標題 -->
+                        <TextBlock x:Uid="AdvancedSection_BootVideo" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    Margin="2,0,0,0"/>
 
-                        <!-- 除錯日誌群組卡片 -->
+                        <!-- 開機影片群組卡片 -->
                         <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                 BorderThickness="1"
@@ -651,7 +651,7 @@
                                 HorizontalAlignment="Stretch"
                                 MinWidth="700">
                             <StackPanel>
-                                <!-- 啟用除錯日誌開關 -->
+                                <!-- 啟用開機影片開關 -->
                                 <Grid Padding="16">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
@@ -659,22 +659,22 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <FontIcon Glyph="&#xE9D9;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                    <FontIcon Glyph="&#xE714;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
 
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock x:Uid="DebugLoggingSetting_Title" FontWeight="SemiBold" FontSize="16" />
-                                        <TextBlock x:Uid="DebugLoggingSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                        <TextBlock x:Uid="BootVideoSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="BootVideoSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
                                     </StackPanel>
 
-                                    <ToggleSwitch x:Name="DebugLoggingSwitch"
-                                                  Toggled="DebugLoggingSwitch_Toggled"
+                                    <ToggleSwitch x:Name="BootVideoSwitch"
+                                                  Toggled="BootVideoSwitch_Toggled"
                                                   FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
 
                                 <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
 
-                                <!-- 開啟記錄檔資料夾 -->
+                                <!-- 選擇影片檔案 -->
                                 <Grid Padding="16">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
@@ -682,16 +682,42 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <FontIcon Glyph="&#xE838;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                                    <FontIcon Glyph="&#xE8B2;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
 
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock x:Uid="OpenLogFolderSetting_Title" FontWeight="SemiBold" FontSize="16" />
-                                        <TextBlock x:Uid="OpenLogFolderSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                        <TextBlock x:Uid="BootVideoFileSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Name="BootVideoFileText"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
                                     </StackPanel>
 
-                                    <Button x:Name="OpenLogFolderButton" x:Uid="OpenLogFolderButton"
-                                            Click="OpenLogFolderButton_Click"
+                                    <Button x:Name="BootVideoChooseButton" x:Uid="BootVideoChooseButton"
+                                            Click="BootVideoChooseButton_Click"
                                             Grid.Column="2" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+
+                                <!-- 影片與平台啟動的先後順序：開啟＝先播完影片才啟動平台（較保守）；
+                                     關閉＝影片與平台啟動同時進行（平台可趁播放期間在背景載入，但需要
+                                     影片檔案配合，見說明文字）。 -->
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE8AB;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="BootVideoSyncSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="BootVideoSyncSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                    </StackPanel>
+
+                                    <ToggleSwitch x:Name="BootVideoSyncSwitch"
+                                                  Toggled="BootVideoSyncSwitch_Toggled"
+                                                  FlowDirection="RightToLeft"
+                                                  Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -811,6 +837,64 @@
                                                   Width="20" Height="20"/>
                                 </StackPanel>
                             </Grid>
+                        </Border>
+
+                        <!-- 疑難排解／除錯分類標題 -->
+                        <TextBlock x:Uid="TroubleshootSection_Diagnostics" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Margin="2,0,0,0"/>
+
+                        <!-- 除錯日誌群組卡片 -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                HorizontalAlignment="Stretch"
+                                MinWidth="700">
+                            <StackPanel>
+                                <!-- 啟用除錯日誌開關 -->
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE9D9;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="DebugLoggingSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="DebugLoggingSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                    </StackPanel>
+
+                                    <ToggleSwitch x:Name="DebugLoggingSwitch"
+                                                  Toggled="DebugLoggingSwitch_Toggled"
+                                                  FlowDirection="RightToLeft"
+                                                  Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
+                                </Grid>
+
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+
+                                <!-- 開啟記錄檔資料夾 -->
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE838;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="OpenLogFolderSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="OpenLogFolderSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                    </StackPanel>
+
+                                    <Button x:Name="OpenLogFolderButton" x:Uid="OpenLogFolderButton"
+                                            Click="OpenLogFolderButton_Click"
+                                            Grid.Column="2" VerticalAlignment="Center"/>
+                                </Grid>
+                            </StackPanel>
                         </Border>
                     </StackPanel>
                     </ScrollViewer>

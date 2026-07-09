@@ -1373,7 +1373,7 @@
   <data name="NavigationSoundsSetting_Description.Text" xml:space="preserve">
     <value>操作时播放导览音效。</value>
   </data>
-  <data name="AdvancedSection_Diagnostics.Text" xml:space="preserve">
+  <data name="TroubleshootSection_Diagnostics.Text" xml:space="preserve">
     <value>诊断</value>
   </data>
   <data name="DebugLoggingSetting_Title.Text" xml:space="preserve">
@@ -1390,5 +1390,32 @@
   </data>
   <data name="OpenLogFolderButton.Content" xml:space="preserve">
     <value>打开文件夹</value>
+  </data>
+  <data name="AdvancedSection_BootVideo.Text" xml:space="preserve">
+    <value>开机影片</value>
+  </data>
+  <data name="BootVideoSetting_Title.Text" xml:space="preserve">
+    <value>播放开机影片</value>
+  </data>
+  <data name="BootVideoSetting_Description.Text" xml:space="preserve">
+    <value>在预设平台启动过程中播放一段短片。停用或影片播放失败时会安静退回原本的启动画面。</value>
+  </data>
+  <data name="BootVideoFileSetting_Title.Text" xml:space="preserve">
+    <value>影片档案</value>
+  </data>
+  <data name="BootVideoFileSetting_None" xml:space="preserve">
+    <value>尚未选择影片。</value>
+  </data>
+  <data name="BootVideoChooseButton.Content" xml:space="preserve">
+    <value>选择影片</value>
+  </data>
+  <data name="BootVideoSyncSetting_Title.Text" xml:space="preserve">
+    <value>先播完影片再启动</value>
+  </data>
+  <data name="BootVideoSyncSetting_Description.Text" xml:space="preserve">
+    <value>开启：先播完整支影片再启动。关闭：启动与播放同时进行。</value>
+  </data>
+  <data name="FilePickerDialog_FilterVideo" xml:space="preserve">
+    <value>影片 (*.mp4)</value>
   </data>
 </root>

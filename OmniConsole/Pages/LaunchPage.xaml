@@ -4,7 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid>
+    <Grid Background="Black">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="LaunchPhase">
                 <!-- Idle：初始狀態，所有元素恢復預設值（BrandingText 可見，其餘元素均 Collapsed） -->
@@ -13,8 +13,25 @@
                 <VisualState x:Name="Launching">
                     <VisualState.Setters>
                         <Setter Target="LaunchIconBorder.Visibility" Value="Visible"/>
+                        <Setter Target="StatusText.Visibility" Value="Visible"/>
                         <Setter Target="LaunchProgressRing.Visibility" Value="Visible"/>
                         <Setter Target="LaunchProgressRing.IsActive" Value="True"/>
+                        <Setter Target="BrandingText.Visibility" Value="Visible"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <!-- LaunchingWithVideo：開機影片播放期間專用。刻意獨立成一個狀態、而非在 Launching
+                     之外用程式碼另外覆寫 Visibility——LaunchIconBorder / LaunchProgressRing 這兩個
+                     屬性在 Launching 狀態下已經被 VisualState.Setters 接管，事後用程式碼直接賦值會
+                     跟這些 Setter 打架（尤其 LaunchProgressRing 因 IsActive=True 持續在動畫/重繪，
+                     更容易被 Setter 的值蓋回去），實測會出現圖示卡片 / 進度圈怎麼設都設不掉的情形。
+                     改成切到這個「什麼都收起來」的狀態，交給 VisualStateManager 自己處理生效/還原。 -->
+                <VisualState x:Name="LaunchingWithVideo">
+                    <VisualState.Setters>
+                        <Setter Target="LaunchIconBorder.Visibility" Value="Collapsed"/>
+                        <Setter Target="StatusText.Visibility" Value="Collapsed"/>
+                        <Setter Target="LaunchProgressRing.Visibility" Value="Collapsed"/>
+                        <Setter Target="LaunchProgressRing.IsActive" Value="False"/>
+                        <Setter Target="BrandingText.Visibility" Value="Collapsed"/>
                     </VisualState.Setters>
                 </VisualState>
                 <!-- LaunchingSlow：啟動超過 15 秒，顯示緩和提示 -->
@@ -53,6 +70,15 @@
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
+
+        <!-- 開機影片：啟動平台過渡期間可選播放，鋪滿整個視窗、置於其餘內容之後（先畫）。
+             預設 Collapsed；由 LaunchPage.xaml.cs 依設定與檔案是否有效決定是否顯示，
+             播放失敗或使用者跳過時一律退回原本的圖示 + 進度圈畫面，不影響既有啟動流程。 -->
+        <MediaPlayerElement x:Name="BootVideoPlayer"
+                             Visibility="Collapsed"
+                             AreTransportControlsEnabled="False"
+                             Stretch="UniformToFill"
+                             IsTabStop="False"/>
 
         <!-- 更新通知 InfoBar（佔版面固定區塊） -->
         <InfoBar x:Name="UpdateInfoBar"

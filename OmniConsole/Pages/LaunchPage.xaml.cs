@@ -77,7 +77,6 @@ namespace OmniConsole.Pages
         public LaunchPage()
         {
             InitializeComponent();
-            this.KeyDown += LaunchPage_KeyDown;
         }
 
         // ── 平台啟動 ──────────────────────────────────────────────────────────
@@ -301,13 +300,15 @@ namespace OmniConsole.Pages
         // 不讓開機流程被一支放不完的影片卡死。
         private static readonly TimeSpan BootVideoMaxDuration = TimeSpan.FromSeconds(30);
 
+        // 供 LaunchDefaultPlatformAsync 在啟動失敗時提前中止還在播放的影片用（見該處呼叫端註解），
+        // 並非使用者可操作的跳過功能。
         private TaskCompletionSource<bool>? _bootVideoSkipTcs;
 
         /// <summary>
         /// 啟動開機影片播放（不循環，播一次自然結束），並立刻返回一個代表「影片播放已經結束」
-        /// （自然播完 / 被使用者跳過 / 解碼失敗逾時 / 防呆逾時）的 Task——呼叫端不必等這個 Task
-        /// 就能接著做其它事（例如同時呼叫 LaunchPlatformAsync 讓平台在背景開始載入），等真正需要
-        /// 「影片播完了嗎」的答案時才另外 await 這個 Task。這樣影片會播滿全長，不會被平台視窗
+        /// （自然播完 / 解碼失敗逾時 / 防呆逾時 / 啟動失敗被提前中止）的 Task——呼叫端不必等這個
+        /// Task 就能接著做其它事（例如同時呼叫 LaunchPlatformAsync 讓平台在背景開始載入），等真正
+        /// 需要「影片播完了嗎」的答案時才另外 await 這個 Task。這樣影片會播滿全長，不會被平台視窗
         /// 提前到前景蓋掉（見本檔案開頭「開機影片」設計說明）。未啟用、未匯入檔案時不應呼叫本方法
         /// （由呼叫端的 willPlayBootVideo 判斷決定）。
         /// </summary>
@@ -398,7 +399,7 @@ namespace OmniConsole.Pages
         /// 那些是交給 VisualStateManager 切回 "Launching" 狀態處理（見 LaunchPage.xaml 內
         /// LaunchingWithVideo 狀態的註解：事後用程式碼直接改 Visibility 會跟 VisualState.Setters
         /// 打架）。呼叫端該不該切回 "Launching"，取決於當下是否還停留在播影片這個階段：
-        ///   - StartBootVideoAsync 內解碼失敗/逾時、SkipBootVideo：一定還在 LaunchingWithVideo，切回。
+        ///   - StartBootVideoAsync 內解碼失敗/逾時：一定還在 LaunchingWithVideo，切回。
         ///   - 平台已到前景成功、或最外層 finally：可能已經切到 LaunchError 或即將整個結束，
         ///     這裡若還硬切回 Launching 反而會覆蓋掉正確的畫面，所以不切，只單純釋放播放器資源。
         /// </summary>
@@ -421,22 +422,6 @@ namespace OmniConsole.Pages
             _bootVideoPlayer = null;
             _bootVideoPlaying = false;
             BootVideoPlayer.Visibility = Visibility.Collapsed;
-        }
-
-        /// <summary>使用者提前跳過開機影片：解除保底等待、停止播放並切回一般的圖示 + 進度圈畫面。</summary>
-        private void SkipBootVideo()
-        {
-            _bootVideoSkipTcs?.TrySetResult(true);
-            StopBootVideo();
-            VisualStateManager.GoToState(this, "Launching", false);
-        }
-
-        /// <summary>鍵盤按任意鍵跳過開機影片（手把跳過見 OnLaunchPanelGamepadAButtonPressed）。</summary>
-        private void LaunchPage_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
-        {
-            if (!_bootVideoPlaying) return;
-            SkipBootVideo();
-            e.Handled = true;
         }
 
         /// <summary>
@@ -561,16 +546,10 @@ namespace OmniConsole.Pages
         }
 
         /// <summary>
-        /// LaunchPanel 中手把 'A' 鍵的處理：開機影片播放中時優先跳過；否則焦點在按鈕時觸發點選。
+        /// LaunchPanel 中手把 'A' 鍵的處理：焦點在按鈕時觸發點選。
         /// </summary>
         private void OnLaunchPanelGamepadAButtonPressed()
         {
-            if (_bootVideoPlaying)
-            {
-                SkipBootVideo();
-                return;
-            }
-
             var focused = Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(this.XamlRoot);
             if (ReferenceEquals(focused, OpenSettingsButton))
                 OpenSettingsButton_Click(this, new RoutedEventArgs());

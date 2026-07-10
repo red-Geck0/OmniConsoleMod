@@ -1415,6 +1415,12 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   <data name="BootVideoSyncSetting_Description.Text" xml:space="preserve">
     <value>On: play the full video, then launch. Off: launch and play at the same time.</value>
   </data>
+  <data name="BootVideoMuteSetting_Title.Text" xml:space="preserve">
+    <value>Mute Video Audio</value>
+  </data>
+  <data name="BootVideoMuteSetting_Description.Text" xml:space="preserve">
+    <value>Play the boot video without sound.</value>
+  </data>
   <data name="FilePickerDialog_FilterVideo" xml:space="preserve">
     <value>Video (*.mp4)</value>
   </data>

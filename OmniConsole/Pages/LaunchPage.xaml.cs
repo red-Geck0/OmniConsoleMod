@@ -330,7 +330,7 @@ namespace OmniConsole.Pages
                 var player = new MediaPlayer
                 {
                     IsLoopingEnabled = false,
-                    IsMuted = true,
+                    IsMuted = SettingsService.GetBootVideoMuted(),
                 };
                 player.MediaFailed += (s, args) =>
                 {
@@ -375,12 +375,14 @@ namespace OmniConsole.Pages
                 DebugLogger.Log($"[LaunchPage] StartBootVideoAsync: playback finished (winner={(endedWinner == _bootVideoSkipTcs.Task ? "skip" : endedWinner == mediaEndedTcs.Task ? "mediaEnded" : "maxDurationTimeout")})");
 
                 // 影片已經正常播放（自然播完 / 使用者跳過 / 防呆逾時，三者皆已讓使用者看過開機影片
-                // 這段體驗），刻意不切回 "Launching"：LaunchingWithVideo 狀態下全部元件本來就是
-                // Collapsed，此時只把 BootVideoPlayer 本身收掉即可，留一片純黑畫面撐到平台視窗真的
-                // 出現、視窗被隱藏為止——不讓使用者在影片結束後又看到一閃而過的圖示卡片/進度圈/文字，
-                // 那樣反而會覺得畫面在「閃爍」。真正的圖示卡片/進度圈只保留給「根本沒放過影片」時
-                // 當唯一的視覺回饋，或是啟動異常慢（LaunchingSlow）時才需要蓋過去提醒使用者。
-                StopBootVideo();
+                // 這段體驗）。刻意不在這裡呼叫 StopBootVideo()：暫停播放器讓畫面凍結在最後一格
+                // （Pause 不會清空 MediaPlayerElement 目前顯示的畫面），一路撐到平台視窗真的出現、
+                // 前景輪詢判定成功那一刻才由該處呼叫 StopBootVideo() 收掉，銜接更平順——比起播完
+                // 就立刻蓋成純黑畫面，使用者會覺得畫面一直「有東西」而不是空等。也刻意不切回
+                // "Launching"：LaunchingWithVideo 狀態下全部元件本來就是 Collapsed，不需要在影片
+                // 結束後又閃一下圖示卡片/進度圈/文字。真正的圖示卡片/進度圈只保留給「根本沒放過
+                // 影片」時當唯一的視覺回饋，或是啟動異常慢（LaunchingSlow）時才需要蓋過去提醒使用者。
+                try { _bootVideoPlayer?.Pause(); } catch { }
             }
             catch (Exception ex)
             {

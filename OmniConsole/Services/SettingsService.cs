@@ -811,6 +811,25 @@ namespace OmniConsole.Services
         }
 
         /// <summary>
+        /// 取得開機影片是否靜音。預設 true（開機過程突然有聲音較容易嚇到使用者，預設關閉較安全）。
+        /// </summary>
+        public static bool GetBootVideoMuted()
+        {
+            var settings = ApplicationData.Current.LocalSettings;
+            if (settings.Values.TryGetValue("BootVideoMuted", out object? value) && value is bool muted)
+                return muted;
+            return true;
+        }
+
+        /// <summary>
+        /// 儲存開機影片是否靜音。
+        /// </summary>
+        public static void SetBootVideoMuted(bool muted)
+        {
+            ApplicationData.Current.LocalSettings.Values["BootVideoMuted"] = muted;
+        }
+
+        /// <summary>
         /// 取得是否啟用除錯日誌（DebugLogger）。預設 false——每次寫入都是同步檔案 I/O，
         /// 手把導覽等高頻路徑（EnsureFocus 等）每秒可能觸發數十次，預設關閉以避免影響操作反應速度。
         /// </summary>

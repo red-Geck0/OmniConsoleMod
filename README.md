@@ -26,71 +26,6 @@ OmniConsoleMod serves as your Windows 11 Xbox Mode (FSE) Home shell on PCs and h
 
 ---
 
-## ✨ Features
-
-- **Automatic platform launch** – Your configured gaming platform launches automatically whenever Xbox Mode (FSE) activates.
-- **Automatic Xbox Mode (FSE) entry** – When you launch OmniConsoleMod outside Xbox Mode (FSE) (e.g., from the Start Menu), it automatically triggers the Xbox Mode (FSE) entry dialog.
-- **Multi-platform support** – Built-in support for **Steam Big Picture**, **Xbox App**, **Epic Games Store**, **Armoury Crate SE**, **Playnite Fullscreen**, **One Game Launcher**, **MSI Center M**, and **Shift Game Launcher** with Custom platform support (experimental).
-- **Game Bar integration** – Game Bar's **"Home"** button launches your gaming platform; **"Library"** opens OmniConsoleMod Settings.
-- **Troubleshoot page** – A dedicated page for Xbox Mode (FSE) recovery: restarts Game Bar to fix issues such as the "Restart for better performance" dialog not appearing, then enters Xbox Mode (FSE).
-- **Gamepad first UI** – The app can be fully navigated by using gamepad.
-- **OmniNav — Unified Gamepad Profiles & Mapping** – Map gamepad inputs to keyboard and mouse actions with a toggle switch (**On** / **Off**). Managed through reusable named mapping profiles, allowing customizable bindings, cursor speed, and navigation settings per profile.
-- **Default Profiles** – Comes with built-in profiles including **OmniNav** (read-only), **Classic** (read-only), **Gaming** (editable, layered mode enabled), and **None** (completely disables mapping for native gamepad support in games).
-- **Layered Mode** – Activate/deactivate secondary bindings on the fly in custom profiles (such as the default **Gaming** profile) by holding a trigger key (like Right Stick `RS`) or double-tapping it to toggle.
-- **Touch Keyboard Action** – Support mapping a button to launch the Windows virtual keyboard (Touch Keyboard) via TabTip COM or OSK.
-- **OmniCharm widget** – A Game Bar widget for in-game quick access. Open **Task View**, the **Xbox Library**, or the **Steam Overlay** in one tap; toggle **OmniNav (Gamepad Mouse Mode)**, assign/switch mapping profiles for the active app on the fly, and toggle the **Steam In-Game Overlay** (long-press ☰).
-- **Native Xbox Mode (FSE) integration** – Registered as a Windows 11 Xbox Mode (FSE) Home App through the official API.
-- **In-app updates** – Automatic checks for the latest GitHub releases, with download and install built into the Advanced settings page.
-
----
-
-## ⚔️ OmniNav (OmniConsoleMod) vs Nekomata (OmniConsole Upstream)
-
-| Comparison Dimension | Nekomata (OmniConsole Upstream) | OmniNav (OmniConsoleMod) |
-|---|---|---|
-| **Architecture Model** | Bound directly per-application (per-app mapping). | **Unified Profile Model**: Mappings are managed as reusable Named Profiles and then assigned to apps. |
-| **Gamepad Mouse Mode** | Global setting with 3 modes: Off, Auto, Force On. Layout (OmniNav/Classic) and cursor speed are set globally via INI. | Simplified to a single global **On / Off** switch. Layout, cursor speed, and sensitivity are configured per-profile. |
-| **Input Blocker** | Has an **Input Blocker** (blocks original gamepad inputs to prevent double inputs in games). | No strict input blocker. Designed as a **helper** to trigger shortcuts/mods during gameplay or navigate non-game apps easily. |
-| **Layered Mode Nature** | None. Only supports a single static mapping layer. | **Yes**: Serves as an on-the-fly enabling/disabling the button mappings by holding or double-tapping a designated trigger key (e.g. `RS`). |
-| **Game & Fullscreen Detection** | Relies on static per-app configurations. | Has **Game & Fullscreen Detection** to automatically apply the 'Game Default' (e.g., Gaming profile) or 'App Default' profile to new apps/games. |
-| **Additional Actions** | Mappings are limited to standard keyboard/mouse buttons. | Supports system actions like launching the **Touch Keyboard** via TabTip COM or OSK. |
-| **Widget Integration** | Global layout toggling and per-app configuration in separate dialogs. | Instant profile assignment via a dropdown for the active app, plus a shortcut button to open the editor. |
-
----
-
-## 📖 Mini Guide: Using OmniNav & Profiles
-
-### 1. Toggle OmniNav On/Off
-Open the **OmniCharm Widget** in the Xbox Game Bar (Win + G or Xbox Button) and use the main toggle switch to turn OmniNav **On** or **Off**.
-
-### 2. Quick App Assignment
-When using any application:
-1. Open the **OmniCharm Widget**.
-2. Under **Foreground App**, you will see the active app's name.
-3. Select a profile from the dropdown (e.g., select `Gaming`, `OmniNav`, or `None` to disable the button mapping feature).
-4. The profile is automatically assigned to the game/app and applied whenever that app is in focus.
-
-### 3. Understanding the Default Profiles
-OmniConsoleMod uses game and fullscreen detection to apply fallback profiles:
-- **App Default**: Applied to normal windowed apps that do not have a specific profile assigned. (Default: `OmniNav`).
-- **Game Default**: Applied automatically to detected games or fullscreen applications that do not have a specific profile assigned. (Default: `Gaming`).
-- You can change these defaults in **OmniConsoleMod Settings -> OmniNav -> Profiles**.
-
-### 4. Using Layered Mode
-The **Gaming** profile has **Layered Mode** enabled by default using Right Stick (`RS`) as the trigger.
-- **Action**: A. Hold `RS` (1.6s) to activate Layered Mode, release `RS` to deactivate; B. Double-tap `RS` to activate Layered Mode, double-tap again to deactivate.
-- This is useful for mapping quick system shortcuts to the controller buttons while in a game, then toggling them off to return to normal controls.
-- Example Layered Mode use cases: open/close OSDs (RTSS, NVIDIA, Steam Overlay, etc.), open/toggle game mods (Lossless Scaling, Optiscaler, SpecialK, etc.), bring up the Virtual Keyboard to enter a game character name, start/stop/toggle-fullscreen in a console emulator.
-- Note: the 'Gaming' profile here is just a standard profile with Layered Mode enabled and named 'Gaming'. So you don't have to use this profile for every game.
-
-### 5. Creating & Editing Profiles
-1. Open **OmniConsoleMod Settings** from the Start Menu.
-2. Go to the **Gamepad Profiles** tab.
-3. Select an existing profile to edit its settings and key bindings, press **Y** to set as default, or press **X** to create a custom profile.
-4. Press **Copy from...** to duplicate configurations from read-only profiles like `OmniNav` or `Classic`.
-
----
-
 ## ⚙️ Prerequisites
 
 OmniConsoleMod requires the **Full Handheld edition** of Xbox Mode (FSE). Microsoft is gradually rolling out a Limited PC edition to regular PCs — use [Xbox Full Screen Experience Tool (XFSET)](https://github.com/8bit2qubit/XboxFullScreenExperienceTool) to switch to the Full Handheld edition.
@@ -153,6 +88,71 @@ Your gaming platform now launches via any of these entry points:
 - **Game Bar**: Press the **Xbox button**, then select **"Home"** to launch your gaming platform, or **"Library"** to open OmniConsoleMod Settings.
 - **Boot**: Enable **"Enter Xbox mode (FSE) on startup"** for automatic launch at boot.
 - **Start Menu**: Launch OmniConsoleMod directly to automatically activate Xbox Mode (FSE).
+
+---
+
+## ✨ Features
+
+- **Automatic platform launch** – Your configured gaming platform launches automatically whenever Xbox Mode (FSE) activates.
+- **Automatic Xbox Mode (FSE) entry** – When you launch OmniConsoleMod outside Xbox Mode (FSE) (e.g., from the Start Menu), it automatically triggers the Xbox Mode (FSE) entry dialog.
+- **Multi-platform support** – Built-in support for **Steam Big Picture**, **Xbox App**, **Epic Games Store**, **Armoury Crate SE**, **Playnite Fullscreen**, **One Game Launcher**, **MSI Center M**, and **Shift Game Launcher** with Custom platform support (experimental).
+- **Game Bar integration** – Game Bar's **"Home"** button launches your gaming platform; **"Library"** opens OmniConsoleMod Settings.
+- **Troubleshoot page** – A dedicated page for Xbox Mode (FSE) recovery: restarts Game Bar to fix issues such as the "Restart for better performance" dialog not appearing, then enters Xbox Mode (FSE).
+- **Gamepad first UI** – The app can be fully navigated by using gamepad.
+- **OmniNav — Unified Gamepad Profiles & Mapping** – Map gamepad inputs to keyboard and mouse actions with a toggle switch (**On** / **Off**). Managed through reusable named mapping profiles, allowing customizable bindings, cursor speed, and navigation settings per profile.
+- **Default Profiles** – Comes with built-in profiles including **OmniNav** (read-only), **Classic** (read-only), **Gaming** (editable, layered mode enabled), and **None** (completely disables mapping for native gamepad support in games).
+- **Layered Mode** – Activate/deactivate secondary bindings on the fly in custom profiles (such as the default **Gaming** profile) by holding a trigger key (like Right Stick `RS`) or double-tapping it to toggle.
+- **Touch Keyboard Action** – Support mapping a button to launch the Windows virtual keyboard (Touch Keyboard) via TabTip COM or OSK.
+- **OmniCharm widget** – A Game Bar widget for in-game quick access. Open **Task View**, the **Xbox Library**, or the **Steam Overlay** in one tap; toggle **OmniNav (Gamepad Mouse Mode)**, assign/switch mapping profiles for the active app on the fly, and toggle the **Steam In-Game Overlay** (long-press ☰).
+- **Native Xbox Mode (FSE) integration** – Registered as a Windows 11 Xbox Mode (FSE) Home App through the official API.
+- **In-app updates** – Automatic checks for the latest GitHub releases, with download and install built into the Advanced settings page.
+
+---
+
+## ⚔️ OmniNav (OmniConsoleMod) vs Nekomata (OmniConsole Upstream)
+
+| Comparison Dimension | Nekomata (OmniConsole Upstream) | OmniNav (OmniConsoleMod) |
+|---|---|---|
+| **Architecture Model** | Bound directly per-application (per-app mapping). | **Unified Profile Model**: Mappings are managed as reusable Named Profiles and then assigned to apps. |
+| **Gamepad Mouse Mode** | Global setting with 3 modes: Off, Auto, Force On. Layout (OmniNav/Classic) and cursor speed are set globally via INI. | Simplified to a single global **On / Off** switch. Layout, cursor speed, and sensitivity are configured per-profile. |
+| **Input Blocker** | Has an **Input Blocker** (blocks original gamepad inputs to prevent double inputs in games). | No strict input blocker. Designed as a **helper** to trigger shortcuts/mods during gameplay or navigate non-game apps easily. |
+| **Layered Mode Nature** | None. Only supports a single static mapping layer. | **Yes**: Serves as an on-the-fly enabling/disabling the button mappings by holding or double-tapping a designated trigger key (e.g. `RS`). |
+| **Game & Fullscreen Detection** | Relies on static per-app configurations. | Has **Game & Fullscreen Detection** to automatically apply the 'Game Default' (e.g., Gaming profile) or 'App Default' profile to new apps/games. |
+| **Additional Actions** | Mappings are limited to standard keyboard/mouse buttons. | Supports system actions like launching the **Touch Keyboard** via TabTip COM or OSK. |
+| **Widget Integration** | Global layout toggling and per-app configuration in separate dialogs. | Instant profile assignment via a dropdown for the active app, plus a shortcut button to open the editor. |
+
+---
+
+## 📖 Mini Guide: Using OmniNav & Profiles
+
+### 1. Toggle OmniNav On/Off
+Open the **OmniCharm Widget** in the Xbox Game Bar (Win + G or Xbox Button) and use the main toggle switch to turn OmniNav **On** or **Off**.
+
+### 2. Quick App Assignment
+When using any application:
+1. Open the **OmniCharm Widget**.
+2. Under **Foreground App**, you will see the active app's name.
+3. Select a profile from the dropdown (e.g., select `Gaming`, `OmniNav`, or `None` to disable the button mapping feature).
+4. The profile is automatically assigned to the game/app and applied whenever that app is in focus.
+
+### 3. Understanding the Default Profiles
+OmniConsoleMod uses game and fullscreen detection to apply fallback profiles:
+- **App Default**: Applied to normal windowed apps that do not have a specific profile assigned. (Default: `OmniNav`).
+- **Game Default**: Applied automatically to detected games or fullscreen applications that do not have a specific profile assigned. (Default: `Gaming`).
+- You can change these defaults in **OmniConsoleMod Settings -> OmniNav -> Profiles**.
+
+### 4. Using Layered Mode
+The **Gaming** profile has **Layered Mode** enabled by default using Right Stick (`RS`) as the trigger.
+- **Action**: A. Hold `RS` (1.6s) to activate Layered Mode, release `RS` to deactivate; B. Double-tap `RS` to activate Layered Mode, double-tap again to deactivate.
+- This is useful for mapping quick system shortcuts to the controller buttons while in a game, then toggling them off to return to normal controls.
+- Example Layered Mode use cases: open/close OSDs (RTSS, NVIDIA, Steam Overlay, etc.), open/toggle game mods (Lossless Scaling, Optiscaler, SpecialK, etc.), bring up the Virtual Keyboard to enter a game character name, start/stop/toggle-fullscreen in a console emulator.
+- Note: the 'Gaming' profile here is just a standard profile with Layered Mode enabled and named 'Gaming'. So you don't have to use this profile for every game.
+
+### 5. Creating & Editing Profiles
+1. Open **OmniConsoleMod Settings** from the Start Menu.
+2. Go to the **Gamepad Profiles** tab.
+3. Select an existing profile to edit its settings and key bindings, press **Y** to set as default, or press **X** to create a custom profile.
+4. Press **Copy from...** to duplicate configurations from read-only profiles like `OmniNav` or `Classic`.
 
 ---
 

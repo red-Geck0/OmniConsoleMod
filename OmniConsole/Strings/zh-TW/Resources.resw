@@ -1415,6 +1415,12 @@
   <data name="BootVideoSyncSetting_Description.Text" xml:space="preserve">
     <value>開啟：先播完整支影片再啟動。關閉：啟動與播放同時進行。</value>
   </data>
+  <data name="BootVideoMuteSetting_Title.Text" xml:space="preserve">
+    <value>靜音播放影片</value>
+  </data>
+  <data name="BootVideoMuteSetting_Description.Text" xml:space="preserve">
+    <value>播放開機影片時不發出聲音。</value>
+  </data>
   <data name="FilePickerDialog_FilterVideo" xml:space="preserve">
     <value>影片 (*.mp4)</value>
   </data>

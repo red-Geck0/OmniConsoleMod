@@ -293,6 +293,7 @@ namespace OmniConsole.Pages
             DebugLoggingSwitch.IsOn = SettingsService.GetEnableDebugLogging();
             BootVideoSwitch.IsOn = SettingsService.GetEnableBootVideo();
             BootVideoSyncSwitch.IsOn = SettingsService.GetBootVideoPlayBeforeLaunch();
+            BootVideoMuteSwitch.IsOn = SettingsService.GetBootVideoMuted();
             UpdateBootVideoFileText();
 
             // Game Bar 媒體櫃 / Passthrough 開關 UI 暫時隱藏（見 SettingsPage.xaml 註解），強制走 SettingsService 預設值。
@@ -1003,6 +1004,12 @@ namespace OmniConsole.Pages
             SettingsService.SetBootVideoPlayBeforeLaunch(BootVideoSyncSwitch.IsOn);
         }
 
+        /// <summary>開機影片靜音 ToggleSwitch 切換時立即儲存。</summary>
+        private void BootVideoMuteSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            SettingsService.SetBootVideoMuted(BootVideoMuteSwitch.IsOn);
+        }
+
         /// <summary>
         /// 「選擇影片」按鈕：開自製 FilePickerDialog（不支援時退回系統 FileOpenPicker），
         /// 選定後複製一份到 LocalFolder/BootVideo/（見 BootVideoStore），避免直接讀外部路徑
@@ -1568,6 +1575,11 @@ namespace OmniConsole.Pages
                 // 開機影片與平台啟動先後順序開關
                 case ToggleSwitch sw when ReferenceEquals(sw, BootVideoSyncSwitch):
                     BootVideoSyncSwitch.IsOn = !sw.IsOn;
+                    break;
+
+                // 開機影片靜音開關
+                case ToggleSwitch sw when ReferenceEquals(sw, BootVideoMuteSwitch):
+                    BootVideoMuteSwitch.IsOn = !sw.IsOn;
                     break;
 
                 // 檢查更新按鈕

@@ -26,71 +26,6 @@ OmniConsoleMod dapat menjadi Home shell untuk Xbox Mode (FSE) Windows 11 di PC d
 
 ---
 
-## ✨ Fitur
-
-- **Auto-launch platform** – Platform gaming yang kamu set otomatis ke-launch tiap Xbox Mode (FSE) aktif.
-- **Auto masuk Xbox Mode (FSE)** – Pas kamu buka OmniConsoleMod di luar Xbox Mode (FSE) (misalnya dari Start Menu), dia otomatis memunculkan dialog masuk Xbox Mode (FSE).
-- **Dukungan multi-platform** – Built-in support buat **Steam Big Picture**, **Xbox App**, **Epic Games Store**, **Armoury Crate SE**, **Playnite Fullscreen**, **One Game Launcher**, **MSI Center M**, dan **Shift Game Launcher**, plus dukungan Custom platform (eksperimental).
-- **Integrasi Game Bar** – Tombol **"Home"** di Game Bar nge-launch platform gaming kamu; **"Library"** buka OmniConsoleMod Settings.
-- **Halaman Troubleshoot** – Halaman khusus buat recovery Xbox Mode (FSE): nge-restart Game Bar buat benerin masalah kayak dialog "Restart for better performance" yang nggak muncul, lalu masuk Xbox Mode (FSE).
-- **UI gamepad-first** – App-nya bisa dinavigasi sepenuhnya pakai gamepad.
-- **OmniNav — Profile & Mapping Gamepad Terpadu** – Map input gamepad ke aksi keyboard dan mouse lewat toggle switch (**On** / **Off**). Dikelola lewat profile mapping bernama yang reusable, jadi binding, cursor speed, dan setelan navigasi bisa diatur per-profile.
-- **Default Profiles** – Datang dengan profile built-in: **OmniNav** (read-only), **Classic** (read-only), **Gaming** (editable, layered mode aktif), dan **None** (mematikan mapping sepenuhnya biar game pakai gamepad native).
-- **Layered Mode** – Aktifin/matiin binding sekunder secara on-the-fly di profile custom (kayak profile **Gaming** default) dengan nahan tombol trigger (misalnya Right Stick `RS`) atau double-tap buat toggle.
-- **Aksi Touch Keyboard** – Bisa map sebuah tombol buat nge-launch virtual keyboard Windows (Touch Keyboard) lewat TabTip COM atau OSK.
-- **Widget OmniCharm** – Widget Game Bar buat akses cepat saat in-game. Buka **Task View**, **Xbox Library**, atau **Steam Overlay** sekali tap; toggle **OmniNav (Gamepad Mouse Mode)**, assign/ganti profile mapping buat app yang aktif secara on-the-fly, dan toggle **Steam In-Game Overlay** (long-press ☰).
-- **Integrasi Xbox Mode (FSE) native** – Terdaftar sebagai Home App Xbox Mode (FSE) Windows 11 lewat API resmi.
-- **Update in-app** – Otomatis cek release GitHub terbaru, dengan download dan install langsung dari halaman Advanced settings.
-
----
-
-## ⚔️ OmniNav (OmniConsoleMod) vs Nekomata (OmniConsole Upstream)
-
-| Dimensi Perbandingan | Nekomata (OmniConsole Upstream) | OmniNav (OmniConsoleMod) |
-|---|---|---|
-| **Model Arsitektur** | Diikat langsung per-aplikasi (per-app mapping). | **Model Profile Terpadu**: Mapping dikelola sebagai Named Profile yang reusable, lalu di-assign ke app. |
-| **Gamepad Mouse Mode** | Setelan global dengan 3 mode: Off, Auto, Force On. Layout (OmniNav/Classic) dan cursor speed di-set global lewat INI. | Disederhanakan jadi satu switch global **On / Off**. Layout, cursor speed, dan sensitivity diatur per-profile. |
-| **Input Blocker** | Punya **Input Blocker** (memblok input gamepad asli biar nggak double input di game). | Nggak ada input blocker ketat. Didesain sebagai **helper** buat trigger shortcut/mod saat main, atau navigasi app non-game dengan gampang. |
-| **Sifat Layered Mode** | Nggak ada. Cuma dukung satu layer mapping statis. | **Ada**: Berfungsi buat aktifin/matiin mapping tombol secara on-the-fly dengan nahan atau double-tap tombol trigger tertentu (misalnya `RS`). |
-| **Deteksi Game & Fullscreen** | Mengandalkan konfigurasi per-app statis. | Punya **Deteksi Game & Fullscreen** buat otomatis nerapin profile 'Game Default' (misalnya profile Gaming) atau 'App Default' ke app/game baru. |
-| **Aksi Tambahan** | Mapping terbatas ke tombol keyboard/mouse standar. | Dukung aksi sistem kayak nge-launch **Touch Keyboard** lewat TabTip COM atau OSK. |
-| **Integrasi Widget** | Toggle layout global dan konfigurasi per-app di dialog terpisah. | Assign profile instan lewat dropdown buat app yang aktif, plus tombol shortcut buat buka editor. |
-
----
-
-## 📖 Mini Guide: Pakai OmniNav & Profiles
-
-### 1. Toggle OmniNav On/Off
-Buka **Widget OmniCharm** di Xbox Game Bar (Win + G atau tombol Xbox) dan pakai toggle switch utama buat nyalain OmniNav **On** atau **Off**.
-
-### 2. Assign App Cepat
-Saat lagi pakai aplikasi apa pun:
-1. Buka **Widget OmniCharm**.
-2. Di bagian **Foreground App**, kamu bakal lihat nama app yang aktif.
-3. Pilih profile dari dropdown (misalnya pilih `Gaming`, `OmniNav`, atau `None` untuk men-disable fitur button mapping).
-4. Profile tsb otomatis di-assign ke game/app dan diterapin tiap app itu lagi fokus.
-
-### 3. Memahami Default Profiles
-OmniConsoleMod pakai deteksi game dan fullscreen buat nerapin profile fallback:
-- **App Default**: Diterapin ke app windowed biasa yang nggak punya profile khusus. (Default: `OmniNav`).
-- **Game Default**: Otomatis diterapin ke game atau aplikasi fullscreen yang kedeteksi dan nggak punya profile khusus. (Default: `Gaming`).
-- Kamu bisa ganti default ini di **OmniConsoleMod Settings -> OmniNav -> Profiles**.
-
-### 4. Pakai Layered Mode
-Profile **Gaming** punya **Layered Mode** aktif secara default pakai Right Stick (`RS`) sebagai trigger.
-- **Aksi**: A. Tahan `RS` (1.6 detik) mengaktifkan Layered Mode, lepas `RS` utk matikan; B. Double-tap `RS` untuk mengaktifkan Layered Mode, double-tap lagi untuk matikan. 
-- Ini berguna buat map shortcut sistem cepat ke tombol controller saat main game, lalu matiin lagi buat balik ke kontrol normal.
-- Contoh use case Layered Mode : buka/tutup OSD (RTSS, NVIDIA, Steam Overlay, dll), buka/aktifkan game mod (Lossless Scaling,Optiscaler,SpecialK, dll), munculin Virtual Keyboard untuk mengisi inputan nama karakter game, start/stop/toggle-fullscreen di console emulator. 
-- Catatan : profil 'Gaming' di sini hanya sekedar profil standar yg Layered Modenya di-set aktif dan diberi nama 'Gaming'. Jadi kamu gak harus pakai profile ini untuk setiap game
-
-### 5. Bikin & Edit Profiles
-1. Buka **OmniConsoleMod Settings** dari Start Menu.
-2. Masuk ke tab **Gamepad Profiles**.
-3. Pilih profile yang udah ada buat edit setting dan key binding-nya, tekan **Y** utk set as default. tekan **X** untuk bikin profile custom.
-4. Tekan **Copy from...** buat menyalin konfigurasi dari profile read-only seperti `OmniNav` atau `Classic`.
-
----
-
 ## ⚙️ Prerequisites
 
 OmniConsoleMod butuh **Full Handheld edition** dari Xbox Mode (FSE). Microsoft lagi bertahap nge-roll out Limited PC edition ke PC biasa — pakai [Xbox Full Screen Experience Tool (XFSET)](https://github.com/8bit2qubit/XboxFullScreenExperienceTool) buat pindah ke Full Handheld edition.
@@ -153,6 +88,71 @@ Platform gaming kamu sekarang ke-launch lewat salah satu entry point ini:
 - **Game Bar**: Tekan **tombol Xbox**, lalu pilih **"Home"** buat nge-launch platform gaming kamu, atau **"Library"** buat buka OmniConsoleMod Settings.
 - **Boot**: Aktifin **"Enter Xbox mode (FSE) on startup"** buat auto-launch saat boot.
 - **Start Menu**: Launch OmniConsoleMod langsung buat otomatis ngaktifin Xbox Mode (FSE).
+
+---
+
+## ✨ Fitur
+
+- **Auto-launch platform** – Platform gaming yang kamu set otomatis ke-launch tiap Xbox Mode (FSE) aktif.
+- **Auto masuk Xbox Mode (FSE)** – Pas kamu buka OmniConsoleMod di luar Xbox Mode (FSE) (misalnya dari Start Menu), dia otomatis memunculkan dialog masuk Xbox Mode (FSE).
+- **Dukungan multi-platform** – Built-in support buat **Steam Big Picture**, **Xbox App**, **Epic Games Store**, **Armoury Crate SE**, **Playnite Fullscreen**, **One Game Launcher**, **MSI Center M**, dan **Shift Game Launcher**, plus dukungan Custom platform (eksperimental).
+- **Integrasi Game Bar** – Tombol **"Home"** di Game Bar nge-launch platform gaming kamu; **"Library"** buka OmniConsoleMod Settings.
+- **Halaman Troubleshoot** – Halaman khusus buat recovery Xbox Mode (FSE): nge-restart Game Bar buat benerin masalah kayak dialog "Restart for better performance" yang nggak muncul, lalu masuk Xbox Mode (FSE).
+- **UI gamepad-first** – App-nya bisa dinavigasi sepenuhnya pakai gamepad.
+- **OmniNav — Profile & Mapping Gamepad Terpadu** – Map input gamepad ke aksi keyboard dan mouse lewat toggle switch (**On** / **Off**). Dikelola lewat profile mapping bernama yang reusable, jadi binding, cursor speed, dan setelan navigasi bisa diatur per-profile.
+- **Default Profiles** – Datang dengan profile built-in: **OmniNav** (read-only), **Classic** (read-only), **Gaming** (editable, layered mode aktif), dan **None** (mematikan mapping sepenuhnya biar game pakai gamepad native).
+- **Layered Mode** – Aktifin/matiin binding sekunder secara on-the-fly di profile custom (kayak profile **Gaming** default) dengan nahan tombol trigger (misalnya Right Stick `RS`) atau double-tap buat toggle.
+- **Aksi Touch Keyboard** – Bisa map sebuah tombol buat nge-launch virtual keyboard Windows (Touch Keyboard) lewat TabTip COM atau OSK.
+- **Widget OmniCharm** – Widget Game Bar buat akses cepat saat in-game. Buka **Task View**, **Xbox Library**, atau **Steam Overlay** sekali tap; toggle **OmniNav (Gamepad Mouse Mode)**, assign/ganti profile mapping buat app yang aktif secara on-the-fly, dan toggle **Steam In-Game Overlay** (long-press ☰).
+- **Integrasi Xbox Mode (FSE) native** – Terdaftar sebagai Home App Xbox Mode (FSE) Windows 11 lewat API resmi.
+- **Update in-app** – Otomatis cek release GitHub terbaru, dengan download dan install langsung dari halaman Advanced settings.
+
+---
+
+## ⚔️ OmniNav (OmniConsoleMod) vs Nekomata (OmniConsole Upstream)
+
+| Dimensi Perbandingan | Nekomata (OmniConsole Upstream) | OmniNav (OmniConsoleMod) |
+|---|---|---|
+| **Model Arsitektur** | Diikat langsung per-aplikasi (per-app mapping). | **Model Profile Terpadu**: Mapping dikelola sebagai Named Profile yang reusable, lalu di-assign ke app. |
+| **Gamepad Mouse Mode** | Setelan global dengan 3 mode: Off, Auto, Force On. Layout (OmniNav/Classic) dan cursor speed di-set global lewat INI. | Disederhanakan jadi satu switch global **On / Off**. Layout, cursor speed, dan sensitivity diatur per-profile. |
+| **Input Blocker** | Punya **Input Blocker** (memblok input gamepad asli biar nggak double input di game). | Nggak ada input blocker ketat. Didesain sebagai **helper** buat trigger shortcut/mod saat main, atau navigasi app non-game dengan gampang. |
+| **Sifat Layered Mode** | Nggak ada. Cuma dukung satu layer mapping statis. | **Ada**: Berfungsi buat aktifin/matiin mapping tombol secara on-the-fly dengan nahan atau double-tap tombol trigger tertentu (misalnya `RS`). |
+| **Deteksi Game & Fullscreen** | Mengandalkan konfigurasi per-app statis. | Punya **Deteksi Game & Fullscreen** buat otomatis nerapin profile 'Game Default' (misalnya profile Gaming) atau 'App Default' ke app/game baru. |
+| **Aksi Tambahan** | Mapping terbatas ke tombol keyboard/mouse standar. | Dukung aksi sistem kayak nge-launch **Touch Keyboard** lewat TabTip COM atau OSK. |
+| **Integrasi Widget** | Toggle layout global dan konfigurasi per-app di dialog terpisah. | Assign profile instan lewat dropdown buat app yang aktif, plus tombol shortcut buat buka editor. |
+
+---
+
+## 📖 Mini Guide: Pakai OmniNav & Profiles
+
+### 1. Toggle OmniNav On/Off
+Buka **Widget OmniCharm** di Xbox Game Bar (Win + G atau tombol Xbox) dan pakai toggle switch utama buat nyalain OmniNav **On** atau **Off**.
+
+### 2. Assign App Cepat
+Saat lagi pakai aplikasi apa pun:
+1. Buka **Widget OmniCharm**.
+2. Di bagian **Foreground App**, kamu bakal lihat nama app yang aktif.
+3. Pilih profile dari dropdown (misalnya pilih `Gaming`, `OmniNav`, atau `None` untuk men-disable fitur button mapping).
+4. Profile tsb otomatis di-assign ke game/app dan diterapin tiap app itu lagi fokus.
+
+### 3. Memahami Default Profiles
+OmniConsoleMod pakai deteksi game dan fullscreen buat nerapin profile fallback:
+- **App Default**: Diterapin ke app windowed biasa yang nggak punya profile khusus. (Default: `OmniNav`).
+- **Game Default**: Otomatis diterapin ke game atau aplikasi fullscreen yang kedeteksi dan nggak punya profile khusus. (Default: `Gaming`).
+- Kamu bisa ganti default ini di **OmniConsoleMod Settings -> OmniNav -> Profiles**.
+
+### 4. Pakai Layered Mode
+Profile **Gaming** punya **Layered Mode** aktif secara default pakai Right Stick (`RS`) sebagai trigger.
+- **Aksi**: A. Tahan `RS` (1.6 detik) mengaktifkan Layered Mode, lepas `RS` utk matikan; B. Double-tap `RS` untuk mengaktifkan Layered Mode, double-tap lagi untuk matikan. 
+- Ini berguna buat map shortcut sistem cepat ke tombol controller saat main game, lalu matiin lagi buat balik ke kontrol normal.
+- Contoh use case Layered Mode : buka/tutup OSD (RTSS, NVIDIA, Steam Overlay, dll), buka/aktifkan game mod (Lossless Scaling,Optiscaler,SpecialK, dll), munculin Virtual Keyboard untuk mengisi inputan nama karakter game, start/stop/toggle-fullscreen di console emulator. 
+- Catatan : profil 'Gaming' di sini hanya sekedar profil standar yg Layered Modenya di-set aktif dan diberi nama 'Gaming'. Jadi kamu gak harus pakai profile ini untuk setiap game
+
+### 5. Bikin & Edit Profiles
+1. Buka **OmniConsoleMod Settings** dari Start Menu.
+2. Masuk ke tab **Gamepad Profiles**.
+3. Pilih profile yang udah ada buat edit setting dan key binding-nya, tekan **Y** utk set as default. tekan **X** untuk bikin profile custom.
+4. Tekan **Copy from...** buat menyalin konfigurasi dari profile read-only seperti `OmniNav` atau `Classic`.
 
 ---
 

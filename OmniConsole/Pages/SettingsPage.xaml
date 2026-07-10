@@ -719,6 +719,28 @@
                                                   FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
+
+                                <Border Height="1" Background="{ThemeResource CardStrokeColorDefaultBrush}" Margin="16,0"/>
+
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE74F;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="BootVideoMuteSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="BootVideoMuteSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                    </StackPanel>
+
+                                    <ToggleSwitch x:Name="BootVideoMuteSwitch"
+                                                  Toggled="BootVideoMuteSwitch_Toggled"
+                                                  FlowDirection="RightToLeft"
+                                                  Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
+                                </Grid>
                             </StackPanel>
                         </Border>
 

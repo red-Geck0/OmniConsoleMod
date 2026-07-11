@@ -11,13 +11,13 @@ namespace OmniConsole.Services
     public static class PhantomKeyService
     {
         private static readonly string _sourceExePath = Path.Combine(
-            Windows.ApplicationModel.Package.Current.InstalledLocation.Path, "Steam.exe");
+            Windows.ApplicationModel.Package.Current.InstalledLocation.Path, "OmniNav.exe");
 
         private static readonly string _targetDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "OmniConsole");
 
-        private static readonly string _targetExePath = Path.Combine(_targetDir, "Steam.exe");
+        private static readonly string _targetExePath = Path.Combine(_targetDir, "OmniNav.exe");
 
         /// <summary>套件內 PhantomKey 的完整路徑，供其他服務（如 AboutInfoService）讀版本號使用。</summary>
         public static string PackageExePath => _sourceExePath;
@@ -92,7 +92,7 @@ namespace OmniConsole.Services
         /// </summary>
         public static void Kill()
         {
-            foreach (var proc in Process.GetProcessesByName("Steam"))
+            foreach (var proc in Process.GetProcessesByName("OmniNav"))
             {
                 try
                 {
@@ -137,7 +137,7 @@ namespace OmniConsole.Services
         /// </summary>
         public static bool IsRunning()
         {
-            foreach (var proc in Process.GetProcessesByName("Steam"))
+            foreach (var proc in Process.GetProcessesByName("OmniNav"))
             {
                 try
                 {

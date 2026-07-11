@@ -388,7 +388,7 @@ namespace OmniConsole.Services
             string expectedPath = PhantomKeyService.DeployedExePath;
             bool pathExpected = false;
 
-            foreach (var proc in Process.GetProcessesByName("Steam"))
+            foreach (var proc in Process.GetProcessesByName("OmniNav"))
             {
                 try
                 {

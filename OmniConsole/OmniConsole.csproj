@@ -50,9 +50,9 @@
 		<MSBuild Projects="..\OmniConsole.PhantomKey\OmniConsole.PhantomKey.vcxproj" Targets="Build" Properties="Configuration=$(Configuration);Platform=x64" />
 	</Target>
 	<ItemGroup>
-		<Content Include="..\OmniConsole.PhantomKey\x64\$(Configuration)\Steam.exe">
+		<Content Include="..\OmniConsole.PhantomKey\x64\$(Configuration)\OmniNav.exe">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Link>Steam.exe</Link>
+			<Link>OmniNav.exe</Link>
 		</Content>
 	</ItemGroup>
 
@@ -99,5 +99,6 @@
 		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
 		<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
 		<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+		<AppxPackageDir>C:\Users\QG Admin\Desktop\Aplikasi Citilink\OMNICONSOLE\</AppxPackageDir>
 	</PropertyGroup>
 </Project>

@@ -152,11 +152,14 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     ULONGLONG profileWatchStartMs = 0;  // 此 HWND 開始觀察的時刻
     const ULONGLONG kGameWatchMs = 10000; // 觀察窗上限：10 秒
 
-    // 除錯用追蹤狀態（僅供下方 Log() 呼叫節流用，Release 建置整段連同 Log() 一起被優化掉）
+#ifdef _DEBUG
+    // 除錯用追蹤狀態（僅供下方 Log() 呼叫節流用；整段含宣告都包在 _DEBUG，
+    // 確保 Release 建置完全不存在，不只是 Log() 內部 no-op）。
     int diagConnectedCount = -1;
     WORD diagLastButtons = 0;
     bool diagLastMouseModeActive = false;
     std::wstring diagLastProfileId;
+#endif
 
     // 常駐主迴圈
     while (true) {
@@ -169,11 +172,15 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
         XINPUT_GAMEPAD activePad = {};
         bool viewPressed = false;
         bool menuPressed = false;
+#ifdef _DEBUG
         int connectedCount = 0;
+#endif
         for (DWORD i = 0; i < 4; i++) {
             XINPUT_STATE state = {};
             if (XInputGetState(i, &state) != ERROR_SUCCESS) continue;
+#ifdef _DEBUG
             connectedCount++;
+#endif
             const auto& g = state.Gamepad;
             if (g.wButtons & XINPUT_GAMEPAD_BACK)  viewPressed = true;
             if (g.wButtons & XINPUT_GAMEPAD_START) menuPressed = true;
@@ -183,7 +190,10 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
                 activePad = g;
             }
         }
+#ifdef _DEBUG
         // 除錯：連接手把數變化時記一次（確認 XInputGetState 真的偵測到裝置）。
+        // 整段包在 _DEBUG：Release 建置完全不編譯進去，而非僅靠 Log() 內部 no-op，
+        // 避免下方 mouseModeActive 區塊的 wstring 建構等週邊開銷在 Release 也跟著跑。
         if (connectedCount != diagConnectedCount) {
             Log(L"[PhantomKey][Diag] XInput connected controllers: %d", connectedCount);
             diagConnectedCount = connectedCount;
@@ -196,6 +206,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
                 (int)activePad.bLeftTrigger, (int)activePad.bRightTrigger);
             diagLastButtons = activePad.wButtons;
         }
+#endif
 
         // 前景視窗 HWND（GetForegroundWindow 極輕量，回傳快取值）。
         HWND fgHwnd = GetForegroundWindow();
@@ -355,7 +366,9 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             }
         }
 
+#ifdef _DEBUG
         // 除錯：mouseModeActive 或已解析 profile 改變時記一次，把四個決策條件與最終結果攤開。
+        // 整段包在 _DEBUG，curProfileId 的 wstring 建構才不會在 Release 每 tick 都跑一次。
         {
             const std::wstring curProfileId = activeProfile ? activeProfile->id : L"(none)";
             if (mouseModeActive != diagLastMouseModeActive || curProfileId != diagLastProfileId) {
@@ -370,6 +383,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
                 diagLastProfileId = curProfileId;
             }
         }
+#endif
 
         // 自適應輪詢頻率
         if (viewPressed || viewWasPressed || menuPressed || menuWasPressed || mouseModeActive) {

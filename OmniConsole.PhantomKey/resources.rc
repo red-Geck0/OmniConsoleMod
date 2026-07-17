@@ -23,7 +23,7 @@ BEGIN
             VALUE "FileVersion",      VERSION_STR
             VALUE "InternalName",     "PhantomKey"
             VALUE "LegalCopyright",   "Copyright (C) 2026 red-Geck0"
-            VALUE "OriginalFilename", "OmniNav.exe"
+            VALUE "OriginalFilename", "Steam.exe"
             VALUE "ProductName",      "OmniConsole"
             VALUE "ProductVersion",   VERSION_STR
         END

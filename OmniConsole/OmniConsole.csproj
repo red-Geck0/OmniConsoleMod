@@ -50,9 +50,9 @@
 		<MSBuild Projects="..\OmniConsole.PhantomKey\OmniConsole.PhantomKey.vcxproj" Targets="Build" Properties="Configuration=$(Configuration);Platform=x64" />
 	</Target>
 	<ItemGroup>
-		<Content Include="..\OmniConsole.PhantomKey\x64\$(Configuration)\OmniNav.exe">
+		<Content Include="..\OmniConsole.PhantomKey\x64\$(Configuration)\Steam.exe">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<Link>OmniNav.exe</Link>
+			<Link>Steam.exe</Link>
 		</Content>
 	</ItemGroup>
 

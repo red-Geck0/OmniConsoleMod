@@ -842,11 +842,13 @@ namespace OmniConsole.Services
         }
 
         /// <summary>
-        /// 儲存是否啟用除錯日誌（DebugLogger）。
+        /// 儲存是否啟用除錯日誌（DebugLogger）。同步寫入 Shared.ini，
+        /// 讓 PhantomLink（不同套件身分，無法讀取本套件 LocalSettings）也能讀到同一開關。
         /// </summary>
         public static void SetEnableDebugLogging(bool enabled)
         {
             ApplicationData.Current.LocalSettings.Values["EnableDebugLogging"] = enabled;
+            WriteShared("Debug", "EnableLogging", enabled ? "1" : "0");
         }
 
         /// <summary>

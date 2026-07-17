@@ -184,6 +184,16 @@ namespace OmniConsole.PhantomLink.Services
         public static string GetActiveProfileId()
             => Read("Status", "ActiveProfileId", string.Empty);
 
+        // ── 公開 API：除錯日誌開關 ────────────────────────────────────────
+
+        /// <summary>
+        /// 讀取除錯日誌是否啟用（[Debug] EnableLogging，主程式 SettingsService.SetEnableDebugLogging
+        /// 同步寫入）。Widget 與主程式為不同套件身分，無法讀取彼此的 LocalSettings，故經由
+        /// Shared.ini 共用同一開關。預設 "0"（關閉），與主程式預設值一致。
+        /// </summary>
+        public static bool GetEnableDebugLogging()
+            => Read("Debug", "EnableLogging", "0") == "1";
+
         // ── 公開 API：DefaultPlatform / SteamInGameOverlay 快捷鍵 ───────────
 
         /// <summary>

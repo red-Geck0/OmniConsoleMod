@@ -152,6 +152,12 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     ULONGLONG profileWatchStartMs = 0;  // 此 HWND 開始觀察的時刻
     const ULONGLONG kGameWatchMs = 10000; // 觀察窗上限：10 秒
 
+    // 除錯用追蹤狀態（僅供下方 Log() 呼叫節流用，Release 建置整段連同 Log() 一起被優化掉）
+    int diagConnectedCount = -1;
+    WORD diagLastButtons = 0;
+    bool diagLastMouseModeActive = false;
+    std::wstring diagLastProfileId;
+
     // 常駐主迴圈
     while (true) {
         Sleep(sleepMs);
@@ -163,9 +169,11 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
         XINPUT_GAMEPAD activePad = {};
         bool viewPressed = false;
         bool menuPressed = false;
+        int connectedCount = 0;
         for (DWORD i = 0; i < 4; i++) {
             XINPUT_STATE state = {};
             if (XInputGetState(i, &state) != ERROR_SUCCESS) continue;
+            connectedCount++;
             const auto& g = state.Gamepad;
             if (g.wButtons & XINPUT_GAMEPAD_BACK)  viewPressed = true;
             if (g.wButtons & XINPUT_GAMEPAD_START) menuPressed = true;
@@ -174,6 +182,19 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
                 abs(g.sThumbRX) > 8000 || abs(g.sThumbRY) > 8000) {
                 activePad = g;
             }
+        }
+        // 除錯：連接手把數變化時記一次（確認 XInputGetState 真的偵測到裝置）。
+        if (connectedCount != diagConnectedCount) {
+            Log(L"[PhantomKey][Diag] XInput connected controllers: %d", connectedCount);
+            diagConnectedCount = connectedCount;
+        }
+        // 除錯：raw 按鈕位元 mask 變化時記一次（確認實體按下有被讀到，且未被消化掉）。
+        if (activePad.wButtons != diagLastButtons) {
+            Log(L"[PhantomKey][Diag] raw wButtons=0x%04X LX=%d LY=%d RX=%d RY=%d LT=%d RT=%d",
+                activePad.wButtons, activePad.sThumbLX, activePad.sThumbLY,
+                activePad.sThumbRX, activePad.sThumbRY,
+                (int)activePad.bLeftTrigger, (int)activePad.bRightTrigger);
+            diagLastButtons = activePad.wButtons;
         }
 
         // 前景視窗 HWND（GetForegroundWindow 極輕量，回傳快取值）。
@@ -331,6 +352,22 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
                 WriteActiveProfileId(activeProfile->id);
                 if (!IsProfileEffectivelyEmpty(*activeProfile))
                     mouseModeActive = true;
+            }
+        }
+
+        // 除錯：mouseModeActive 或已解析 profile 改變時記一次，把四個決策條件與最終結果攤開。
+        {
+            const std::wstring curProfileId = activeProfile ? activeProfile->id : L"(none)";
+            if (mouseModeActive != diagLastMouseModeActive || curProfileId != diagLastProfileId) {
+                Log(L"[PhantomKey][Diag] mouseModeActive=%d profile=[%s] layeredEnabled=%d "
+                    L"| mouseModeEnabled=%d hasBuiltInGamepadMapping=%d widgetActive=%d forceExcluded=%d FG=[%s]",
+                    (int)mouseModeActive, curProfileId.c_str(),
+                    activeProfile ? (int)activeProfile->layered.enabled : -1,
+                    (int)config.mouseModeEnabled, (int)config.hasBuiltInGamepadMapping,
+                    (int)config.widgetActive, (int)IsMouseModeForceExcluded(currentFg),
+                    currentFg.c_str());
+                diagLastMouseModeActive = mouseModeActive;
+                diagLastProfileId = curProfileId;
             }
         }
 

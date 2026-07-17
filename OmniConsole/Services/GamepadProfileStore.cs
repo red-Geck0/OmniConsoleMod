@@ -242,14 +242,10 @@ namespace OmniConsole.Services
                 else
                 {
                     // Gaming：保留已存檔（可能被使用者編輯）的版本，缺漏才種子。
-                    // 但強制 Layered.Enabled=true — Gaming 識別性質的一部分，
-                    // 禁用即等同 OmniNav（避免舊版檔案殘留 enabled=false 造成混淆）。
+                    // Layered.Enabled 不再強制覆寫——使用者關掉並存檔後應該真的關掉，
+                    // 不該每次 Load() 都被悄悄改回 true（先前這樣做會讓 UI 上的開關看起來
+                    // 能改、實際上下次打開又跳回去，行為不一致且沒有任何提示）。
                     var stored = data.Profiles.FirstOrDefault(p => p.Id == bi.Id);
-                    if (stored != null && stored.Id == GamepadBuiltInLayouts.GamingId)
-                    {
-                        stored.Layered.Enabled = true;
-                        stored.Name = bi.Name;  // 名稱為內建品牌（Gaming），以正式名覆寫舊存檔
-                    }
                     ordered.Add(stored ?? bi);
                 }
             }

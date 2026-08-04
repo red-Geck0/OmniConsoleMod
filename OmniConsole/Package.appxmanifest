@@ -7,12 +7,13 @@
 	xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
 	xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
 	xmlns:uap4="http://schemas.microsoft.com/appx/manifest/uap/windows10/4"
-	IgnorableNamespaces="uap rescap">
+	xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
+	IgnorableNamespaces="uap rescap desktop6">
 
 	<Identity
 		Name="cc4eb8d7-a694-4b39-be86-edccdf890305"
 		Publisher="CN=red-Geck0"
-		Version="2.6.8.0" />
+		Version="2.6.9.0" />
 
 	<mp:PhoneIdentity PhoneProductId="cc4eb8d7-a694-4b39-be86-edccdf890305" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
@@ -20,6 +21,15 @@
 		<DisplayName>OmniConsoleMod</DisplayName>
 		<PublisherDisplayName>red-Geck0</PublisherDisplayName>
 		<Logo>Assets\StoreLogo.png</Logo>
+		<!--
+			關閉登錄檔寫入虛擬化。預設為 enabled，封裝應用程式對 HKCU 的寫入會被導向套件私有的
+			hive（%LOCALAPPDATA%\Packages\{PFN}\SystemAppData\Helium\User.dat），讀取時會與真實
+			hive 合併，所以自己讀得回來、外部卻完全看不到。
+			本應用程式需要寫入 HKCU\...\GamingConfiguration\GamingHomeApp 讓 Windows 認得 FSE
+			Home App 的變更，那是必須被 Windows 本身讀到的值，不能只存在於私有 hive。
+			需搭配 unvirtualizedResources 受限功能（見下方 Capabilities）。
+		-->
+		<desktop6:RegistryWriteVirtualization>disabled</desktop6:RegistryWriteVirtualization>
 	</Properties>
 
 	<Dependencies>
@@ -86,6 +96,8 @@
 	<Capabilities>
 		<!-- 需要 runFullTrust 以便未來啟動 Steam 或其他 Win32 應用程式 -->
 		<rescap:Capability Name="runFullTrust" />
+		<!-- 上方 desktop6:RegistryWriteVirtualization=disabled 的必要前提 -->
+		<rescap:Capability Name="unvirtualizedResources" />
 		<!-- 宣告 gamingHome 自訂功能 -->
 		<uap4:CustomCapability Name="Microsoft.appCategory.gamingHome_8wekyb3d8bbwe" />
 	</Capabilities>

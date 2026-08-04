@@ -40,10 +40,29 @@ namespace OmniConsole.Models
         /// </summary>
         public bool IsAddNewCard { get; init; }
 
-        /// <summary>一般平台卡片內容（圖示 + 名稱）的可見度；為「新增」動作卡時隱藏。</summary>
-        public Visibility NormalCardVisibility => IsAddNewCard ? Visibility.Collapsed : Visibility.Visible;
+        /// <summary>
+        /// 此卡片只用來指定 Windows 的 FSE Home App，本身不是 OmniConsole 可啟動的平台。
+        /// 涵蓋「無」、「Xbox App（Windows 原生）」與掃描到的其它 FSE Shell。
+        /// 選取這類卡片時只改寫 Home App，不覆寫使用者已選好的預設啟動平台——
+        /// Home App 一旦不是 OmniConsole，本應用程式根本不會被叫起來，
+        /// 硬把它記成「預設平台」只會在使用者換回來時發現原本的選擇已經被洗掉。
+        /// </summary>
+        public bool IsHomeAppOnly { get; init; }
+
+        /// <summary>
+        /// 是否為「無 Home App」卡片。沒有對應的圖示資產，改以字形圖示呈現，
+        /// 也不參與可用性查詢（它永遠可選）。
+        /// </summary>
+        public bool IsNoneCard { get; init; }
+
+        /// <summary>一般平台卡片內容（圖示 + 名稱）的可見度；動作卡與「無」卡片時隱藏。</summary>
+        public Visibility NormalCardVisibility =>
+            IsAddNewCard || IsNoneCard ? Visibility.Collapsed : Visibility.Visible;
 
         /// <summary>「新增自訂平台」動作卡內容的可見度；一般平台卡片時隱藏。</summary>
         public Visibility AddCardVisibility => IsAddNewCard ? Visibility.Visible : Visibility.Collapsed;
+
+        /// <summary>「無 Home App」卡片內容的可見度；其它卡片時隱藏。</summary>
+        public Visibility NoneCardVisibility => IsNoneCard ? Visibility.Visible : Visibility.Collapsed;
     }
 }

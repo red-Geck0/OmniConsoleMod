@@ -216,29 +216,143 @@ namespace OmniConsole.Services
         }
 
         /// <summary>
+        /// FSE Home App 設定的存放位置。Windows 設定 ＞ 遊戲 ＞ 全螢幕體驗 選擇 Home App 時
+        /// 寫入的就是此處的 GamingHomeApp 值（內容為目標 App 的 AUMID）。
+        /// </summary>
+        private const string GamingConfigurationKeyPath =
+            @"Software\Microsoft\Windows\CurrentVersion\GamingConfiguration";
+
+        private const string GamingHomeAppValueName = "GamingHomeApp";
+
+        /// <summary>
+        /// 本應用程式作為 Home App 時的 AUMID。
+        /// 套件內另有 Settings 進入點，Home App 必須指向宣告 windows.gamingApp 延伸模組的 "App"。
+        /// </summary>
+        public static string HomeAppAumid =>
+            Windows.ApplicationModel.Package.Current.Id.FamilyName + "!App";
+
+        /// <summary>
+        /// 讀取 Windows 目前選定的 FSE Home App AUMID。
+        /// 未設定（選「無」）、機碼不存在或讀取失敗時皆回傳空字串。
+        /// </summary>
+        public static string GetHomeAppAumid([CallerMemberName] string caller = "")
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(GamingConfigurationKeyPath);
+                string result = key?.GetValue(GamingHomeAppValueName) as string ?? "";
+                DebugLogger.Log($"[FseService] GetHomeAppAumid = '{result}' (caller: {caller})");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.Log($"[FseService] GetHomeAppAumid failed: {ex.Message} (caller: {caller})");
+                return "";
+            }
+        }
+
+        /// <summary>
         /// 檢查 GamingHomeApp 是否設為 OmniConsole（比對動態取得的 AUMID）。
         /// 僅在 CanActivate()=true 後呼叫；CanActivate()=false 時不適用。
         /// </summary>
         public static bool IsOmniConsoleSetAsHomeApp([CallerMemberName] string caller = "")
         {
+            bool result = GetHomeAppAumid().Equals(HomeAppAumid, StringComparison.OrdinalIgnoreCase);
+            DebugLogger.Log($"[FseService] IsOmniConsoleSetAsHomeApp = {result} (caller: {caller})");
+            return result;
+        }
+
+        /// <summary>
+        /// 將 FSE Home App 設為 OmniConsole，寫入與 Windows 設定介面相同的 GamingHomeApp 值。
+        /// 本應用程式宣告 runFullTrust（mediumIL、非 appContainer），登錄檔寫入不受 MSIX
+        /// 虛擬化影響，會直接落在真實的使用者 hive；該值的 ACL 對目前使用者為完全控制，
+        /// 不需要提權。
+        /// 僅在掌機完整版 FSE 可用時執行——PC 限制版沒有 Home App 這個設定項，
+        /// 寫進去也不會被系統採用，徒然改動使用者的登錄檔。
+        /// 已經是 OmniConsole 時直接回傳 true，不重複寫入。
+        /// </summary>
+        /// <returns>已設定為 OmniConsole（含原本就已設定）為 true；不適用或寫入失敗為 false。</returns>
+        public static bool TrySetAsHomeApp([CallerMemberName] string caller = "") =>
+            TrySetHomeApp(HomeAppAumid, caller);
+
+        /// <summary>
+        /// 把 FSE Home App 指向指定的 AUMID。除了指向本應用程式外，也用於「使用者在本應用程式
+        /// 裡選了另一套 FSE Shell（AnyFSE 等）作為預設平台」時，把 Home App 一併交還給它，
+        /// 讓本應用程式的清單與 Windows 設定介面的選擇保持一致。
+        /// 其餘條件與注意事項同 <see cref="TrySetAsHomeApp"/>。
+        /// </summary>
+        /// <returns>已設定為該 AUMID（含原本就已設定）為 true；不適用或寫入失敗為 false。</returns>
+        public static bool TrySetHomeApp(string aumid, [CallerMemberName] string caller = "")
+        {
+            if (string.IsNullOrEmpty(aumid))
+            {
+                DebugLogger.Log($"[FseService] TrySetHomeApp skipped: empty AUMID (caller: {caller})");
+                return false;
+            }
+
+            if (!IsHandheldFseAvailable())
+            {
+                DebugLogger.Log($"[FseService] TrySetHomeApp skipped: handheld FSE unavailable (caller: {caller})");
+                return false;
+            }
+
+            string previous = GetHomeAppAumid();
+            if (previous.Equals(aumid, StringComparison.OrdinalIgnoreCase)) return true;
+
             try
             {
-                string aumid = Windows.ApplicationModel.Package.Current.Id.FamilyName + "!App";
-                using var key = Registry.CurrentUser.OpenSubKey(
-                    @"Software\Microsoft\Windows\CurrentVersion\GamingConfiguration");
+                using var key = Registry.CurrentUser.CreateSubKey(GamingConfigurationKeyPath, writable: true);
                 if (key is null)
                 {
-                    DebugLogger.Log($"[FseService] IsOmniConsoleSetAsHomeApp = false (no key) (caller: {caller})");
+                    DebugLogger.Log($"[FseService] TrySetHomeApp failed: cannot open key (caller: {caller})");
                     return false;
                 }
-                bool result = key.GetValue("GamingHomeApp") is string value &&
-                              value.Equals(aumid, StringComparison.OrdinalIgnoreCase);
-                DebugLogger.Log($"[FseService] IsOmniConsoleSetAsHomeApp = {result} (caller: {caller})");
-                return result;
+
+                key.SetValue(GamingHomeAppValueName, aumid, RegistryValueKind.String);
+                DebugLogger.Log($"[FseService] TrySetHomeApp: '{(previous.Length == 0 ? "(unset)" : previous)}' -> '{aumid}' (caller: {caller})");
+                return true;
             }
             catch (Exception ex)
             {
-                DebugLogger.Log($"[FseService] IsOmniConsoleSetAsHomeApp failed: {ex.Message} (caller: {caller})");
+                DebugLogger.Log($"[FseService] TrySetHomeApp failed: {ex.Message} (caller: {caller})");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 清除 FSE Home App 設定，等同 Windows 設定介面選擇「無」——此後系統完全無法進入 FSE。
+        /// 實作為刪除 GamingHomeApp 值而非寫入空字串，與 Windows 設定介面選「無」後的狀態一致。
+        /// 不連帶更動 StartupToGamingHome：那是獨立的「開機直接進入 FSE」開關，
+        /// 使用者之後把 Home App 換回來時應該維持原本的偏好。
+        /// </summary>
+        /// <returns>已清除（含原本就沒有設定）為 true；不適用或失敗為 false。</returns>
+        public static bool TryClearHomeApp([CallerMemberName] string caller = "")
+        {
+            if (!IsHandheldFseAvailable())
+            {
+                DebugLogger.Log($"[FseService] TryClearHomeApp skipped: handheld FSE unavailable (caller: {caller})");
+                return false;
+            }
+
+            string previous = GetHomeAppAumid();
+            if (previous.Length == 0) return true;
+
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(GamingConfigurationKeyPath, writable: true);
+                if (key is null)
+                {
+                    DebugLogger.Log($"[FseService] TryClearHomeApp failed: cannot open key (caller: {caller})");
+                    return false;
+                }
+
+                key.DeleteValue(GamingHomeAppValueName, throwOnMissingValue: false);
+                DebugLogger.Log($"[FseService] TryClearHomeApp: '{previous}' -> (unset) (caller: {caller})");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.Log($"[FseService] TryClearHomeApp failed: {ex.Message} (caller: {caller})");
                 return false;
             }
         }

@@ -56,6 +56,13 @@ namespace OmniConsole.Services
                 return entry?.DisplayName ?? platform.Id;
             }
 
+            // 掃描到的 FSE Home App 候選：名稱來自套件 manifest，同樣不在 .resw 裡
+            if (platform.DisplayNameKey.StartsWith(GamingHomeAppEntry.DisplayNameKeyPrefix))
+            {
+                var entry = GamingHomeAppStore.FindEntryById(platform.Id);
+                return entry?.DisplayName ?? platform.Id;
+            }
+
             try
             {
                 string? name = _resourceLoader.GetString(platform.DisplayNameKey);

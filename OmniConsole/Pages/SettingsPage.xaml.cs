@@ -46,6 +46,10 @@ namespace OmniConsole.Pages
         private List<PlatformCardItem> _cardItems = [];
         private string _selectedPlatformId = "";
 
+        // LoadPlatformCards 還原選取狀態期間為 true。SelectionChanged 分不出「使用者點的」與
+        // 「程式還原的」，但只有前者才該連帶改寫 Windows 的 Home App 設定，故以此旗標區隔。
+        private bool _isRestoringPlatformSelection;
+
         // 目前顯示的設定導覽頁面（General / Advanced / Troubleshoot）
         private string _currentNavTag = "General";
 
@@ -256,14 +260,20 @@ namespace OmniConsole.Pages
             _currentNavTag = "General";
             VisualStateManager.GoToState(this, "General", false);
 
-            // 還原上次儲存的選取狀態；LoadPlatformCards 會依此還原 GridView 的選取項並捲入可視範圍
-            // （系統平台與使用者自訂平台合併於單一卡片網格，不再需要依平台歸屬切換索引標籤）。
-            _selectedPlatformId = SettingsService.GetDefaultPlatform().Id;
+            // 還原選取狀態；LoadPlatformCards 會依此還原 GridView 的選取項並捲入可視範圍。
+            // 使用者可能剛在 Windows 設定裡改過 Home App，因此選取以那邊為準（見該方法說明），
+            // 才不會出現「Windows 說 AnyFSE、我們的清單卻還選著 Steam」這種兩邊各說各話的畫面。
+            _selectedPlatformId = ResolveSelectedPlatformId();
 
             // 初始化 NavigationView，預設選取第一個「一般」項目
             // 賦值觸發 SettingsNav_SelectionChanged → UpdateGamepadHints()，此時狀態已正確
             SettingsNav.SelectedItem = SettingsNav.MenuItems[0];
             LoadPlatformCards();
+
+            // 重新掃描系統上其它可作為 FSE Home App 的 App。掃描是非同步的（要讀套件 manifest
+            // 與擷取圖示），先用上面已載入的快取把畫面畫出來，掃完有變動再重畫一次即可，
+            // 不讓開啟設定頁的動作卡在 I/O 上。
+            _ = RefreshGamingHomeAppCardsAsync();
 
             // 顯示版本號
             VersionText.Text = $"v{SettingsService.GetAppVersion()}";
@@ -763,8 +773,9 @@ namespace OmniConsole.Pages
         /// </summary>
         private async Task LoadPlatformAvailabilityAsync()
         {
-            // 「新增自訂平台」動作卡非真實平台，排除於可用性查詢外（其 IsAvailable 恆保持預設值 true）。
-            var checkable = _cardItems.Where(c => !c.IsAddNewCard).ToList();
+            // 「新增自訂平台」動作卡與「無 Home App」卡片非真實平台，排除於可用性查詢外
+            //（其 IsAvailable 恆保持預設值 true；「無」必須永遠可選，否則使用者無法關掉 FSE）。
+            var checkable = _cardItems.Where(c => !c.IsAddNewCard && !c.IsNoneCard).ToList();
             bool[] available = await Task.WhenAll(
                 checkable.Select(c => ProcessLauncherService.CheckPlatformAvailableAsync(c.Platform)));
 
@@ -793,11 +804,19 @@ namespace OmniConsole.Pages
             PlatformGridView.ItemsSource = null;
             PlatformGridView.ItemsSource = _cardItems;
 
-            // 還原選取狀態
+            // 還原選取狀態（程式化，非使用者操作 → 不應觸發 Home App 改寫）
             var selectedCard = _cardItems.FirstOrDefault(c => c.Id == _selectedPlatformId);
             if (selectedCard != null)
             {
-                PlatformGridView.SelectedItem = selectedCard;
+                _isRestoringPlatformSelection = true;
+                try
+                {
+                    PlatformGridView.SelectedItem = selectedCard;
+                }
+                finally
+                {
+                    _isRestoringPlatformSelection = false;
+                }
             }
         }
 
@@ -840,20 +859,75 @@ namespace OmniConsole.Pages
 
             _selectedPlatformId = selected.Id;
 
-            // 選取即儲存：先查系統平台，再查使用者平台
+            // 以下兩段都只在使用者親自點選時才動系統設定；LoadPlatformCards 還原選取時略過。
+
+            // Home App 卡片：只改寫 Windows 的 Home App，不覆寫預設啟動平台。
+            // 這類選擇代表「把 FSE 的入口交給別人」，OmniConsole 之後根本不會被叫起來，
+            // 沒有「要啟動哪個平台」可言；使用者原本選好的平台原封不動保留，
+            // 等他把 Home App 換回 OmniConsole 時仍然有效。
+            if (selected.IsHomeAppOnly)
+            {
+                if (!_isRestoringPlatformSelection)
+                    GamingHomeAppStore.ApplyHomeAppSelection(selected.Id);
+                // 預設平台沒變，但第一行的 Home App 變了，仍需重畫副標題。
+                UpdateSettingsDescription();
+                return;
+            }
+
+            // 一般平台：選取即儲存。先查系統平台，再查使用者平台。
             var platform = PlatformCatalog.FindById(_selectedPlatformId)
                 ?? UserPlatformStore.FindById(_selectedPlatformId)
                 ?? PlatformCatalog.All[0];
             SettingsService.SetDefaultPlatform(platform);
             SettingsService.SaveCurrentVersion();
+
+            // 選了要由本應用程式啟動的平台，就代表 OmniConsole 得是 FSE 的入口，
+            // 順手把 Home App 指回自己（未設定時啟動只會停在 FseHomeAppNotSet 引導畫面）。
+            // 失敗或環境不適用時靜默略過：這只是便利性措施，原有的引導畫面仍是保底。
+            if (!_isRestoringPlatformSelection)
+                FseService.TrySetAsHomeApp();
+
             UpdateSettingsDescription();
         }
 
         /// <summary>
-        /// 更新標題下方的描述文字，顯示目前預設平台名稱。
+        /// 更新標題下方第一行：Windows 目前選定的 FSE Home App。
+        /// 不是本應用程式時附加警語，因為那代表進入 Xbox 模式時會由別的 App 接手，
+        /// 底下那行「預設平台」暫時不會生效——這點光看平台卡片看不出來。
+        /// </summary>
+        private void UpdateHomeAppDescription()
+        {
+            string aumid = FseService.GetHomeAppAumid();
+            bool isSelf = aumid.Equals(FseService.HomeAppAumid, StringComparison.OrdinalIgnoreCase);
+
+            string name;
+            if (isSelf)
+                name = Windows.ApplicationModel.Package.Current.DisplayName;
+            else if (aumid.Length == 0)
+                name = _resourceLoader.GetString("Platform_HomeAppNone");
+            else if (aumid.Equals(GamingHomeAppStore.NativeXboxAumid, StringComparison.OrdinalIgnoreCase))
+                name = _resourceLoader.GetString("Platform_XboxAppNative");
+            else
+                // 認不出來的 App（未安裝或未宣告 gamingApp）：直接顯示 AUMID，
+                // 至少讓使用者知道 Windows 現在指向誰，而不是留空白。
+                name = GamingHomeAppStore.FindEntryByAumid(aumid)?.DisplayName ?? aumid;
+
+            string template = _resourceLoader.GetString("SettingsHomeAppDescription");
+            int idx = template.IndexOf("{0}", StringComparison.Ordinal);
+            SettingsHomeAppPrefix.Text = idx >= 0 ? template.Substring(0, idx) : template;
+            SettingsHomeAppValue.Text = name;
+            SettingsHomeAppDisabledSuffix.Text =
+                isSelf ? "" : _resourceLoader.GetString("SettingsHomeAppDisabledSuffix");
+        }
+
+        /// <summary>
+        /// 更新標題下方第二行的描述文字，顯示目前預設平台名稱。
+        /// 一併更新第一行，兩行永遠一起重算，避免其中一行殘留舊值。
         /// </summary>
         private void UpdateSettingsDescription()
         {
+            UpdateHomeAppDescription();
+
             var platform = SettingsService.GetDefaultPlatform();
             var name = ProcessLauncherService.GetPlatformDisplayName(platform);
             // 拆成前綴 + 平台名稱兩個 Run，平台名稱套粗體。三語系版本 "{0}" 皆位於字串尾端。
@@ -1112,6 +1186,26 @@ namespace OmniConsole.Pages
                     IsCustom = false,
                 });
 
+            // Home App 卡片群組：與 Windows 設定 ＞ 遊戲 ＞ 全螢幕體驗 的下拉選單一一對應。
+            //   - Xbox App（Windows 原生）：Xbox 自己當 Shell。與上方系統平台的「Xbox App」是
+            //     兩件事——那張是「OmniConsole 當 Shell，再由它開 Xbox App」。
+            //   - 掃描到的第三方 Shell（AnyFSE 等）。
+            //   - 無：等於關掉 FSE。
+            // 三者都是掃描／固定產生的，不是使用者建立的，因此 IsCustom=false（無 X 編輯／刪除）。
+            var homeAppDefinitions = new List<PlatformDefinition> { GamingHomeAppStore.CreateNativeXboxDefinition() };
+            homeAppDefinitions.AddRange(GamingHomeAppStore.GetAllDefinitions());
+            homeAppDefinitions.Add(GamingHomeAppStore.CreateNoneDefinition());
+
+            var homeAppCards = homeAppDefinitions
+                .Select(p => new PlatformCardItem
+                {
+                    Platform = p,
+                    DisplayName = ProcessLauncherService.GetPlatformDisplayName(p),
+                    IsCustom = false,
+                    IsHomeAppOnly = true,
+                    IsNoneCard = p.Id == GamingHomeAppStore.NoneId,
+                });
+
             var userCards = UserPlatformStore.GetAllDefinitions()
                 .Select(p => new PlatformCardItem
                 {
@@ -1138,20 +1232,69 @@ namespace OmniConsole.Pages
                 IsAddNewCard = true,
             };
 
-            _cardItems = systemCards.Concat(userCards).Append(addNewCard).ToList();
+            _cardItems = systemCards.Concat(homeAppCards).Concat(userCards).Append(addNewCard).ToList();
 
             PlatformGridView.ItemsSource = _cardItems;
 
-            // 還原選取狀態並捲入可視範圍（合併清單可能超出單頁高度）
+            // 還原選取狀態並捲入可視範圍（合併清單可能超出單頁高度）。
+            // 這是程式化還原、不是使用者操作，用旗標讓 SelectionChanged 略過改寫 Home App 的副作用。
             var selectedCard = _cardItems.FirstOrDefault(c => c.Id == _selectedPlatformId);
             if (selectedCard != null)
             {
-                PlatformGridView.SelectedItem = selectedCard;
-                PlatformGridView.ScrollIntoView(selectedCard);
+                _isRestoringPlatformSelection = true;
+                try
+                {
+                    PlatformGridView.SelectedItem = selectedCard;
+                    PlatformGridView.ScrollIntoView(selectedCard);
+                }
+                finally
+                {
+                    _isRestoringPlatformSelection = false;
+                }
             }
 
             // 非同步查詢可用性
             _ = LoadPlatformAvailabilityAsync();
+        }
+
+        /// <summary>
+        /// 背景重新掃描可作為 FSE Home App 的 App，掃描結果與畫面上的不同時才重畫卡片清單。
+        /// 比對用 Id 序列而非數量：套件被換掉（一裝一移）時數量相同但內容不同。
+        /// 掃描後再同步一次預設平台——首次遇到某個 Shell 時，<see cref="ShowSettings"/> 當下的
+        /// 快取還沒有它，要等這次掃描完才認得出 Windows 選的是誰。
+        /// </summary>
+        private async Task RefreshGamingHomeAppCardsAsync()
+        {
+            var before = GamingHomeAppStore.GetAllDefinitions().Select(p => p.Id).ToList();
+            await GamingHomeAppStore.RefreshAsync();
+            var after = GamingHomeAppStore.GetAllDefinitions().Select(p => p.Id).ToList();
+
+            // 掃描後才認得出來的 Shell 可能正是 Windows 目前選的那個，重算一次選取。
+            string resolvedId = ResolveSelectedPlatformId();
+            bool selectionChanged = resolvedId != _selectedPlatformId;
+            _selectedPlatformId = resolvedId;
+
+            if (selectionChanged || !before.SequenceEqual(after))
+                LoadPlatformCards();
+
+            // 掃描後才認得出來的 Shell 會讓第一行從裸 AUMID 變成正式名稱，重畫一次。
+            UpdateSettingsDescription();
+        }
+
+        /// <summary>
+        /// 決定卡片網格該選哪一張，讓畫面與 Windows 設定介面的 Home App 下拉選單保持一致。
+        ///
+        /// Home App 不是 OmniConsole 時（無／Xbox 原生／第三方 Shell），選取由 Home App 決定——
+        /// 那個狀態下本應用程式根本不會被 FSE 叫起來，「預設啟動平台」暫時沒有意義。
+        /// Home App 是 OmniConsole（或無法辨識）時，才回到使用者存檔的預設平台。
+        ///
+        /// 刻意不把 Home App 的選擇寫進預設平台設定：那樣會在使用者把 Home App 交出去的當下，
+        /// 悄悄覆蓋掉他原本選好的 Steam／Epic 等平台，換回來時才發現已經不見了。
+        /// </summary>
+        private static string ResolveSelectedPlatformId()
+        {
+            string fromHomeApp = GamingHomeAppStore.ResolveSelectedIdFromHomeApp();
+            return fromHomeApp.Length > 0 ? fromHomeApp : SettingsService.GetDefaultPlatform().Id;
         }
 
         // ── 自訂平台新增／匯入（含首次免責聲明） ─────────────────────────────────

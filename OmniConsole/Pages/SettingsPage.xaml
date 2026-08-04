@@ -262,9 +262,17 @@
 
                         <StackPanel Grid.Row="0" HorizontalAlignment="Center" Spacing="8" Margin="0,0,0,16">
                             <TextBlock x:Uid="SettingsTitle" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center"/>
-                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="18" TextAlignment="Center">
-                                <Run x:Name="SettingsDescriptionPrefix"/><Run x:Name="SettingsDescriptionPlatformName" FontWeight="Bold"/>
-                            </TextBlock>
+                            <!-- 兩行副標題：上行是 Windows 目前的 FSE Home App（決定「誰會被叫起來」），
+                                 下行是本應用程式的預設平台（決定「被叫起來之後開什麼」）。
+                                 兩者是不同層次的設定，分行顯示以免使用者誤以為是同一件事。 -->
+                            <StackPanel Spacing="2">
+                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="18" TextAlignment="Center" TextWrapping="Wrap">
+                                    <Run x:Name="SettingsHomeAppPrefix"/><Run x:Name="SettingsHomeAppValue" FontWeight="Bold"/><Run x:Name="SettingsHomeAppDisabledSuffix" Foreground="{ThemeResource SystemFillColorCautionBrush}"/>
+                                </TextBlock>
+                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="18" TextAlignment="Center" TextWrapping="Wrap">
+                                    <Run x:Name="SettingsDescriptionPrefix"/><Run x:Name="SettingsDescriptionPlatformName" FontWeight="Bold"/>
+                                </TextBlock>
+                            </StackPanel>
                         </StackPanel>
 
                         <!-- 平台卡片區：系統平台與使用者自訂平台合併於單一卡片網格（不再分索引標籤）。
@@ -399,6 +407,18 @@
                                                                    Margin="8,5,8,5"/>
                                                     </Border>
                                                 </Grid>
+                                                <!-- 「無 Home App」卡片：沒有圖示資產，改以字形圖示 + 名稱呈現 -->
+                                                <StackPanel Visibility="{x:Bind NoneCardVisibility}"
+                                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                            Spacing="8" Padding="16">
+                                                    <FontIcon Glyph="&#xE711;" FontSize="28"
+                                                              HorizontalAlignment="Center"
+                                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                    <TextBlock Text="{x:Bind DisplayName}"
+                                                               FontSize="13" TextWrapping="Wrap"
+                                                               TextAlignment="Center" HorizontalAlignment="Center"
+                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                </StackPanel>
                                                 <!-- 「新增自訂平台」動作卡內容：置中圖示 + 文字。一般卡片時隱藏 -->
                                                 <StackPanel Visibility="{x:Bind AddCardVisibility}"
                                                             HorizontalAlignment="Center" VerticalAlignment="Center"

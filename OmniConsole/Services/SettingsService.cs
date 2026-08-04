@@ -232,9 +232,10 @@ namespace OmniConsole.Services
             var settings = ApplicationData.Current.LocalSettings;
             if (settings.Values.TryGetValue(DefaultPlatformKey, out object? value) && value is string id)
             {
-                // 先查系統平台，再查使用者自訂平台
+                // 先查系統平台，再查使用者自訂平台，最後查掃描到的 FSE Home App 候選
                 return PlatformCatalog.FindById(id)
                     ?? UserPlatformStore.FindById(id)
+                    ?? GamingHomeAppStore.FindById(id)
                     ?? PlatformCatalog.All[0];
             }
             return PlatformCatalog.All[0];

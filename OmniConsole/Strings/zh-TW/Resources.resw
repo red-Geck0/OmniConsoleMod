@@ -124,7 +124,13 @@
     <value>OmniConsoleMod 設定</value>
   </data>
   <data name="SettingsDescription" xml:space="preserve">
-    <value>預設平台：{0}</value>
+    <value>OmniConsoleMod 平台：{0}</value>
+  </data>
+  <data name="SettingsHomeAppDescription" xml:space="preserve">
+    <value>Xbox 模式主畫面應用程式：{0}</value>
+  </data>
+  <data name="SettingsHomeAppDisabledSuffix" xml:space="preserve">
+    <value>（OmniConsoleMod 不會啟動）</value>
   </data>
   <data name="Launching" xml:space="preserve">
     <value>正在啟動「{0}」...</value>
@@ -167,6 +173,12 @@
   </data>
   <data name="Platform_XboxApp" xml:space="preserve">
     <value>Xbox App</value>
+  </data>
+  <data name="Platform_XboxAppNative" xml:space="preserve">
+    <value>Xbox App（Windows 原生）</value>
+  </data>
+  <data name="Platform_HomeAppNone" xml:space="preserve">
+    <value>無</value>
   </data>
   <data name="Platform_EpicGames" xml:space="preserve">
     <value>Epic Games Store</value>

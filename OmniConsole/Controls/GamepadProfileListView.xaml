@@ -51,6 +51,18 @@
                                    Foreground="{ThemeResource SystemFillColorCautionBrush}"
                                    FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
                                    Visibility="Collapsed"/>
+                        <!-- 黃色提示：偵測到別的軟體也在把搖桿轉成游標（Game Bar 的 Gamepad Cursor 等；預設隱藏） -->
+                        <TextBlock x:Name="ExternalCursorConflictNote"
+                                   x:Uid="MouseModeSetting_ExternalCursorNote"
+                                   Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                   FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Visibility="Collapsed"/>
+                        <!-- 黃色提示：前景是系統管理員程式，映射被 UIPI 擋掉（預設隱藏） -->
+                        <TextBlock x:Name="ElevatedInputBlockedNote"
+                                   x:Uid="MouseModeSetting_ElevatedBlockedNote"
+                                   Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                   FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Visibility="Collapsed"/>
                     </StackPanel>
 
                     <ToggleSwitch x:Name="MouseModeSwitch"

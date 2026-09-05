@@ -394,15 +394,21 @@ static GamepadProfile ParseProfile(const std::shared_ptr<json::Value>& p) {
             : LayeredActivationMode::HoldRelease;
     }
 
-    auto bindingsV = json::Get(p, L"bindings");
-    if (bindingsV && bindingsV->type == json::Type::Object) {
-        for (const auto& kv : bindingsV->o) {
+    auto readBindings = [](const std::shared_ptr<json::Value>& obj, Bindings& out) {
+        if (!obj || obj->type != json::Type::Object) return;
+        for (const auto& kv : obj->o) {
             KeyId id;
             if (!ParseKeyId(kv.first, id)) continue;
             if (!kv.second || kv.second->type != json::Type::Object) continue;
-            At(prof.bindings, id) = ParseAction(kv.second);
+            At(out, id) = ParseAction(kv.second);
         }
-    }
+    };
+
+    readBindings(json::Get(p, L"bindings"), prof.bindings);
+    // 第 2 層。舊版 profile 沒有這個欄位，留空即可——C# 端在載入時會把
+    // 舊的 layered profile 遷移成「第 1 層空、第 2 層為原映射」，行為與過去一致。
+    readBindings(json::Get(p, L"layerBindings"), prof.layerBindings);
+
     return prof;
 }
 

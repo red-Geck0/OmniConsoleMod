@@ -876,5 +876,36 @@ namespace OmniConsole.Services
             }
             catch { return false; }
         }
+
+        /// <summary>
+        /// PhantomKey 是否偵測到「別的軟體也在把手把搖桿轉成滑鼠游標」。
+        /// 來源多半是 Windows 11 Game Bar 的 Gamepad Cursor（Game Bar → 設定 → Gamepad Cursor），
+        /// 其次是 Steam Input 桌面配置、DS4Windows、Armoury Crate 桌面模式。
+        ///
+        /// 由 PhantomKey 以低階滑鼠掛鉤行為偵測後寫入 Shared.ini [Status] ExternalCursorConflict，
+        /// 讀設定值不可行（Game Bar 存在自家 settings.dat 的 GUID JSON blob，未公開）。
+        /// 偵測需要使用者實際推動搖桿才會成立，因此為「目前正在打架」而非「該功能已開啟」。
+        /// PhantomKey 未執行時旗標為 0。
+        /// </summary>
+        public static bool HasExternalCursorConflict() =>
+            ReadShared("Status", "ExternalCursorConflict", "0") == "1";
+
+        /// <summary>
+        /// PhantomKey 是否回報「前景是以系統管理員身分執行的程式，映射送不進去」。
+        /// UIPI 擋掉低完整性等級行程對高完整性等級視窗的輸入注入；解法是安裝系統管理員
+        /// 程式支援，讓 PhantomKey 本身也跑在 High IL（見 ElevatedInputService）。
+        /// PhantomKey 未執行、或已提權時旗標為 0。
+        /// </summary>
+        public static bool IsElevatedInputBlocked() =>
+            ReadShared("Status", "ElevatedInputBlocked", "0") == "1";
+
+        /// <summary>
+        /// 請 PhantomKey 自行收工。提權版無法用 Process.Kill 終止（一般權限開不了高完整性
+        /// 等級行程的 handle），只能透過這個旗標請它自己結束。
+        /// </summary>
+        public static void RequestPhantomKeyStop() => WriteShared("Status", "StopRequested", "1");
+
+        /// <summary>清除停止請求；PhantomKey 結束後（或放棄等待後）務必歸零，否則下次啟動會立刻自殺。</summary>
+        public static void ClearPhantomKeyStop() => WriteShared("Status", "StopRequested", "0");
     }
 }

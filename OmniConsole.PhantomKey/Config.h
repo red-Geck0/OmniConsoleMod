@@ -43,3 +43,22 @@ void WriteProfileList(const std::vector<ProfileListEntry>& profiles,
 // 將目前套用的 profile id 寫入 Shared.ini [Status] ActiveProfileId。
 // 僅在 widget 未顯示時寫入，以保留「上次使用的遊戲 profile」供 Widget 預選。
 void WriteActiveProfileId(const std::wstring& profileId);
+
+// 將「偵測到外部手把轉游標注入」旗標寫入 Shared.ini [Status] ExternalCursorConflict（1/0）。
+// 內部以靜態快取比對，僅在狀態改變時實際寫檔。
+// 用途：主程式 OmniNav 頁讀取此鍵，於 Mouse Mode 開關旁顯示與 Game Bar Gamepad Cursor
+//（或 Steam Input / DS4Windows 等）衝突的黃色提示。
+void WriteExternalCursorConflict(bool detected);
+
+// 讀取 Shared.ini [Status] StopRequested。主程式無法直接終止以系統管理員權限
+// 執行的 PhantomKey（一般權限開不了高完整性等級行程的 handle），改以此旗標
+// 請它自己收工；PhantomKey 在主迴圈偵測到即結束。
+bool ReadStopRequested();
+
+// 將 StopRequested 歸零。啟動時呼叫，避免沿用上一輪留下的舊值。
+void ClearStopRequested();
+
+// 將「前景是系統管理員程式、而 PhantomKey 沒有提權，映射送不進去」旗標寫入
+// Shared.ini [Status] ElevatedInputBlocked（1/0）。
+// 內部以靜態快取比對，僅在狀態改變時實際寫檔。
+void WriteElevatedInputBlocked(bool blocked);

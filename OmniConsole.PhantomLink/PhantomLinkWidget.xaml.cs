@@ -386,8 +386,12 @@ namespace OmniConsole.PhantomLink
             // packaged 行程或 blocked 時 fullPath 不適用
             _foregroundFullPath = (!blocked && !isUwp) ? (fullPath ?? string.Empty) : string.Empty;
 
+            // 前景是系統管理員程式時才有話要說，而且只在我們確實送不進去的情況下——
+            // 裝了系統管理員程式支援之後 PhantomKey 自己也在 High IL，映射照樣送得進去，
+            // 這時候再顯示「無法作用」就是錯誤資訊了。
             CustomizeAppNoteText.Visibility =
-                (isElevated && _foregroundAppId != null) ? Visibility.Visible : Visibility.Collapsed;
+                (isElevated && _foregroundAppId != null && !IsElevatedInputSupportInstalled())
+                    ? Visibility.Visible : Visibility.Collapsed;
 
             UpdateEditProfileEnabled();
             UpdateProfileSectionVisibility();
@@ -395,6 +399,27 @@ namespace OmniConsole.PhantomLink
 
         /// <summary>是否可把目前前景 App 指派到 profile（有有效 appId、無內建廠商映射）。</summary>
         private bool CanAssignForeground => _foregroundAppId != null && !_builtInMapping;
+
+        // ── 系統管理員程式支援的安裝狀態 ──────────────────────────────────────
+        //
+        // PhantomWarden 註冊提權排程工作成功後才會留下這個執行檔（註冊失敗會回滾刪掉），
+        // 所以它的存在等同「已安裝」。主程式端的判斷同樣看這個檔案
+        //（OmniConsole/Services/ElevatedInputService.cs 的 IsInstalled），兩邊要一致。
+        //
+        // Widget 是獨立行程，直接看檔案就好，不必為此多開一條 IPC。
+        private static readonly string ElevatedPayloadPath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "OmniConsoleMod", "Steam.exe");
+
+        /// <summary>
+        /// 系統管理員程式支援是否已安裝。使用者可能在 widget 開著的時候才去安裝，
+        /// 故每次重整都重新看一次檔案，不做快取（File.Exists 成本可忽略）。
+        /// </summary>
+        private static bool IsElevatedInputSupportInstalled()
+        {
+            try { return System.IO.File.Exists(ElevatedPayloadPath); }
+            catch { return false; }
+        }
 
         /// <summary>
         /// EditProfileBtn 啟用條件：下拉清單已選一個「非唯讀」profile。

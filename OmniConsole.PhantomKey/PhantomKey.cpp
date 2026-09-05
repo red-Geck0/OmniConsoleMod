@@ -13,6 +13,7 @@
 #include "MouseMode.h"
 #include "GamepadProfiles.h"
 #include "PingService.h"
+#include "CursorConflict.h"
 
 // ============================================================================
 // Profile 判斷小工具
@@ -23,8 +24,16 @@
 //      （如內建的 "None" 或使用者手動 Clear All 的 profile）時，等同停用 Mouse Mode。
 // 採行為判斷而非比對 id，名稱即使更名仍能正確識別。
 static bool IsProfileEffectivelyEmpty(const GamepadProfile& p) {
-    return std::all_of(p.bindings.begin(), p.bindings.end(),
-        [](const Action& a) { return a.kind == ActionKind::None; });
+    auto allNone = [](const Bindings& b) {
+        return std::all_of(b.begin(), b.end(),
+            [](const Action& a) { return a.kind == ActionKind::None; });
+    };
+    if (!allNone(p.bindings)) return false;
+    // Layered 啟用時第 2 層也要算：「第 1 層空、第 2 層有內容」是正常用法
+    // （平時完全不攔截，按住 trigger 才切換過去），不是空 profile。
+    // 只看第 1 層會把這種 profile 誤判成 None 而整個停用 Mouse Mode。
+    if (p.layered.enabled && !allNone(p.layerBindings)) return false;
+    return true;
 }
 
 // ============================================================================
@@ -95,6 +104,27 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
 
     // 啟動 ping 服務（健康檢查回應通道）：建立 message-only window，主程式可透過 SendMessageTimeout 量測主迴圈推進狀況
     PingService::Start();
+
+    // 啟動外部游標注入偵測（Game Bar Gamepad Cursor 等與 Mouse Mode 撞在一起的來源）。
+    // 掛鉤只在 Mouse Mode 實際會介入時才掛上，狀態隨設定重載同步。
+    CursorConflict::Start();
+    CursorConflict::SetEnabled(config.mouseModeEnabled && !config.hasBuiltInGamepadMapping);
+    bool cursorConflict = false;
+    // 自身是否跑在 High IL：由 PhantomWarden 註冊的排程工作啟動時為 true，
+    // 此時 SendInput 才送得進以系統管理員權限執行的前景程式。
+    const bool selfElevated = IsSelfElevated();
+    Log(L"[PhantomKey] Integrity: %s.", selfElevated ? L"elevated (High IL)" : L"normal (Medium IL)");
+
+    // 清掉上一輪執行留下的旗標（PhantomKey 被強制結束時來不及清）；一併吸收自己這次寫入
+    // 造成的 mtime 變動，避免主迴圈第一次檢查就白重載一次 config。
+    WriteExternalCursorConflict(false);
+    WriteElevatedInputBlocked(false);
+    ClearStopRequested();
+    lastIniMTime = GetSharedIniLastWriteTime();
+
+    bool elevatedBlocked = false;   // 目前是否處於「前景提權、我們送不進去」的狀態
+    bool fgElevated = false;        // 目前前景視窗所屬行程是否提權
+    HWND lastElevCheckHwnd = nullptr;
 
     Log(L"[PhantomKey] Entering main loop.");
 
@@ -172,6 +202,7 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
         XINPUT_GAMEPAD activePad = {};
         bool viewPressed = false;
         bool menuPressed = false;
+        bool stickDeflected = false;
 #ifdef _DEBUG
         int connectedCount = 0;
 #endif
@@ -184,9 +215,11 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             const auto& g = state.Gamepad;
             if (g.wButtons & XINPUT_GAMEPAD_BACK)  viewPressed = true;
             if (g.wButtons & XINPUT_GAMEPAD_START) menuPressed = true;
-            if (g.wButtons || g.bLeftTrigger || g.bRightTrigger ||
+            const bool padStickDeflected =
                 abs(g.sThumbLX) > 8000 || abs(g.sThumbLY) > 8000 ||
-                abs(g.sThumbRX) > 8000 || abs(g.sThumbRY) > 8000) {
+                abs(g.sThumbRX) > 8000 || abs(g.sThumbRY) > 8000;
+            if (padStickDeflected) stickDeflected = true;
+            if (g.wButtons || g.bLeftTrigger || g.bRightTrigger || padStickDeflected) {
                 activePad = g;
             }
         }
@@ -208,9 +241,18 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
         }
 #endif
 
+        // 搖桿正被推著 → 告訴掛鉤「這個時間點附近的外部注入才算數」
+        if (stickDeflected) CursorConflict::NoteStickActivity();
+
         // 前景視窗 HWND（GetForegroundWindow 極輕量，回傳快取值）。
         HWND fgHwnd = GetForegroundWindow();
         ULONGLONG nowMs = GetTickCount64();
+
+        // 前景換窗才重查完整性等級（一次 OpenProcess + token 查詢，不必每 tick 做）
+        if (fgHwnd != lastElevCheckHwnd) {
+            lastElevCheckHwnd = fgHwnd;
+            fgElevated = IsForegroundProcessElevated(fgHwnd);
+        }
 
         // 前景程式變化偵測 → 重新讀取設定 + 重設 Mouse Mode 狀態 + FSE 退出檢查
         // 僅在 HWND 改變時才重查行程名/路徑（避免每 tick OpenProcess + 字串配置）。
@@ -279,7 +321,16 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
             if (curIniMTime != 0 && curIniMTime != lastIniMTime) {
                 Log(L"[PhantomKey] Shared.ini changed, reloading config.");
                 lastIniMTime = curIniMTime;
+
+                // 停止請求：主程式一般權限殺不掉提權版的 PhantomKey，改用旗標請它自己收工。
+                // 更新／移除系統管理員程式支援時必須走這條路，否則 ProgramData 那份執行檔
+                // 會一直被鎖著換不掉。
+                if (ReadStopRequested()) {
+                    Log(L"[PhantomKey] Stop requested via Shared.ini, exiting.");
+                    break;
+                }
                 config = ReadConfig();
+                CursorConflict::SetEnabled(config.mouseModeEnabled && !config.hasBuiltInGamepadMapping);
                 MouseMode::Reset();
             }
 
@@ -316,6 +367,32 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
                 lastSteamVdfMTime = curSteamVdfMTime;
                 steamCfg = ReadSteamOverlayConfig();
                 WriteSteamInGameOverlayShortcut(steamCfg.overlayShortcut);
+            }
+        }
+
+        // 外部游標注入狀態變化 → 寫入 Shared.ini 供主程式 OmniNav 頁顯示提示。
+        // 寫檔會改動 mtime，順手同步 lastIniMTime，避免下一輪 mtime 檢查把自己的寫入
+        // 誤判成外部設定變更而重載 config + MouseMode::Reset()。
+        // 前景是系統管理員程式、而我們沒提權 → 映射送不進去，寫旗標讓主程式說明原因。
+        {
+            bool nowBlocked = fgElevated && !selfElevated;
+            if (nowBlocked != elevatedBlocked) {
+                elevatedBlocked = nowBlocked;
+                Log(L"[PhantomKey] Elevated foreground %s input injection.",
+                    nowBlocked ? L"is blocking" : L"no longer blocks");
+                WriteElevatedInputBlocked(nowBlocked);
+                lastIniMTime = GetSharedIniLastWriteTime();
+            }
+        }
+
+        {
+            bool nowConflict = CursorConflict::IsExternalCursorActive();
+            if (nowConflict != cursorConflict) {
+                cursorConflict = nowConflict;
+                Log(L"[PhantomKey] External gamepad-to-cursor injection %s.",
+                    nowConflict ? L"detected" : L"cleared");
+                WriteExternalCursorConflict(nowConflict);
+                lastIniMTime = GetSharedIniLastWriteTime();
             }
         }
 
@@ -459,6 +536,9 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     }
 
     // 清理資源（FSE 退出後 break 到此）
+    WriteExternalCursorConflict(false);   // 不留下過期旗標讓主程式一直顯示提示
+    WriteElevatedInputBlocked(false);
+    ClearStopRequested();
     ReleaseMutex(hMutex);
     CloseHandle(hMutex);
     Log(L"[PhantomKey] ended.");

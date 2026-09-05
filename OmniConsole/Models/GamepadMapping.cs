@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 namespace OmniConsole.Models
 {
-    /// <summary>可映射的 XInput 輸入位識別碼（共 16 個：A/B/X/Y、LB/RB、LT/RT、LS/RS、DPad 4 向、LStick/RStick）。</summary>
+    /// <summary>可映射的 XInput 輸入位識別碼（共 16 個：A/B/X/Y、LB/RB、LT/RT、LS/RS、DPad 4 向、LStick/RStick）。
+    /// 註：Start / Back 曾試著加入，但實測在 FSE 下收不到，故不列入。</summary>
     public enum GamepadInputId
     {
         A, B, X, Y,
@@ -143,20 +144,44 @@ namespace OmniConsole.Models
         /// <summary>Layered Mode 設定。</summary>
         public ProfileLayered Layered { get; set; } = new ProfileLayered();
 
-        /// <summary>16 個輸入位的映射；缺項視為 None。</summary>
+        /// <summary>第 1 層映射（Layered 關閉時即唯一的一套）；缺項視為 None。</summary>
         public Dictionary<GamepadInputId, GamepadAction> Bindings { get; set; } = new Dictionary<GamepadInputId, GamepadAction>();
 
+        /// <summary>
+        /// 第 2 層映射，僅 <see cref="ProfileLayered.Enabled"/> 為 true 時使用
+        /// （triggerKey 生效期間改套用這一套）。Layered 關閉時保留內容但不生效。
+        /// </summary>
+        public Dictionary<GamepadInputId, GamepadAction> LayerBindings { get; set; } = new Dictionary<GamepadInputId, GamepadAction>();
+
+        /// <summary>取得指定層的映射表。</summary>
+        public Dictionary<GamepadInputId, GamepadAction> BindingsOf(int layer) =>
+            layer == 2 ? LayerBindings : Bindings;
+
         /// <summary>取得指定輸入位的動作；缺項回 Kind=None 的動作但不改變本物件狀態。</summary>
-        public GamepadAction Get(GamepadInputId id)
+        public GamepadAction Get(GamepadInputId id) => Get(id, 1);
+
+        /// <summary>取得指定層、指定輸入位的動作；缺項回 Kind=None 的動作但不改變本物件狀態。</summary>
+        public GamepadAction Get(GamepadInputId id, int layer)
         {
-            if (Bindings.TryGetValue(id, out var a) && a != null) return a;
+            if (BindingsOf(layer).TryGetValue(id, out var a) && a != null) return a;
             return new GamepadAction { Kind = GamepadActionKind.None };
         }
 
-        /// <summary>判定 bindings 是否「實際全為 None」（玩家清光時可提示）。</summary>
+        /// <summary>
+        /// 判定此 profile 是否「實際全為 None」（玩家清光時可提示）。
+        /// Layered 啟用時兩層都空才算空——第 1 層空、第 2 層有內容是完全正常的用法
+        /// （平時不攔截，按住 trigger 才生效），不該被當成空 profile 停用 Mouse Mode。
+        /// </summary>
         public bool IsEffectivelyEmpty()
         {
-            foreach (var kv in Bindings)
+            if (!IsLayerEmpty(Bindings)) return false;
+            if (Layered != null && Layered.Enabled && !IsLayerEmpty(LayerBindings)) return false;
+            return true;
+        }
+
+        private static bool IsLayerEmpty(Dictionary<GamepadInputId, GamepadAction> bindings)
+        {
+            foreach (var kv in bindings)
                 if (kv.Value != null && kv.Value.Kind != GamepadActionKind.None) return false;
             return true;
         }
@@ -173,10 +198,13 @@ namespace OmniConsole.Models
                 CursorSpeedPercent = CursorSpeedPercent,
                 DpadAutoRepeat = DpadAutoRepeat,
                 Layered = Layered?.Clone() ?? new ProfileLayered(),
-                Bindings = new Dictionary<GamepadInputId, GamepadAction>(Bindings.Count)
+                Bindings = new Dictionary<GamepadInputId, GamepadAction>(Bindings.Count),
+                LayerBindings = new Dictionary<GamepadInputId, GamepadAction>(LayerBindings.Count)
             };
             foreach (var kv in Bindings)
                 clone.Bindings[kv.Key] = kv.Value?.Clone() ?? new GamepadAction();
+            foreach (var kv in LayerBindings)
+                clone.LayerBindings[kv.Key] = kv.Value?.Clone() ?? new GamepadAction();
             return clone;
         }
     }
@@ -360,7 +388,10 @@ namespace OmniConsole.Models
                         TriggerKey = GamepadInputId.RS,
                         ActivationMode = ProfileActivationMode.HoldRelease
                     },
-                    Bindings = Gaming()
+                    // 第 1 層刻意留空：遊戲中平時不該攔截任何按鍵，按住 trigger
+                    // 才切到第 2 層那套導覽用映射。
+                    Bindings = new Dictionary<GamepadInputId, GamepadAction>(),
+                    LayerBindings = Gaming()
                 },
                 new GamepadProfile
                 {

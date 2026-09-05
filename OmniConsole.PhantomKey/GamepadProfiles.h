@@ -40,6 +40,9 @@ struct ProfileLayered {
     LayeredActivationMode activationMode = LayeredActivationMode::HoldRelease;
 };
 
+// Layered 啟用時共有兩套映射：bindings 為第 1 層（平時），layerBindings 為第 2 層
+// （triggerKey 生效期間）。triggerKey 兩層都保留作切換用，其映射一律不送出。
+
 // ── 一份 profile ────────────────────────────────────────────────────────────
 struct GamepadProfile {
     std::wstring   id;
@@ -49,7 +52,8 @@ struct GamepadProfile {
     int            cursorSpeedPercent = 100;
     bool           dpadAutoRepeat     = true;   // D-pad 補 keydown（導覽用）或純鏡像按住（遊戲用）
     ProfileLayered layered;
-    Bindings       bindings{};
+    Bindings       bindings{};       // 第 1 層（layered 關閉時即唯一的一套）
+    Bindings       layerBindings{};  // 第 2 層，僅 layered.enabled 時使用
 };
 
 // ── App → profile 指派 ──────────────────────────────────────────────────────

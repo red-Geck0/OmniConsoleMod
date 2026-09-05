@@ -2,6 +2,7 @@
 #include "GamepadProfiles.h"
 #include "Log.h"
 #include <cwctype>
+#include <vector>
 #include <dwmapi.h>
 
 #pragma comment(lib, "dwmapi.lib")
@@ -258,4 +259,65 @@ bool IsMouseModeForceExcluded(const std::wstring& processName) {
     if (IsExcludedPackagedApp())
         return true;
     return false;
+}
+
+// ============================================================================
+// 完整性等級（Integrity Level）查詢
+// ============================================================================
+//
+// UIPI 規定低完整性等級的行程不得把輸入送進高完整性等級的視窗——前景是系統
+// 管理員權限的程式時，SendInput 會被靜默丟棄（回傳成功、也不設 last error），
+// 映射整個失效。這裡把「前景是否提權」查出來，讓主程式能明講原因，而不是讓
+// 使用者面對一個沒反應的手把。
+//
+
+// 取行程 token 的完整性等級 RID；失敗回 false
+static bool GetTokenIntegrityRid(HANDLE hProc, DWORD& outRid) {
+    HANDLE hToken = nullptr;
+    // OpenProcessToken 接受 PROCESS_QUERY_LIMITED_INFORMATION 開出來的 handle，
+    // 同一使用者的提權行程也查得到。
+    if (!OpenProcessToken(hProc, TOKEN_QUERY, &hToken)) return false;
+
+    DWORD len = 0;
+    GetTokenInformation(hToken, TokenIntegrityLevel, nullptr, 0, &len);
+    if (len == 0) { CloseHandle(hToken); return false; }
+
+    std::vector<BYTE> buf(len);
+    bool ok = false;
+    if (GetTokenInformation(hToken, TokenIntegrityLevel, buf.data(), len, &len)) {
+        auto* label = reinterpret_cast<TOKEN_MANDATORY_LABEL*>(buf.data());
+        PUCHAR count = GetSidSubAuthorityCount(label->Label.Sid);
+        if (count && *count > 0) {
+            outRid = *GetSidSubAuthority(label->Label.Sid, *count - 1);
+            ok = true;
+        }
+    }
+    CloseHandle(hToken);
+    return ok;
+}
+
+bool IsForegroundProcessElevated(HWND fgHwnd) {
+    if (!fgHwnd) return false;
+
+    DWORD pid = 0;
+    GetWindowThreadProcessId(fgHwnd, &pid);
+    if (!pid) return false;
+
+    HANDLE hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (!hProc) return false;
+
+    DWORD rid = 0;
+    bool ok = GetTokenIntegrityRid(hProc, rid);
+    CloseHandle(hProc);
+    return ok && rid >= SECURITY_MANDATORY_HIGH_RID;
+}
+
+bool IsSelfElevated() {
+    static int cached = -1;   // -1 = 尚未查詢
+    if (cached < 0) {
+        DWORD rid = 0;
+        bool ok = GetTokenIntegrityRid(GetCurrentProcess(), rid);
+        cached = (ok && rid >= SECURITY_MANDATORY_HIGH_RID) ? 1 : 0;
+    }
+    return cached == 1;
 }

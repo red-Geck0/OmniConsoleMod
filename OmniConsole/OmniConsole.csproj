@@ -56,6 +56,18 @@
 		</Content>
 	</ItemGroup>
 
+	<!-- PhantomWarden：系統管理員程式支援的安裝／移除工具（requireAdministrator） -->
+	<!-- 主程式以 runas 啟動它一次來註冊提權排程工作，平時不會執行到 -->
+	<Target Name="BuildPhantomWarden" BeforeTargets="BeforeBuild">
+		<MSBuild Projects="..\OmniConsole.PhantomWarden\OmniConsole.PhantomWarden.vcxproj" Targets="Build" Properties="Configuration=$(Configuration);Platform=x64" />
+	</Target>
+	<ItemGroup>
+		<Content Include="..\OmniConsole.PhantomWarden\x64\$(Configuration)\OmniConsole.PhantomWarden.exe">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>OmniConsole.PhantomWarden.exe</Link>
+		</Content>
+	</ItemGroup>
+
 	<ItemGroup>
 		<Content Include="Assets\SplashScreen.scale-200.png" />
 		<Content Include="Assets\AppIcon.ico" />
@@ -99,5 +111,6 @@
 		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
 		<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
 		<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+		<AppxPackageDir>C:\Users\QG Admin\Desktop\Aplikasi Citilink\OMNICONSOLE\</AppxPackageDir>
 	</PropertyGroup>
 </Project>

@@ -69,6 +69,12 @@ namespace PingService {
             return 1;
         }
 
+        // PhantomKey 以系統管理員權限執行時，UIPI 會擋掉主程式（一般權限）送來的
+        // SendMessageTimeout，健康檢查會誤判成沒回應、觸發不必要的 kill + restart。
+        // 對這一個訊息開白名單即可，其餘訊息仍受 UIPI 保護。
+        if (!ChangeWindowMessageFilterEx(hwnd, kPingMessage, MSGFLT_ALLOW, nullptr))
+            Log(L"[PingService] ChangeWindowMessageFilterEx failed (err=%lu).", GetLastError());
+
         Log(L"[PingService] ping window ready (class=%s).", kWindowClassName);
 
         MSG msg;

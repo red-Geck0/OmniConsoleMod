@@ -232,6 +232,10 @@ namespace OmniConsole.Controls
             // CopyFrom 只在有其他 profile 時 enable
             CopyFromButton.IsEnabled = data.Profiles.Any(p => p.Id != _editing.Id);
 
+            // 每次開啟編輯器都從第 1 層看起，避免沿用上一個 profile 的層別
+            _editingLayer = 1;
+            SyncLayerSelector();
+
             // 載入既存 profile：依 model 偵測主行 DPad 模式，Custom 則自動展開
             _dpadEditingCustom = (DetectDPadModeFromModel() == ActionOption.DpadCustom);
 
@@ -384,6 +388,60 @@ namespace OmniConsole.Controls
             if (combo.Items.Count > 0) combo.SelectedIndex = 0;
         }
 
+        // ── 編輯中的層 ───────────────────────────────────────────────────────
+        //
+        // Layered 啟用時一份 profile 有兩套完整映射：第 1 層平時生效，第 2 層在
+        // triggerKey 生效期間取代它。整個編輯器一次只顯示一層，由 LayerSelector 切換；
+        // 所有讀寫都經過下面三個成員導向當下那一層，其餘程式碼不需要知道層的存在。
+
+        private int _editingLayer = 1;
+
+        /// <summary>目前編輯中那一層的映射表。</summary>
+        private Dictionary<GamepadInputId, GamepadAction> EditBindings => _editing!.BindingsOf(_editingLayer);
+
+        /// <summary>讀取目前編輯層的動作；缺項回 Kind=None。</summary>
+        private GamepadAction EditGet(GamepadInputId id) => _editing!.Get(id, _editingLayer);
+
+        /// <summary>整套取代目前編輯層的映射（重設 / 從其他 profile 讀入用）。</summary>
+        private void SetEditBindings(Dictionary<GamepadInputId, GamepadAction> bindings)
+        {
+            if (_editing == null) return;
+            if (_editingLayer == 2) _editing.LayerBindings = bindings;
+            else _editing.Bindings = bindings;
+        }
+
+        /// <summary>
+        /// 依 Layered 是否啟用決定層選擇器的可見度，並在關閉 Layered 時強制回到第 1 層——
+        /// 否則使用者可能停在看不見的第 2 層上編輯，改了半天卻完全不會生效。
+        /// </summary>
+        private void SyncLayerSelector()
+        {
+            bool layered = _editing?.Layered?.Enabled == true;
+            LayerSelectorPanel.Visibility = layered ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!layered && _editingLayer != 2) return;
+            if (!layered)
+            {
+                _editingLayer = 1;
+                RefreshAllRows();
+            }
+            LayerSelector.SelectedIndex = _editingLayer - 1;
+        }
+
+        /// <summary>層選擇器變更：切換編輯目標並整頁重新載入。</summary>
+        private void LayerSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_editing == null) return;
+            int layer = LayerSelector.SelectedIndex + 1;
+            if (layer < 1 || layer > 2 || layer == _editingLayer) return;
+
+            _editingLayer = layer;
+            // DPad 的「自訂」判定是依當層內容推導出來的，換層後必須重算，
+            // 否則會沿用上一層的模式而顯示錯誤的 DPad 選項。
+            _dpadEditingCustom = (DetectDPadModeFromModel() == ActionOption.DpadCustom);
+            RefreshAllRows();
+        }
+
         /// <summary>把 _editing 的所有 binding 同步回 UI（ComboBox 選項 + KeyBtn 顯示 + trigger note）。</summary>
         private void RefreshAllRows()
         {
@@ -416,6 +474,7 @@ namespace OmniConsole.Controls
             if (_editing == null) return;
             _editing.Layered.Enabled = LayeredSwitch.IsOn;
             UpdateLayeredSubcontrolsEnabled();
+            SyncLayerSelector();  // 只有啟用 Layered 才會有第 2 層可編輯
             RefreshAllRows();  // trigger 列要切換顯示「Used as Layered trigger」
         }
 
@@ -442,7 +501,7 @@ namespace OmniConsole.Controls
 
             bool allNone = true;
             for (int i = 0; i < 4; i++)
-                if (_editing.Get(kDpadKeys[i]).Kind != GamepadActionKind.None) { allNone = false; break; }
+                if (EditGet(kDpadKeys[i]).Kind != GamepadActionKind.None) { allNone = false; break; }
             if (allNone) return ActionOption.None;
 
             if (MatchDpadVks(kDpadArrowsVks)) return ActionOption.DpadArrows;
@@ -458,7 +517,7 @@ namespace OmniConsole.Controls
             if (_editing == null) return false;
             for (int i = 0; i < 4; i++)
             {
-                var a = _editing.Get(kDpadKeys[i]);
+                var a = EditGet(kDpadKeys[i]);
                 if (a.Kind != GamepadActionKind.KeyTap) return false;
                 if (a.Vk != expected[i]) return false;
             }
@@ -519,7 +578,7 @@ namespace OmniConsole.Controls
         {
             if (_editing == null) return;
             for (int i = 0; i < 4; i++)
-                _editing.Bindings[kDpadKeys[i]] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = vks[i] };
+                EditBindings[kDpadKeys[i]] = new GamepadAction { Kind = GamepadActionKind.KeyTap, Vk = vks[i] };
         }
 
         /// <summary>把 4 個 DPad KeyId 全部清為 None。</summary>
@@ -527,7 +586,7 @@ namespace OmniConsole.Controls
         {
             if (_editing == null) return;
             foreach (var k in kDpadKeys)
-                _editing.Bindings[k] = new GamepadAction { Kind = GamepadActionKind.None };
+                EditBindings[k] = new GamepadAction { Kind = GamepadActionKind.None };
         }
 
         /// <summary>
@@ -550,7 +609,7 @@ namespace OmniConsole.Controls
             combo.Visibility = Visibility.Visible;
             if (note != null) note.Visibility = Visibility.Collapsed;
 
-            var a = _editing.Get(id);
+            var a = EditGet(id);
             var opt = ToOption(a, id);
 
             int idx = FindOptionIndex(combo, opt);
@@ -579,7 +638,7 @@ namespace OmniConsole.Controls
             keyBtn.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
             if (!show) return;
 
-            var a = _editing!.Get(id);
+            var a = EditGet(id);
             string baseText = Loc("GamepadMappingChangeKeyButton").TrimEnd('…');
             if (string.IsNullOrEmpty(baseText) || baseText == "GamepadMappingChangeKeyButton") baseText = "改鍵";
             string keyText = (opt == ActionOption.KeyCombo) ? ComboName(a) : KeyName(a.Vk);
@@ -598,9 +657,9 @@ namespace OmniConsole.Controls
             if (combo.SelectedItem is not ComboBoxItem item) return;
             if (item.Tag is not ActionOption opt) return;
 
-            var prev = _editing.Get(id);
+            var prev = EditGet(id);
             var newAction = OptionToAction(opt, prev);
-            _editing.Bindings[id] = newAction;
+            EditBindings[id] = newAction;
 
             if (_rows.TryGetValue(id, out var pair))
                 UpdateKeyButton(id, opt, pair.keyBtn);
@@ -685,13 +744,13 @@ namespace OmniConsole.Controls
             if (_editing == null) return;
             if (sender is not Button btn || btn.Tag is not string tagStr) return;
             if (!Enum.TryParse<GamepadInputId>(tagStr, out var id)) return;
-            var a = _editing.Get(id);
+            var a = EditGet(id);
             bool isCombo = a.Kind == GamepadActionKind.KeyCombo;
             var dlg = new ChangeKeyDialog(XamlRoot, _resw, a, isCombo);
             await ShowDialogAsync(dlg);
             if (dlg.Result != null)
             {
-                _editing.Bindings[id] = dlg.Result;
+                EditBindings[id] = dlg.Result;
                 if (_rows.TryGetValue(id, out var pair))
                     UpdateKeyButton(id, ToOption(dlg.Result, id), pair.keyBtn);
             }
@@ -711,7 +770,7 @@ namespace OmniConsole.Controls
             await ShowDialogAsync(dlg);
             if (dlg.Result)
             {
-                _editing.Bindings = GamepadBuiltInLayouts.OmniNav();
+                SetEditBindings(GamepadBuiltInLayouts.OmniNav());
                 _dpadEditingCustom = (DetectDPadModeFromModel() == ActionOption.DpadCustom);
                 RefreshAllRows();
             }
@@ -731,7 +790,7 @@ namespace OmniConsole.Controls
             await ShowDialogAsync(dlg);
             if (dlg.Result)
             {
-                _editing.Bindings = GamepadBuiltInLayouts.Classic();
+                SetEditBindings(GamepadBuiltInLayouts.Classic());
                 _dpadEditingCustom = (DetectDPadModeFromModel() == ActionOption.DpadCustom);
                 RefreshAllRows();
             }
@@ -751,7 +810,7 @@ namespace OmniConsole.Controls
             await ShowDialogAsync(dlg);
             if (dlg.Result)
             {
-                _editing.Bindings = new Dictionary<GamepadInputId, GamepadAction>();
+                SetEditBindings(new Dictionary<GamepadInputId, GamepadAction>());
                 _dpadEditingCustom = false;
                 RefreshAllRows();
             }
@@ -779,9 +838,10 @@ namespace OmniConsole.Controls
                 if (src != null)
                 {
                     var newBindings = new Dictionary<GamepadInputId, GamepadAction>();
-                    foreach (var kv in src.Bindings)
+                    // 來源取同一層：從別的 profile 讀入時，第 2 層對第 2 層才符合直覺。
+                    foreach (var kv in src.BindingsOf(_editingLayer))
                         newBindings[kv.Key] = kv.Value?.Clone() ?? new GamepadAction();
-                    _editing.Bindings = newBindings;
+                    SetEditBindings(newBindings);
                     _dpadEditingCustom = (DetectDPadModeFromModel() == ActionOption.DpadCustom);
                     RefreshAllRows();
                 }

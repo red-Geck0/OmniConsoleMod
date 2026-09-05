@@ -295,6 +295,9 @@ namespace OmniConsole.Pages
             UsePhantomKeySteamInGameOverlaySwitch.IsOn = SettingsService.GetUsePhantomKeySteamInGameOverlay();
             UsePhantomKeySteamInGameOverlaySwitch.IsEnabled = true;
 
+            // 系統管理員程式支援：還原按鈕文字與提示
+            RefreshElevatedAppSupport();
+
             // [MOVED] Gamepad Mouse Mode 開關已移至 OmniNav 頁（GamepadProfileListView.SyncMouseMode）；
             // Advanced 頁不再持有該控制項，相關還原邏輯停用。
 
@@ -1020,6 +1023,130 @@ namespace OmniConsole.Pages
             SettingsService.SetUsePhantomKeySteamInGameOverlay(UsePhantomKeySteamInGameOverlaySwitch.IsOn);
         }
 
+        /// <summary>
+        /// 依目前安裝狀態更新「系統管理員程式支援」的按鈕文字與提示。
+        /// 三種狀態：未安裝（安裝）／已安裝但版本落後（更新）／已安裝（移除）。
+        /// 帳戶無法提權時整列反灰並說明原因——按下去只會白跳一次 UAC 然後失敗。
+        /// </summary>
+        private void RefreshElevatedAppSupport()
+        {
+            bool installed = ElevatedInputService.IsInstalled();
+            bool needsUpdate = installed && ElevatedInputService.NeedsUpdate();
+            bool canElevate = ElevatedInputService.CanUserElevate();
+
+            string key = !installed ? "ElevatedAppSupport_Install"
+                       : needsUpdate ? "ElevatedAppSupport_Update"
+                                     : "ElevatedAppSupport_Remove";
+            ElevatedAppSupportButton.Content = _resourceLoader.GetString(key);
+            ElevatedAppSupportButton.IsEnabled = canElevate;
+
+            string? note =
+                !canElevate ? _resourceLoader.GetString("ElevatedAppSupport_NoteCannotElevate")
+                : needsUpdate ? _resourceLoader.GetString("ElevatedAppSupport_NoteNeedsUpdate")
+                : (!installed && SettingsService.IsElevatedInputBlocked())
+                    ? _resourceLoader.GetString("ElevatedAppSupport_NoteBlocked")
+                    : null;
+
+            ElevatedAppSupportNoteText.Text = note ?? string.Empty;
+            ElevatedAppSupportNoteText.Visibility =
+                string.IsNullOrEmpty(note) ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        /// <summary>
+        /// 安裝 / 更新 / 移除系統管理員程式支援。三條路徑都會跳一次 UAC。
+        /// runas 期間走安全桌面，會把 UI 執行緒卡住，因此丟到背景執行緒等它結束。
+        /// 做完後重新啟動 PhantomKey，讓它換到對應的完整性等級重新就位。
+        /// </summary>
+        private async void ElevatedAppSupportButton_Click(object sender, RoutedEventArgs e)
+        {
+            bool installed = ElevatedInputService.IsInstalled();
+            bool needsUpdate = installed && ElevatedInputService.NeedsUpdate();
+            bool remove = installed && !needsUpdate;
+
+            if (remove)
+            {
+                StopGamepadPolling();
+                try
+                {
+                    var confirm = new GamepadMessageDialog(
+                        XamlRoot,
+                        _resourceLoader.GetString("ElevatedAppSupportRemoveDialog_Title"),
+                        _resourceLoader.GetString("ElevatedAppSupportRemoveDialog_Body"),
+                        _resourceLoader.GetString("ElevatedAppSupportRemoveDialog_Confirm"),
+                        _resourceLoader.GetString("ElevatedAppSupportRemoveDialog_Cancel"));
+                    await confirm.ShowAsync();
+                    if (!confirm.Result) return;
+                }
+                finally { StartGamepadPolling(); }
+            }
+
+            ElevatedAppSupportButton.IsEnabled = false;
+            try
+            {
+                // 只有更新／移除才需要先停 PhantomKey——提權版鎖著 ProgramData 那份執行檔，
+                // 不先請它收工就換不掉也刪不掉。
+                //
+                // 全新安裝時那個檔案還不存在，先殺沒有任何意義，反而害使用者在 UAC 對話方塊
+                // 期間失去手把映射。UAC 的安全桌面本來就不吃任何注入輸入（任何完整性等級都一樣，
+                // 只能用觸控／滑鼠／鍵盤按），這時候再把映射拿掉，掌機使用者等於被困在原地。
+                // 安裝成功後的切換由下方的 Start() → StartElevated() 負責，它自己會收掉舊的那份。
+                if (installed)
+                    await Task.Run(() => PhantomKeyService.Kill());
+
+                var result = await Task.Run(() => remove
+                    ? ElevatedInputService.Uninstall()
+                    : ElevatedInputService.Install());
+                DebugLogger.Log($"[SettingsPage] Elevated app support {(remove ? "uninstall" : "install")}: {result}");
+
+                // 不論成敗都把 PhantomKey 帶回線上：成功時走新的完整性等級，
+                // 失敗（含使用者取消 UAC）時退回原本那條路徑。
+                //
+                // 刻意不先問 FseService.IsActive()：安全桌面收起來之後那個狀態不一定已經穩定，
+                // 只要讀到一次 false 就會整個跳過重啟，症狀就是「裝完沒反應，要重開機才生效」。
+                // PhantomKey 自己有 FSE 檢查、不在 FSE 時會自行收工，由它判斷比較可靠。
+                await Task.Run(() => PhantomKeyService.Start());
+
+                // 真正失敗要講出來。取消 UAC 是使用者自己的決定，不跳訊息。
+                if (result == ElevatedInputService.ElevationResult.Failed)
+                {
+                    StopGamepadPolling();
+                    try
+                    {
+                        var failed = new GamepadMessageDialog(
+                            XamlRoot,
+                            _resourceLoader.GetString("ElevatedAppSupportFailedDialog_Title"),
+                            _resourceLoader.GetString("ElevatedAppSupportFailedDialog_Body"),
+                            _resourceLoader.GetString("ElevatedAppSupportFailedDialog_Close"),
+                            null);
+                        await failed.ShowAsync();
+                    }
+                    finally { StartGamepadPolling(); }
+                }
+                // 安裝／更新成功要明講已經生效，否則使用者只看到按鈕字樣變了，
+                // 無從判斷映射是不是真的開始能送進系統管理員程式。
+                else if (!remove && result == ElevatedInputService.ElevationResult.Success)
+                {
+                    StopGamepadPolling();
+                    try
+                    {
+                        var done = new GamepadMessageDialog(
+                            XamlRoot,
+                            _resourceLoader.GetString("ElevatedAppSupportInstalledDialog_Title"),
+                            _resourceLoader.GetString("ElevatedAppSupportInstalledDialog_Body"),
+                            _resourceLoader.GetString("ElevatedAppSupportInstalledDialog_Close"),
+                            null);
+                        await done.ShowAsync();
+                    }
+                    finally { StartGamepadPolling(); }
+                }
+            }
+            finally
+            {
+                RefreshElevatedAppSupport();
+                ElevatedAppSupportButton.Focus(FocusState.Programmatic);
+            }
+        }
+
         // [MOVED] Mouse Mode 開關移至 OmniNav 頁（GamepadProfileListView）。
         // 以下 handler / 反灰邏輯保留為註解，不刪除。
         //
@@ -1656,6 +1783,11 @@ namespace OmniConsole.Pages
                 // 重設 Game Bar 按鈕：觸發殺行程並重新啟動 FSE 的備援流程
                 case Button btn when ReferenceEquals(btn, ResetGameBarButton):
                     ResetGameBarButton_Click(this, new RoutedEventArgs());
+                    break;
+
+                // 系統管理員程式支援：安裝 / 更新 / 移除
+                case Button btn when ReferenceEquals(btn, ElevatedAppSupportButton):
+                    ElevatedAppSupportButton_Click(this, new RoutedEventArgs());
                     break;
 
                 // PhantomKey 手把輸入開關 — 已移除（FSE 常駐），保留註解以利復原

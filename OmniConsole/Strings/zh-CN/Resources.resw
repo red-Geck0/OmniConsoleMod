@@ -306,6 +306,66 @@
   <data name="MouseModeSetting_BuiltInMappingNote.Text" xml:space="preserve">
     <value>已禁用 — 设备具备内置手柄映射。</value>
   </data>
+  <data name="MouseModeSetting_ExternalCursorNote.Text" xml:space="preserve">
+    <value>另一个应用也在用手柄控制指针 — 很可能是 Game Bar 的 Gamepad Cursor。请到 Game Bar → 设置 → Gamepad Cursor 将其关闭，以免两者互相干扰。</value>
+  </data>
+  <data name="ElevatedAppSupportSetting_Title.Text" xml:space="preserve">
+    <value>管理员应用支持</value>
+  </data>
+  <data name="ElevatedAppSupportSetting_Description.Text" xml:space="preserve">
+    <value>让手柄映射也能送进以管理员身份运行的程序；否则 Windows 会拦下这些输入。安装时需要一次管理员授权。</value>
+  </data>
+  <data name="ElevatedAppSupport_Install" xml:space="preserve">
+    <value>安装</value>
+  </data>
+  <data name="ElevatedAppSupport_Update" xml:space="preserve">
+    <value>更新</value>
+  </data>
+  <data name="ElevatedAppSupport_Remove" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="ElevatedAppSupport_NoteCannotElevate" xml:space="preserve">
+    <value>当前登录的 Windows 账户没有管理员权限，无法安装此功能。</value>
+  </data>
+  <data name="ElevatedAppSupport_NoteNeedsUpdate" xml:space="preserve">
+    <value>OmniConsoleMod 已更新，管理员应用支持也需跟着更新，过程会再次请求管理员授权。</value>
+  </data>
+  <data name="ElevatedAppSupport_NoteBlocked" xml:space="preserve">
+    <value>目前前台是以管理员身份运行的程序，映射送不进去。</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Title" xml:space="preserve">
+    <value>要移除管理员应用支持吗？</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Body" xml:space="preserve">
+    <value>手柄映射将不再对以管理员身份运行的程序生效。接下来会请求管理员授权。</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Confirm" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="ElevatedAppSupportFailedDialog_Title" xml:space="preserve">
+    <value>安装未完成</value>
+  </data>
+  <data name="ElevatedAppSupportFailedDialog_Body" xml:space="preserve">
+    <value>无法完成管理员应用支持的安装。具体原因请查看 DebugTrace.log。</value>
+  </data>
+  <data name="ElevatedAppSupportFailedDialog_Close" xml:space="preserve">
+    <value>知道了</value>
+  </data>
+  <data name="ElevatedAppSupportInstalledDialog_Title" xml:space="preserve">
+    <value>管理员应用支持已开启</value>
+  </data>
+  <data name="ElevatedAppSupportInstalledDialog_Body" xml:space="preserve">
+    <value>手柄映射现在可以送进以管理员身份运行的程序。UAC 提示框本身仍无法用手柄操作 — Windows 的那一层不接受任何模拟输入。</value>
+  </data>
+  <data name="ElevatedAppSupportInstalledDialog_Close" xml:space="preserve">
+    <value>知道了</value>
+  </data>
+  <data name="MouseModeSetting_ElevatedBlockedNote.Text" xml:space="preserve">
+    <value>前台程序以管理员身份运行，Windows 正在拦下你的映射。请到“设置 → 高级”安装“管理员应用支持”。</value>
+  </data>
   <!-- [UNUSED in this fork] MouseModeLayout* + CursorSpeedSetting_*: upstream global
        Controller Layout (OmniNav/Classic) and global Cursor Speed settings. This fork
        moved both to per-profile values in GamepadProfiles.json (managed in profile editor).
@@ -1081,6 +1141,15 @@
   </data>
   <data name="GamepadInput_RStick.Text" xml:space="preserve">
     <value>右摇杆</value>
+  </data>
+  <data name="GamepadProfileLayerSelectorLabel.Text" xml:space="preserve">
+    <value>编辑中的层</value>
+  </data>
+  <data name="GamepadProfileLayer1.Content" xml:space="preserve">
+    <value>第 1 层 — 平时</value>
+  </data>
+  <data name="GamepadProfileLayer2.Content" xml:space="preserve">
+    <value>第 2 层 — 触发键生效期间</value>
   </data>
   <data name="GamepadGroup_FaceButtons.Text" xml:space="preserve">
     <value>面键</value>

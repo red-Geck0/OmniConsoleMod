@@ -216,3 +216,47 @@ void WriteActiveProfileId(const std::wstring& profileId) {
         Log(L"[Config] Wrote ActiveProfileId=\"%s\" to Shared.ini.", profileId.c_str());
     }
 }
+
+// ── 外部游標注入旗標寫入 ───────────────────────────────────────────────────
+//
+// 靜態快取比對：狀態未變則不寫，避免每 tick 觸發 mtime 變動。
+void WriteExternalCursorConflict(bool detected) {
+    auto path = GetSharedIniPath();
+    if (path.empty()) return;
+    static int lastWritten = -1;
+    const int value = detected ? 1 : 0;
+    if (value == lastWritten) return;
+    if (WritePrivateProfileStringW(L"Status", L"ExternalCursorConflict",
+                                   detected ? L"1" : L"0", path.c_str())) {
+        lastWritten = value;
+        Log(L"[Config] Wrote ExternalCursorConflict=%d to Shared.ini.", value);
+    }
+}
+
+// ── 停止請求 ───────────────────────────────────────────────────────────────
+
+bool ReadStopRequested() {
+    return ReadInt(L"Status", L"StopRequested", 0) != 0;
+}
+
+void ClearStopRequested() {
+    auto path = GetSharedIniPath();
+    if (path.empty()) return;
+    WritePrivateProfileStringW(L"Status", L"StopRequested", L"0", path.c_str());
+}
+
+// ── 提權阻擋旗標寫入 ───────────────────────────────────────────────────────
+//
+// 靜態快取比對：狀態未變則不寫，避免每 tick 觸發 mtime 變動。
+void WriteElevatedInputBlocked(bool blocked) {
+    auto path = GetSharedIniPath();
+    if (path.empty()) return;
+    static int lastWritten = -1;
+    const int value = blocked ? 1 : 0;
+    if (value == lastWritten) return;
+    if (WritePrivateProfileStringW(L"Status", L"ElevatedInputBlocked",
+                                   blocked ? L"1" : L"0", path.c_str())) {
+        lastWritten = value;
+        Log(L"[Config] Wrote ElevatedInputBlocked=%d to Shared.ini.", value);
+    }
+}

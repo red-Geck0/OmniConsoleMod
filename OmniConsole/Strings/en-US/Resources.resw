@@ -306,6 +306,66 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   <data name="MouseModeSetting_BuiltInMappingNote.Text" xml:space="preserve">
     <value>Disabled — device has built-in gamepad mapping.</value>
   </data>
+  <data name="MouseModeSetting_ExternalCursorNote.Text" xml:space="preserve">
+    <value>Another app is also moving the pointer with your controller — most likely Game Bar's Gamepad Cursor. Turn it off under Game Bar → Settings → Gamepad Cursor so the two stop fighting.</value>
+  </data>
+  <data name="ElevatedAppSupportSetting_Title.Text" xml:space="preserve">
+    <value>Administrator App Support</value>
+  </data>
+  <data name="ElevatedAppSupportSetting_Description.Text" xml:space="preserve">
+    <value>Let gamepad mappings reach apps that run as administrator. Windows blocks input from reaching them otherwise. Setup asks for administrator approval once.</value>
+  </data>
+  <data name="ElevatedAppSupport_Install" xml:space="preserve">
+    <value>Install</value>
+  </data>
+  <data name="ElevatedAppSupport_Update" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="ElevatedAppSupport_Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="ElevatedAppSupport_NoteCannotElevate" xml:space="preserve">
+    <value>The Windows account you are signed in with does not have administrator rights, so this cannot be set up.</value>
+  </data>
+  <data name="ElevatedAppSupport_NoteNeedsUpdate" xml:space="preserve">
+    <value>OmniConsoleMod was updated. Administrator app support needs updating too, which asks for administrator approval again.</value>
+  </data>
+  <data name="ElevatedAppSupport_NoteBlocked" xml:space="preserve">
+    <value>An app running as administrator is on screen right now and your mappings are not reaching it.</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Title" xml:space="preserve">
+    <value>Remove administrator app support?</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Body" xml:space="preserve">
+    <value>Gamepad mappings will stop working in apps that run as administrator. You will be asked for administrator approval.</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Confirm" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ElevatedAppSupportFailedDialog_Title" xml:space="preserve">
+    <value>Setup did not complete</value>
+  </data>
+  <data name="ElevatedAppSupportFailedDialog_Body" xml:space="preserve">
+    <value>Administrator app support could not be set up. See DebugTrace.log for the reason.</value>
+  </data>
+  <data name="ElevatedAppSupportFailedDialog_Close" xml:space="preserve">
+    <value>Got it</value>
+  </data>
+  <data name="ElevatedAppSupportInstalledDialog_Title" xml:space="preserve">
+    <value>Administrator app support is on</value>
+  </data>
+  <data name="ElevatedAppSupportInstalledDialog_Body" xml:space="preserve">
+    <value>Gamepad mappings now reach apps that run as administrator. The UAC prompt itself still cannot be controlled with a gamepad — that part of Windows accepts no simulated input.</value>
+  </data>
+  <data name="ElevatedAppSupportInstalledDialog_Close" xml:space="preserve">
+    <value>Got it</value>
+  </data>
+  <data name="MouseModeSetting_ElevatedBlockedNote.Text" xml:space="preserve">
+    <value>The app on screen runs as administrator, so Windows is blocking your mappings from reaching it. Install Administrator App Support under Settings → Advanced to fix this.</value>
+  </data>
   <!-- [UNUSED in this fork] MouseModeLayout* + CursorSpeedSetting_*: upstream global
        Controller Layout (OmniNav/Classic) and global Cursor Speed settings. This fork
        moved both to per-profile values in GamepadProfiles.json (managed in profile editor).
@@ -1081,6 +1141,15 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   </data>
   <data name="GamepadInput_RStick.Text" xml:space="preserve">
     <value>Right stick</value>
+  </data>
+  <data name="GamepadProfileLayerSelectorLabel.Text" xml:space="preserve">
+    <value>Editing layer</value>
+  </data>
+  <data name="GamepadProfileLayer1.Content" xml:space="preserve">
+    <value>Layer 1 — normal</value>
+  </data>
+  <data name="GamepadProfileLayer2.Content" xml:space="preserve">
+    <value>Layer 2 — while trigger is held</value>
   </data>
   <data name="GamepadGroup_FaceButtons.Text" xml:space="preserve">
     <value>Face buttons</value>

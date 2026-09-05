@@ -116,6 +116,17 @@
                     HorizontalAlignment="Stretch"
                     MinWidth="700">
                 <StackPanel Padding="16" Spacing="8">
+                    <!-- 層選擇器：僅在 Layered 啟用時出現。下方整份按鍵清單一次只顯示一層，
+                         切換後所有列都重新載入為該層的內容。 -->
+                    <StackPanel x:Name="LayerSelectorPanel" Visibility="Collapsed" Spacing="4" Margin="0,0,0,4">
+                        <TextBlock x:Uid="GamepadProfileLayerSelectorLabel" FontSize="13"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <ComboBox x:Name="LayerSelector" HorizontalAlignment="Stretch"
+                                  SelectionChanged="LayerSelector_SelectionChanged">
+                            <ComboBoxItem x:Uid="GamepadProfileLayer1"/>
+                            <ComboBoxItem x:Uid="GamepadProfileLayer2"/>
+                        </ComboBox>
+                    </StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="160"/>

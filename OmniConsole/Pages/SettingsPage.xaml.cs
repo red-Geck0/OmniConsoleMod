@@ -108,6 +108,9 @@ namespace OmniConsole.Pages
             GamepadProfileList.NewProfileRequested += (s, e) => OpenEditorFor(null);
             GamepadProfileEditor.Closed += (s, e) => CloseEditor();
             GamepadProfileEditor.Deleted += (s, e) => CloseEditor();
+            // Layered Mode 開關是在編輯器內部切換的，層索引標籤跟著出現/消失，
+            // 底部的 LB/RB 提示也要同步，否則會留著一個按了沒反應的提示。
+            GamepadProfileEditor.LayerTabsVisibilityChanged += (s, e) => UpdateGamepadHints();
 
             EventHandler<bool> onDialogActive = (s, active) =>
             {
@@ -288,8 +291,13 @@ namespace OmniConsole.Pages
             //UsePhantomKeySwitch.IsOn = SettingsService.GetUsePhantomKey();
             //if (FseService.IsActive() && UsePhantomKeySwitch.IsOn)
             //    PhantomKeyService.Start();
+            //
+            // 丟到背景執行緒：Start() 會列舉行程、對 ping window 做 SendMessageTimeout（最久 100ms），
+            // 必要時還會走 Kill() 的等待迴圈（最久 3 秒的 Thread.Sleep）。在 UI 執行緒上同步做完，
+            // 使用者按下「設定」到畫面能動之間就是整段凍結。啟動結果不影響本方法後續任何 UI 狀態，
+            // 不需要等它（其它呼叫點如系統管理員支援安裝流程也是這樣處理的）。
             if (FseService.IsActive())
-                PhantomKeyService.Start();
+                _ = Task.Run(() => PhantomKeyService.Start());
 
             // 還原 Steam In-Game Overlay 開關狀態（PhantomKey 恆為啟用，此開關恆可用）
             UsePhantomKeySteamInGameOverlaySwitch.IsOn = SettingsService.GetUsePhantomKeySteamInGameOverlay();
@@ -297,6 +305,12 @@ namespace OmniConsole.Pages
 
             // 系統管理員程式支援：還原按鈕文字與提示
             RefreshElevatedAppSupport();
+
+            // 以系統管理員身分啟動平台：還原開關並依目前預設平台決定要不要提醒沒作用
+            _launchElevatedLoading = true;
+            try { LaunchElevatedSwitch.IsOn = SettingsService.GetLaunchPlatformElevated(); }
+            finally { _launchElevatedLoading = false; }
+            RefreshElevatedLaunchNote();
 
             // [MOVED] Gamepad Mouse Mode 開關已移至 OmniNav 頁（GamepadProfileListView.SyncMouseMode）；
             // Advanced 頁不再持有該控制項，相關還原邏輯停用。
@@ -365,6 +379,8 @@ namespace OmniConsole.Pages
                 GamepadHintXDelete.Visibility = (editor ? GamepadProfileEditor.CanDelete : GamepadProfileList.HasItems)
                     ? Visibility.Visible : Visibility.Collapsed;
                 GamepadHintYNewProfile.Visibility = editor ? Visibility.Collapsed : Visibility.Visible;
+                GamepadHintLayerTabs.Visibility = (editor && GamepadProfileEditor.HasLayerTabs)
+                    ? Visibility.Visible : Visibility.Collapsed;
                 return;
             }
             if (_currentNavTag != "General")
@@ -376,6 +392,7 @@ namespace OmniConsole.Pages
                 GamepadHintXDelete.Visibility = Visibility.Collapsed;
                 GamepadHintYNewProfile.Visibility = Visibility.Collapsed;
                 GamepadHintBSaveReturn.Visibility = Visibility.Collapsed;
+                GamepadHintLayerTabs.Visibility = Visibility.Collapsed;
                 GamepadHintExit.Visibility = Visibility.Visible;
                 return;
             }
@@ -383,6 +400,7 @@ namespace OmniConsole.Pages
             GamepadHintXDelete.Visibility = Visibility.Collapsed;
             GamepadHintYNewProfile.Visibility = Visibility.Collapsed;
             GamepadHintBSaveReturn.Visibility = Visibility.Collapsed;
+            GamepadHintLayerTabs.Visibility = Visibility.Collapsed;
             GamepadHintExit.Visibility = Visibility.Visible;
 
             // 系統/使用者平台合併於單一卡片網格，不再有索引標籤：
@@ -459,53 +477,67 @@ namespace OmniConsole.Pages
             }
         }
 
+        /// <summary>目前掛著的逐影格焦點重試委派；切頁時先解除舊的，不讓多輪重試疊在一起。</summary>
+        private EventHandler<object>? _pageFocusRetry;
+
         /// <summary>
-        /// 掛 CompositionTarget.Rendering，重複呼叫 FocusFirstElementForPage 數個影格（Focus() 呼叫本身
-        /// 是幂等的，重複呼叫無副作用），確保容器尚未 realize 的情況下最終仍能拿到焦點；逾時 1 秒後解除掛勾。
+        /// 掛 CompositionTarget.Rendering，逐影格重試 FocusFirstElementForPage，
+        /// 直到成功或逾時 1 秒為止，確保容器尚未 realize 時最終仍能拿到焦點。
+        ///
+        /// 兩個「跑滿整秒」的行為都會直接反映成切頁當下的掉影格，必須避免：
+        ///   * 成功後不收工 —— 每一影格都重設一次焦點（焦點視覺、VSM、音效全部跟著重跑）；
+        ///   * 上一輪未解除就再掛一輪 —— 連按方向鍵切頁時可累積數個迴圈，各自在整頁視覺樹上
+        ///     做 FindFirstFocusableElement，成本隨切頁次數線性疊加。
         /// </summary>
         private void StartFocusRetryLoop(string tag)
         {
+            if (_pageFocusRetry != null)
+            {
+                CompositionTarget.Rendering -= _pageFocusRetry;
+                _pageFocusRetry = null;
+            }
+
+            if (FocusFirstElementForPage(tag)) return;
+
             var deadline = DateTime.UtcNow.AddSeconds(1);
             EventHandler<object>? onRendering = null;
             onRendering = (s, e) =>
             {
-                FocusFirstElementForPage(tag);
-                if (DateTime.UtcNow >= deadline)
-                    CompositionTarget.Rendering -= onRendering;
+                if (!FocusFirstElementForPage(tag) && DateTime.UtcNow < deadline) return;
+                CompositionTarget.Rendering -= onRendering;
+                if (ReferenceEquals(_pageFocusRetry, onRendering)) _pageFocusRetry = null;
             };
+            _pageFocusRetry = onRendering;
             CompositionTarget.Rendering += onRendering;
         }
 
-        /// <summary>切換設定頁後，把控制器焦點移到該頁的首個控制項。</summary>
-        private void FocusFirstElementForPage(string tag)
+        /// <summary>
+        /// 切換設定頁後，把控制器焦點移到該頁的首個控制項。
+        /// 回傳是否已「處理完畢」——true 代表 <see cref="StartFocusRetryLoop"/> 可以收工，
+        /// 不論是焦點確實落定，或是已把後續重試交給該頁自己的機制。
+        /// </summary>
+        private bool FocusFirstElementForPage(string tag)
         {
             switch (tag)
             {
                 case "General":
-                    (PlatformGridView.ContainerFromIndex(0) as UIElement)?.Focus(FocusState.Programmatic);
-                    break;
+                    return (PlatformGridView.ContainerFromIndex(0) as UIElement)?.Focus(FocusState.Programmatic) == true;
                 case "Advanced":
-                    if (DownloadInstallButton.Visibility == Visibility.Visible && DownloadInstallButton.IsEnabled)
-                        DownloadInstallButton.Focus(FocusState.Programmatic);
-                    else
-                        CheckForUpdatesButton.Focus(FocusState.Programmatic);
-                    break;
+                    return (DownloadInstallButton.Visibility == Visibility.Visible && DownloadInstallButton.IsEnabled)
+                        ? DownloadInstallButton.Focus(FocusState.Programmatic)
+                        : CheckForUpdatesButton.Focus(FocusState.Programmatic);
                 case "GamepadMapping":
-                    // Focus the profile list (so OmniNav is selected first), not the New Profile button below
-                    if (GamepadProfileList != null && IsGamepadMappingListVisible)
-                        GamepadProfileList.FocusList();
-                    else
-                        (FocusManager.FindFirstFocusableElement(GamepadMappingPage) as UIElement)?.Focus(FocusState.Programmatic);
-                    break;
+                    // 清單頁／編輯器各自已有逐影格重試（FocusList / FocusFirstControl）。
+                    // 在這裡逐影格再呼叫一次只會不斷疊加它們的重試迴圈，因此呼叫一次就交棒。
+                    if (IsGamepadMappingEditorVisible) { GamepadProfileEditor.FocusFirstControl(); return true; }
+                    if (GamepadProfileList != null) { GamepadProfileList.FocusList(); return true; }
+                    return (FocusManager.FindFirstFocusableElement(GamepadMappingPage) as UIElement)?.Focus(FocusState.Programmatic) == true;
                 case "Troubleshoot":
-                    ResetGameBarButton.Focus(FocusState.Programmatic);
-                    break;
+                    return ResetGameBarButton.Focus(FocusState.Programmatic);
                 case "About":
-                    CopyAboutButton.Focus(FocusState.Programmatic);
-                    break;
+                    return CopyAboutButton.Focus(FocusState.Programmatic);
                 default:
-                    (FocusManager.FindFirstFocusableElement(this) as UIElement)?.Focus(FocusState.Programmatic);
-                    break;
+                    return (FocusManager.FindFirstFocusableElement(this) as UIElement)?.Focus(FocusState.Programmatic) == true;
             }
         }
 
@@ -930,6 +962,8 @@ namespace OmniConsole.Pages
         private void UpdateSettingsDescription()
         {
             UpdateHomeAppDescription();
+            // 「提權啟動」提醒綁的是目前的預設平台，平台一換就要重算
+            RefreshElevatedLaunchNote();
 
             var platform = SettingsService.GetDefaultPlatform();
             var name = ProcessLauncherService.GetPlatformDisplayName(platform);
@@ -1156,6 +1190,44 @@ namespace OmniConsole.Pages
         //     SettingsService.SetMouseMode(mode);
         //     ApplyMouseModeEnabledState();
         // }
+
+        /// <summary>還原 <see cref="LaunchElevatedSwitch"/> 狀態期間為 true，避免觸發 Toggled 回寫。</summary>
+        private bool _launchElevatedLoading;
+
+        /// <summary>「以系統管理員身分啟動平台」開關。</summary>
+        private void LaunchElevatedSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_launchElevatedLoading) return;
+            SettingsService.SetLaunchPlatformElevated(LaunchElevatedSwitch.IsOn);
+            RefreshElevatedLaunchNote();
+        }
+
+        /// <summary>
+        /// 依目前預設平台，於「以系統管理員身分啟動」開關下顯示對的提示：
+        ///   - 已可提權（Registry/Executable，或封裝 App + 已裝支援）→ 兩個提示都收起。
+        ///   - 封裝 App 但尚未裝系統管理員程式支援 → 顯示「需先安裝支援」（裝了就會生效）。
+        ///   - 其餘（純 UWP 如 Xbox App、只有 URI 的平台）→ 顯示「此平台無法提權」。
+        /// 開關開著卻默默沒作用最難查，所以直接講出來。
+        /// </summary>
+        private void RefreshElevatedLaunchNote()
+        {
+            if (LaunchElevatedSwitch == null || ElevatedLaunchUnsupportedNote == null) return;
+
+            // 只有「此平台完全無法提權」（純 UWP / 只有 URI，且裝了支援也沒用）才顯示警語。
+            // 「需先裝支援」的情況不另外標——一律可見的主說明已經講到了。
+            bool unsupported = false;
+            if (LaunchElevatedSwitch.IsOn)
+            {
+                try
+                {
+                    var platform = SettingsService.GetDefaultPlatform();
+                    unsupported = !ProcessLauncherService.HasElevatableStrategy(platform)
+                                  && !ProcessLauncherService.NeedsAdminSupportToElevate(platform);
+                }
+                catch { unsupported = false; }
+            }
+            ElevatedLaunchUnsupportedNote.Visibility = unsupported ? Visibility.Visible : Visibility.Collapsed;
+        }
 
         /// <summary>
         /// 導覽音效 ToggleSwitch 切換時立即儲存，並即時切換 ElementSoundPlayer 全域狀態。
@@ -1675,14 +1747,14 @@ namespace OmniConsole.Pages
             DebugLogger.Log($"[SettingsPage] StartGamepadPolling() called, serviceAlreadyExists={_gamepadNavigationService != null}");
             if (_gamepadNavigationService == null)
             {
-                // LB/RB 未綁定：平台卡片網格已合併系統/自訂平台，不再有索引標籤可切換。
+                // LB/RB：只有手把映射編輯器的層索引標籤會用到；其餘頁面按了不做事。
                 _gamepadNavigationService = new GamepadNavigationService(
                     this.SettingsNav,
                     this.DispatcherQueue,
                     OnGamepadAButtonPressed,
                     OnGamepadBButtonPressed,
-                    onLBPressed: null,
-                    onRBPressed: null,
+                    onLBPressed: OnGamepadLBPressed,
+                    onRBPressed: OnGamepadRBPressed,
                     OnGamepadXButtonPressed,
                     OnGamepadYButtonPressed,
                     OnGamepadMenuButtonPressed,
@@ -1709,6 +1781,27 @@ namespace OmniConsole.Pages
             {
                 FocusFirstElementForPage(_currentNavTag);
             }
+        }
+
+        /// <summary>手把 LB：手把映射編輯器內切到上一個層索引標籤。</summary>
+        private void OnGamepadLBPressed() => StepGamepadMappingLayer(-1);
+
+        /// <summary>手把 RB：手把映射編輯器內切到下一個層索引標籤。</summary>
+        private void OnGamepadRBPressed() => StepGamepadMappingLayer(+1);
+
+        /// <summary>
+        /// 切換編輯器的層索引標籤。
+        /// 不在編輯器頁時完全靜音——LB/RB 在其它頁面沒有任何功能，為它發出回饋音只會誤導。
+        /// 在編輯器頁則分辨兩種結果：切成功播 Invoke，已在邊界那一層（或該 profile 沒開
+        /// Layered、根本沒有索引標籤）播撞牆音。
+        /// </summary>
+        private void StepGamepadMappingLayer(int delta)
+        {
+            if (!IsGamepadMappingEditorVisible) return;
+
+            GamepadNavigationService.PlaySound(GamepadProfileEditor.TryStepLayer(delta)
+                ? Microsoft.UI.Xaml.ElementSoundKind.Invoke
+                : Microsoft.UI.Xaml.ElementSoundKind.GoBack);
         }
 
         /// <summary>
@@ -1880,6 +1973,12 @@ namespace OmniConsole.Pages
                 // 關於頁「重新整理」按鈕
                 case Button btn when ReferenceEquals(btn, RefreshAboutButton):
                     RefreshAboutButton_Click(this, new RoutedEventArgs());
+                    break;
+
+                // 泛用保底：任何其它可用的 ToggleSwitch（如 LaunchElevatedSwitch）都能用 A 鍵切換，
+                // 不必為每個新開關各補一個 case。放在具名 case 之後，不影響上面的專屬處理。
+                case ToggleSwitch sw when sw.IsEnabled:
+                    sw.IsOn = !sw.IsOn;
                     break;
             }
         }

@@ -14,6 +14,7 @@
 #include "GamepadProfiles.h"
 #include "PingService.h"
 #include "CursorConflict.h"
+#include "ElevatedLaunch.h"
 
 // ============================================================================
 // Profile 判斷小工具
@@ -121,6 +122,24 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
     WriteElevatedInputBlocked(false);
     ClearStopRequested();
     lastIniMTime = GetSharedIniLastWriteTime();
+
+    // 免 UAC 提權啟動（Route B）：主程式把解析好的目標 exe 寫進 Shared.ini [Launch]，
+    // 由已提權的我們代打。Seq/AckSeq 去重，只有新請求才啟動一次。只有自身在 High IL
+    // 時才處理——沒提權就啟動不了系統管理員程式，留給提權實例處理（正常情況下不會有
+    // 未提權實例收到請求：主程式僅在系統管理員程式支援已安裝時才委派）。
+    auto handleLaunchRequest = [&]() {
+        if (!selfElevated) return;
+        LaunchRequest req = ReadLaunchRequest();
+        if (req.seq.empty() || req.seq == ReadLaunchAck()) return;
+        Log(L"[PhantomKey] Elevated launch request seq=[%s] exe=[%s] args=[%s].",
+            req.seq.c_str(), req.exe.c_str(), req.args.c_str());
+        DWORD launchedPid = LaunchElevated(req.exe, req.args);  // 驗證位置 + 啟動；失敗回 0
+        WriteLaunchPid(launchedPid);          // 供主程式偵測平台視窗 → 適時藏起自己讓它浮到前景
+        WriteLaunchAck(req.seq);              // 不論成敗都 ack，避免壞路徑造成重試迴圈
+        lastIniMTime = GetSharedIniLastWriteTime(); // 吸收自己寫 Ack 造成的 mtime 變動
+    };
+    // 啟動當下先處理一次：請求可能在我們啟動之前就寫好了（mtime 監看只抓得到啟動後的變更）。
+    handleLaunchRequest();
 
     bool elevatedBlocked = false;   // 目前是否處於「前景提權、我們送不進去」的狀態
     bool fgElevated = false;        // 目前前景視窗所屬行程是否提權
@@ -332,6 +351,9 @@ int WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPWSTR, _In_ int) {
                 config = ReadConfig();
                 CursorConflict::SetEnabled(config.mouseModeEnabled && !config.hasBuiltInGamepadMapping);
                 MouseMode::Reset();
+
+                // 提權啟動請求可能就是這次 Shared.ini 變動的來源
+                handleLaunchRequest();
             }
 
             // GamepadProfiles.json 被改寫（主程式編輯器存檔）→ 即時重載 profile

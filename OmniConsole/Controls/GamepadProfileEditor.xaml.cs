@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using OmniConsole.Dialogs;
@@ -234,7 +235,7 @@ namespace OmniConsole.Controls
 
             // 每次開啟編輯器都從第 1 層看起，避免沿用上一個 profile 的層別
             _editingLayer = 1;
-            SyncLayerSelector();
+            SyncLayerTabs();
 
             // 載入既存 profile：依 model 偵測主行 DPad 模式，Custom 則自動展開
             _dpadEditingCustom = (DetectDPadModeFromModel() == ActionOption.DpadCustom);
@@ -257,7 +258,13 @@ namespace OmniConsole.Controls
         /// </summary>
         public void FocusFirstControl()
         {
-            DebugLogger.Log($"[GamepadProfileEditor] FocusFirstControl() called, IsLoaded={this.IsLoaded}, EditorRoot.IsEnabled={EditorRoot?.IsEnabled}");
+            if (DebugLogger.IsEnabled)
+                DebugLogger.Log($"[GamepadProfileEditor] FocusFirstControl() called, IsLoaded={this.IsLoaded}, EditorRoot.IsEnabled={EditorRoot?.IsEnabled}");
+
+            // 唯讀 profile 整個 EditorRoot 都是停用的，沒有任何控制項拿得到焦點。
+            // 這種情況下重試注定失敗，逐影格跑滿逾時只是白白吃掉三秒的影格預算。
+            if (EditorRoot is { IsEnabled: false }) return;
+
             if (TryFocusFirstAvailable()) return;
 
             if (!this.IsLoaded)
@@ -283,6 +290,14 @@ namespace OmniConsole.Controls
         /// </summary>
         private void StartFocusRetryLoop()
         {
+            // 重複開關編輯器時每次都掛一輪，多輪重試會同時在視覺樹上找可聚焦元件，
+            // 直接反映成畫面頓挫。先解除上一輪再掛新的。
+            if (_focusRetry != null)
+            {
+                CompositionTarget.Rendering -= _focusRetry;
+                _focusRetry = null;
+            }
+
             DebugLogger.Log("[GamepadProfileEditor] StartFocusRetryLoop: hooking CompositionTarget.Rendering");
             var deadline = DateTime.UtcNow.AddSeconds(3);
             int tickCount = 0;
@@ -292,14 +307,19 @@ namespace OmniConsole.Controls
                 tickCount++;
                 bool ok = TryFocusFirstAvailable();
                 bool timedOut = DateTime.UtcNow >= deadline;
-                if (ok || timedOut)
-                {
+                if (!ok && !timedOut) return;
+
+                if (DebugLogger.IsEnabled)
                     DebugLogger.Log($"[GamepadProfileEditor] retry loop ending, ticks={tickCount}, success={ok}, timedOut={timedOut}");
-                    CompositionTarget.Rendering -= onRendering;
-                }
+                CompositionTarget.Rendering -= onRendering;
+                if (ReferenceEquals(_focusRetry, onRendering)) _focusRetry = null;
             };
+            _focusRetry = onRendering;
             CompositionTarget.Rendering += onRendering;
         }
+
+        /// <summary>目前掛著的逐影格焦點重試委派；重新開啟編輯器時先解除舊的。</summary>
+        private EventHandler<object>? _focusRetry;
 
         /// <summary>
         /// 嘗試把焦點放到第一個可用控制項，按優先序：
@@ -325,7 +345,8 @@ namespace OmniConsole.Controls
                 return true;
             }
 
-            DebugLogger.Log($"[GamepadProfileEditor] TryFocusFirstAvailable FAILED: CursorSpeedCombo(null={CursorSpeedCombo == null},enabled={CursorSpeedCombo?.IsEnabled},loaded={CursorSpeedCombo?.IsLoaded}) NameBox(null={NameBox == null},enabled={NameBox?.IsEnabled},loaded={NameBox?.IsLoaded}) fallback={fallback?.GetType().Name ?? "null"}");
+            if (DebugLogger.IsEnabled)
+                DebugLogger.Log($"[GamepadProfileEditor] TryFocusFirstAvailable FAILED: CursorSpeedCombo(null={CursorSpeedCombo == null},enabled={CursorSpeedCombo?.IsEnabled},loaded={CursorSpeedCombo?.IsLoaded}) NameBox(null={NameBox == null},enabled={NameBox?.IsEnabled},loaded={NameBox?.IsLoaded}) fallback={fallback?.GetType().Name ?? "null"}");
             return false;
         }
 
@@ -391,7 +412,7 @@ namespace OmniConsole.Controls
         // ── 編輯中的層 ───────────────────────────────────────────────────────
         //
         // Layered 啟用時一份 profile 有兩套完整映射：第 1 層平時生效，第 2 層在
-        // triggerKey 生效期間取代它。整個編輯器一次只顯示一層，由 LayerSelector 切換；
+        // triggerKey 生效期間取代它。整個編輯器一次只顯示一層，由層索引標籤（LayerTab1/2）切換；
         // 所有讀寫都經過下面三個成員導向當下那一層，其餘程式碼不需要知道層的存在。
 
         private int _editingLayer = 1;
@@ -410,35 +431,78 @@ namespace OmniConsole.Controls
             else _editing.Bindings = bindings;
         }
 
+        /// <summary>層索引標籤目前是否顯示中（宿主據此決定要不要顯示 LB/RB 提示）。</summary>
+        public bool HasLayerTabs => LayerTabsPanel.Visibility == Visibility.Visible;
+
+        /// <summary>層索引標籤的可見度改變時觸發，讓宿主同步底部手把提示列。</summary>
+        public event EventHandler? LayerTabsVisibilityChanged;
+
         /// <summary>
-        /// 依 Layered 是否啟用決定層選擇器的可見度，並在關閉 Layered 時強制回到第 1 層——
+        /// 依 Layered 是否啟用決定層指示的可見度，並在關閉 Layered 時強制回到第 1 層——
         /// 否則使用者可能停在看不見的第 2 層上編輯，改了半天卻完全不會生效。
+        /// 同時把兩顆標籤的選取狀態與各群組標題的層別後綴同步到目前的 _editingLayer。
         /// </summary>
-        private void SyncLayerSelector()
+        private void SyncLayerTabs()
         {
             bool layered = _editing?.Layered?.Enabled == true;
-            LayerSelectorPanel.Visibility = layered ? Visibility.Visible : Visibility.Collapsed;
+            bool wasVisible = LayerTabsPanel.Visibility == Visibility.Visible;
+            LayerTabsPanel.Visibility = layered ? Visibility.Visible : Visibility.Collapsed;
+            if (wasVisible != layered) LayerTabsVisibilityChanged?.Invoke(this, EventArgs.Empty);
 
-            if (!layered && _editingLayer != 2) return;
-            if (!layered)
+            if (!layered && _editingLayer == 2)
             {
                 _editingLayer = 1;
+                _dpadEditingCustom = (DetectDPadModeFromModel() == ActionOption.DpadCustom);
                 RefreshAllRows();
             }
-            LayerSelector.SelectedIndex = _editingLayer - 1;
+
+            // 標籤純顯示（不可聚焦/點擊），選取態只反映目前層別。
+            LayerTab1.IsChecked = _editingLayer == 1;
+            LayerTab2.IsChecked = _editingLayer == 2;
+            UpdateSectionTitles();
         }
 
-        /// <summary>層選擇器變更：切換編輯目標並整頁重新載入。</summary>
-        private void LayerSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        /// <summary>
+        /// 各按鍵群組標題在 Layered 啟用時附上目前層別（例如「面鍵 - 第 2 層」），
+        /// 讓使用者一眼看出正在編輯哪一層；關閉 Layered 時還原為純標題。
+        /// 工具列 / profile 設定等非分層區段不加後綴。
+        /// </summary>
+        private void UpdateSectionTitles()
         {
-            if (_editing == null) return;
-            int layer = LayerSelector.SelectedIndex + 1;
-            if (layer < 1 || layer > 2 || layer == _editingLayer) return;
+            bool layered = _editing?.Layered?.Enabled == true;
+            string suffix = layered
+                ? " - " + Loc(_editingLayer == 2 ? "GamepadProfileLayerTab2" : "GamepadProfileLayerTab1")
+                : "";
+            FaceButtonsHeader.Text = Loc("GamepadGroup_FaceButtons") + suffix;
+            ShouldersHeader.Text = Loc("GamepadGroup_Shoulders") + suffix;
+            ThumbButtonsHeader.Text = Loc("GamepadGroup_ThumbButtons") + suffix;
+            SticksHeader.Text = Loc("GamepadGroup_Sticks") + suffix;
+        }
+
+        /// <summary>
+        /// LB/RB 用：往前／往後切一個層索引標籤。
+        /// 只有兩層，撞到邊界就不動並回傳 false，讓宿主知道這次按鍵沒有產生切換。
+        /// </summary>
+        public bool TryStepLayer(int delta)
+        {
+            if (!HasLayerTabs) return false;
+            int target = _editingLayer + delta;
+            if (target < 1 || target > 2 || target == _editingLayer) return false;
+            SetEditingLayer(target);
+            return true;
+        }
+
+        /// <summary>切換編輯目標層並整頁重新載入；層別沒變時只把標籤狀態同步回來。</summary>
+        private void SetEditingLayer(int layer)
+        {
+            if (_editing == null || layer < 1 || layer > 2) return;
+            if (layer == _editingLayer) { SyncLayerTabs(); return; }
 
             _editingLayer = layer;
             // DPad 的「自訂」判定是依當層內容推導出來的，換層後必須重算，
             // 否則會沿用上一層的模式而顯示錯誤的 DPad 選項。
             _dpadEditingCustom = (DetectDPadModeFromModel() == ActionOption.DpadCustom);
+            SyncLayerTabs();
             RefreshAllRows();
         }
 
@@ -474,7 +538,7 @@ namespace OmniConsole.Controls
             if (_editing == null) return;
             _editing.Layered.Enabled = LayeredSwitch.IsOn;
             UpdateLayeredSubcontrolsEnabled();
-            SyncLayerSelector();  // 只有啟用 Layered 才會有第 2 層可編輯
+            SyncLayerTabs();  // 只有啟用 Layered 才會有第 2 層可編輯
             RefreshAllRows();  // trigger 列要切換顯示「Used as Layered trigger」
         }
 

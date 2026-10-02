@@ -556,14 +556,15 @@ namespace OmniConsole.Services
                             PlaySound(ElementSoundKind.GoBack);
                             _onBButtonPressed?.Invoke();
                         }
+                        // LB/RB 的音效由處理器自己決定：肩鍵多半只在特定頁面有意義，
+                        // 在這裡無條件播 Invoke 會讓「按了其實沒事發生」也聽起來像成功觸發，
+                        // 而有接的頁面又需要分辨「切換成功」與「已在邊界」兩種回饋。
                         else if (IsButtonPressed(reading, prev, GamepadButtons.LeftShoulder))
                         {
-                            PlaySound(ElementSoundKind.Invoke);
                             _onLBPressed?.Invoke();
                         }
                         else if (IsButtonPressed(reading, prev, GamepadButtons.RightShoulder))
                         {
-                            PlaySound(ElementSoundKind.Invoke);
                             _onRBPressed?.Invoke();
                         }
                         else if (IsButtonPressed(reading, prev, GamepadButtons.X))
@@ -788,7 +789,9 @@ namespace OmniConsole.Services
                 }
 
                 var focused = FocusManager.GetFocusedElement(_searchRoot.XamlRoot);
-                DebugLogger.Log($"[GamepadNav] TryMoveGamepadFocus dir={direction} focusedBefore={(focused as FrameworkElement)?.Name ?? focused?.GetType().Name ?? "null"}");
+                bool trace = DebugLogger.IsEnabled;
+                if (trace)
+                    DebugLogger.Log($"[GamepadNav] TryMoveGamepadFocus dir={direction} focusedBefore={(focused as FrameworkElement)?.Name ?? focused?.GetType().Name ?? "null"}");
 
                 // 完全沒有元件持有焦點 → 交給呼叫方的自我修復委派補焦點，成功後重新查一次目前焦點。
                 // 這樣不管沒有初始焦點的確切成因為何（版面時機、佇列優先序搶佔等）都能在使用者按下
@@ -798,7 +801,8 @@ namespace OmniConsole.Services
                     DebugLogger.Log("[GamepadNav] focused == null → invoking _onNoFocusDetected fallback");
                     _onNoFocusDetected();
                     focused = FocusManager.GetFocusedElement(_searchRoot.XamlRoot);
-                    DebugLogger.Log($"[GamepadNav] after fallback focused={(focused as FrameworkElement)?.Name ?? focused?.GetType().Name ?? "still null"}");
+                    if (trace)
+                        DebugLogger.Log($"[GamepadNav] after fallback focused={(focused as FrameworkElement)?.Name ?? focused?.GetType().Name ?? "still null"}");
                 }
                 else if (focused == null)
                 {
@@ -810,7 +814,8 @@ namespace OmniConsole.Services
                     // 焦點在 SearchRoot 內 → 先預查候選目標
                     var options = new FindNextElementOptions { SearchRoot = _searchRoot };
                     var candidate = FocusManager.FindNextElement(direction, options);
-                    DebugLogger.Log($"[GamepadNav] focused is inside searchRoot, candidate={(candidate as FrameworkElement)?.Name ?? candidate?.GetType().Name ?? "null"}");
+                    if (trace)
+                        DebugLogger.Log($"[GamepadNav] focused is inside searchRoot, candidate={(candidate as FrameworkElement)?.Name ?? candidate?.GetType().Name ?? "null"}");
 
                     // 撞牆防護：候選目標不是可互動控制項或無候選 → 播撞牆音、不移動焦點
                     if (candidate is Control c && !c.IsTabStop) { DebugLogger.Log("[GamepadNav] candidate not IsTabStop, blocked"); PlaySound(ElementSoundKind.GoBack); return; }

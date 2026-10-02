@@ -62,3 +62,30 @@ void ClearStopRequested();
 // Shared.ini [Status] ElevatedInputBlocked（1/0）。
 // 內部以靜態快取比對，僅在狀態改變時實際寫檔。
 void WriteElevatedInputBlocked(bool blocked);
+
+// ── 免 UAC 提權啟動請求（Route B；[Launch] 區段） ────────────────────────────
+//
+// 主程式（一般權限）想讓封裝 App 以系統管理員身分啟動時，把當場解析好的目標 exe 路徑
+// 寫進 Shared.ini，交給已提權常駐的 PhantomKey 代打（見 ElevatedLaunch.h）。
+//
+// 去重：主程式每次寫入帶一個唯一 Seq；PhantomKey 處理後把 Seq 回寫成 AckSeq。
+// 只有 Seq 非空且與 AckSeq 不同時才啟動一次，據此避免 Shared.ini 每次變動或 PhantomKey
+// 重啟時重複啟動同一請求。
+struct LaunchRequest {
+    std::wstring seq;   // [Launch] Seq：本次請求的唯一識別（空 = 無請求）
+    std::wstring exe;   // [Launch] Exe：主程式解析出的目標 exe 絕對路徑
+    std::wstring args;  // [Launch] Args：傳給 exe 的命令列參數（可空；封裝 App 通常無）
+};
+
+// 讀取目前的提權啟動請求（[Launch] Seq / Exe）。
+LaunchRequest ReadLaunchRequest();
+
+// 讀取已處理的請求識別（[Launch] AckSeq）；無則回空字串。
+std::wstring ReadLaunchAck();
+
+// 回寫已處理的請求識別（[Launch] AckSeq = seq）。
+void WriteLaunchAck(const std::wstring& seq);
+
+// 回寫本次啟動的子行程 PID（[Launch] Pid；啟動失敗回 0）。
+// 主程式據此偵測平台視窗是否已出現，再把自己藏起來讓平台浮到前景。
+void WriteLaunchPid(unsigned long pid);

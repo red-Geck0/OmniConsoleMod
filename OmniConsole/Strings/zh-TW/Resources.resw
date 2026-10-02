@@ -255,6 +255,9 @@
   <data name="AdvancedDescription.Text" xml:space="preserve">
     <value>微調系統行為與整合選項。</value>
   </data>
+  <data name="AdvancedSection_PlatformLaunch.Text" xml:space="preserve">
+    <value>平台啟動</value>
+  </data>
   <data name="AdvancedSection_GamepadInput.Text" xml:space="preserve">
     <value>手把輸入</value>
   </data>
@@ -363,6 +366,20 @@
   <data name="ElevatedAppSupportInstalledDialog_Close" xml:space="preserve">
     <value>知道了</value>
   </data>
+  <data name="ElevatedLaunchSetting_Title.Text" xml:space="preserve">
+    <value>以系統管理員身分啟動平台</value>
+  </data>
+  <data name="ElevatedLaunchSetting_Description.Text" xml:space="preserve">
+    <value>讓 OmniConsoleMod 交棒過去的平台帶著系統管理員權限啟動。</value>
+  </data>
+  <data name="ElevatedLaunchSetting_Note.Text" xml:space="preserve">
+    <value>需先安裝上方的「系統管理員程式支援」才能免去每次啟動的 UAC 提示。
+市集 App 一律適用；一般 .exe 只有放在受保護資料夾（如 Program Files）時才適用。
+放在個人資料夾（如 C:\Games）仍會每次跳提示，而提示無法用手把回應。</value>
+  </data>
+  <data name="ElevatedLaunchSetting_UnsupportedNote.Text" xml:space="preserve">
+    <value>你選的平台是交由 Windows 自己啟動的，這個開關對它不會有作用。</value>
+  </data>
   <data name="MouseModeSetting_ElevatedBlockedNote.Text" xml:space="preserve">
     <value>前景程式以系統管理員身分執行，Windows 正在攔下你的映射。請到「設定 → 進階」安裝「系統管理員程式支援」。</value>
   </data>
@@ -411,6 +428,9 @@
   </data>
   <data name="EnablePassthroughSwitch.OnContent" xml:space="preserve">
     <value>直接導向</value>
+  </data>
+  <data name="GamepadHint_SwitchLayer.Text" xml:space="preserve">
+    <value>切換層</value>
   </data>
   <data name="GamepadHint_Select.Text" xml:space="preserve">
     <value>選取</value>
@@ -1142,14 +1162,11 @@
   <data name="GamepadInput_RStick.Text" xml:space="preserve">
     <value>右搖桿</value>
   </data>
-  <data name="GamepadProfileLayerSelectorLabel.Text" xml:space="preserve">
-    <value>編輯中的層</value>
+  <data name="GamepadProfileLayerTab1.Content" xml:space="preserve">
+    <value>第 1 層</value>
   </data>
-  <data name="GamepadProfileLayer1.Content" xml:space="preserve">
-    <value>第 1 層 — 平時</value>
-  </data>
-  <data name="GamepadProfileLayer2.Content" xml:space="preserve">
-    <value>第 2 層 — 觸發鍵生效期間</value>
+  <data name="GamepadProfileLayerTab2.Content" xml:space="preserve">
+    <value>第 2 層</value>
   </data>
   <data name="GamepadGroup_FaceButtons.Text" xml:space="preserve">
     <value>面鍵</value>

@@ -67,7 +67,6 @@
 
                     <ToggleSwitch x:Name="MouseModeSwitch"
                                   Toggled="MouseModeSwitch_Toggled"
-                                  FlowDirection="RightToLeft"
                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0"
                                   UseSystemFocusVisuals="True"/>
                 </Grid>

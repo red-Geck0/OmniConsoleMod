@@ -603,6 +603,62 @@ namespace OmniConsole.Services
             WriteShared("PhantomKey", "SteamInGameOverlayEnabled", enabled ? "1" : "0");
         }
 
+        // ─── 以系統管理員身分啟動平台 ──────────────────────────────────────
+
+        private const string LaunchPlatformElevatedKey = "LaunchPlatformElevated";
+
+        /// <summary>
+        /// 取得是否以系統管理員身分啟動預設平台（Home App）。預設為 false。
+        /// </summary>
+        public static bool GetLaunchPlatformElevated()
+        {
+            var settings = ApplicationData.Current.LocalSettings;
+            if (settings.Values.TryGetValue(LaunchPlatformElevatedKey, out object? value) && value is bool enabled)
+                return enabled;
+            return false;
+        }
+
+        /// <summary>
+        /// 儲存是否以系統管理員身分啟動預設平台。
+        /// 純 OmniConsole 端的啟動行為，PhantomKey / PhantomLink 用不到，因此不寫入 Shared.ini。
+        /// </summary>
+        public static void SetLaunchPlatformElevated(bool enabled)
+        {
+            ApplicationData.Current.LocalSettings.Values[LaunchPlatformElevatedKey] = enabled;
+        }
+
+        /// <summary>
+        /// 寫入一筆「免 UAC 提權啟動」請求到 Shared.ini [Launch]，交給提權版 PhantomKey 代打
+        /// （見 ElevatedLaunchService / PhantomKey ElevatedLaunch.cpp）。
+        ///
+        /// 去重：每次帶一個唯一遞增的 Seq（用 UTC ticks），PhantomKey 處理後回寫 AckSeq；
+        /// 只有 Seq 與 AckSeq 不同才會啟動一次。先寫 Exe 再寫 Seq —— PhantomKey 以 Seq 變動為
+        /// 觸發點，確保它讀到新 Seq 時 Exe 已經就位。
+        /// </summary>
+        public static void WriteElevatedLaunchRequest(string exePath, string arguments = "")
+        {
+            WriteShared("Launch", "Exe", exePath);
+            WriteShared("Launch", "Args", arguments ?? "");
+            WriteShared("Launch", "Seq", DateTime.UtcNow.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// 歸零 [Launch] Pid。每次啟動流程開始時呼叫，清掉上一輪殘留的 PID，之後只要讀到非 0
+        /// 就代表提權版 PhantomKey 這一輪確實啟動了平台，其 PID 即回報值。
+        /// </summary>
+        public static void ClearElevatedLaunchPid() => WriteShared("Launch", "Pid", "0");
+
+        /// <summary>
+        /// 讀取提權版 PhantomKey 回報的平台 PID（[Launch] Pid）；無 / 非數字 / 尚未啟動時回 0。
+        /// 主程式用它偵測平台視窗是否已出現（即使還在自己視窗後方），以便適時藏起自己讓平台浮到前景。
+        /// </summary>
+        public static int GetElevatedLaunchPid()
+        {
+            string s = ReadShared("Launch", "Pid", "0");
+            return int.TryParse(s, System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out int pid) && pid > 0 ? pid : 0;
+        }
+
         // ─── Gamepad Mouse Mode（3-way: Off/Auto/ForceOn） ─────────────────
 
         public const string MouseModeOff = "Off";
@@ -850,6 +906,7 @@ namespace OmniConsole.Services
         {
             ApplicationData.Current.LocalSettings.Values["EnableDebugLogging"] = enabled;
             WriteShared("Debug", "EnableLogging", enabled ? "1" : "0");
+            DebugLogger.SetEnabled(enabled);
         }
 
         /// <summary>

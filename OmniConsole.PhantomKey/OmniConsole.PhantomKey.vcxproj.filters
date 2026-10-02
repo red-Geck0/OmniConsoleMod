@@ -48,6 +48,9 @@
     <ClCompile Include="CursorConflict.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ElevatedLaunch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Log.h">
@@ -81,6 +84,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CursorConflict.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ElevatedLaunch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -31,6 +31,33 @@ namespace OmniConsole.Pages
         [DllImport("user32.dll")]
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
+        // ── 偵測「平台視窗已出現，但還在自己後方」用 ──────────────────────────
+        // Route B（提權委派）下平台由排程工作啟動的 PhantomKey 代打，那條鏈沒有前景權，
+        // 平台視窗會開在 OmniConsole 後面、GetForegroundWindow() 永遠不變。改以 PhantomKey
+        // 回報的 PID 直接找它的頂層視窗；一旦出現就把自己藏起來，Windows 便自動把 Z-order
+        // 次位的平台視窗提升為前景，完全不必爭前景權。
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT { public int Left, Top, Right, Bottom; }
+
+        private const uint GW_OWNER = 4;
+
         private const int GWL_EXSTYLE = -20;
         private const int WS_EX_TOOLWINDOW = 0x00000080;
         private const int SW_HIDE = 0;
@@ -79,6 +106,31 @@ namespace OmniConsole.Pages
             InitializeComponent();
         }
 
+        /// <summary>
+        /// 指定 PID 目前是否有可見的頂層視窗（無擁有者、面積非零）。
+        /// 用於偵測提權委派啟動的平台視窗已出現——即使它還在 OmniConsole 後方、尚未成為前景。
+        /// </summary>
+        private static bool ProcessHasVisibleTopLevelWindow(int pid)
+        {
+            if (pid <= 0) return false;
+            bool found = false;
+            EnumWindows((hWnd, _) =>
+            {
+                GetWindowThreadProcessId(hWnd, out uint wpid);
+                if (wpid == (uint)pid &&
+                    IsWindowVisible(hWnd) &&
+                    GetWindow(hWnd, GW_OWNER) == IntPtr.Zero &&
+                    GetWindowRect(hWnd, out RECT r) &&
+                    (r.Right - r.Left) > 0 && (r.Bottom - r.Top) > 0)
+                {
+                    found = true;
+                    return false; // 找到即停止列舉
+                }
+                return true;
+            }, IntPtr.Zero);
+            return found;
+        }
+
         // ── 平台啟動 ──────────────────────────────────────────────────────────
 
         /// <summary>
@@ -118,6 +170,10 @@ namespace OmniConsole.Pages
 
                 var platform = SettingsService.GetDefaultPlatform();
                 string platformName = ProcessLauncherService.GetPlatformDisplayName(platform);
+
+                // 清掉上一輪殘留的平台 PID：之後輪詢時只要讀到非 0，就是提權版 PhantomKey 這一輪
+                // 回報的平台 PID，用它偵測平台視窗是否已出現（見下方輪詢）。
+                SettingsService.ClearElevatedLaunchPid();
 
                 // 預檢平台可用性，不可用則直接顯示訊息，避免無謂的啟動嘗試與逾時等待
                 if (!await ProcessLauncherService.CheckPlatformAvailableAsync(platform))
@@ -178,7 +234,12 @@ namespace OmniConsole.Pages
                 StatusText.Text = string.Format(_resourceLoader.GetString("Launching"), platformName);
 
                 bool isTimeout = false;
-                bool success = await ProcessLauncherService.LaunchPlatformAsync(platform);
+                // 丟到背景執行緒跑：Executable / Registry 策略是同步執行的，提權委派路徑還會碰
+                // FileVersionInfo（讀 ProgramData\Steam.exe 版本）與 Shared.ini 寫入；這些若在 UI
+                // 執行緒上跑，Async 開機影片模式下會卡住 UI 執行緒，害影片的 MediaOpened / 影格算繪
+                // 排不到時間（症狀：畫面全黑、只聽到聲音，影片其實根本沒被顯示出來）。整段啟動不碰
+                // 任何 XAML UI 物件，搬到背景安全，UI 執行緒空出來讓影片正常開啟播放。
+                bool success = await Task.Run(() => ProcessLauncherService.LaunchPlatformAsync(platform));
 
                 _hasLaunchedOnce = true;
 
@@ -229,6 +290,17 @@ namespace OmniConsole.Pages
                             platformToForeground = true;
                             break;
                         }
+
+                        // Route B：平台由提權版 PhantomKey 代打，視窗會開在我們後面、前景一直是自己。
+                        // 改用 PhantomKey 回報的 PID 偵測平台視窗是否已出現；出現就當成已啟動，下面會把
+                        // 自己藏起來，Windows 便自動把平台提升為前景（不必爭前景權，可靠不受計時影響）。
+                        int launchedPid = SettingsService.GetElevatedLaunchPid();
+                        if (launchedPid > 0 && ProcessHasVisibleTopLevelWindow(launchedPid))
+                        {
+                            platformToForeground = true;
+                            break;
+                        }
+
                         if (elapsed == slowWarningSeconds * 1000)
                             VisualStateManager.GoToState(this, "LaunchingSlow", false);
                     }

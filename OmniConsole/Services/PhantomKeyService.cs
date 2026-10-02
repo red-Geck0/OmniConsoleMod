@@ -45,7 +45,33 @@ namespace OmniConsole.Services
         /// 兩條路徑都會先做健康檢查：已在執行且健康（ping 通且主迴圈正在推進）就不重複啟動；
         /// 在執行但不健康（卡住、凍結、舊版無 ping window）則先終止再啟動（自癒）。
         /// </summary>
+        /// <summary>Start() 進行中旗標（0=閒置、1=進行中），避免並行呼叫各自跑一輪 Kill+重啟造成互相打架。</summary>
+        private static int _startInProgress;
+
+        /// <summary>最近一次由本行程實際啟動 PhantomKey 的時刻（Environment.TickCount64）。</summary>
+        private static long _lastStartTicks;
+
+        /// <summary>剛啟動後給 ping window 就緒的寬限時間；此窗內 NoPingWindow 視為「還在起來」，不重殺。</summary>
+        private const long StartGraceMs = 12000;
+
+        /// <summary>
+        /// 啟動 PhantomKey。並行防護：同時只允許一個 Start 實際執行，其餘直接返回——
+        /// 開機當下 pre-warm 與委派路徑可能幾乎同時呼叫，若各自做健康檢查 + Kill + 重啟，會把剛起來、
+        /// ping window 還沒建好的實例互相殺掉重啟，churn 掉 ProgramData\Steam.exe 造成啟動路徑上的
+        /// FileVersionInfo / Shared.ini 存取被卡住（實測害開機影片全黑）。
+        /// </summary>
         public static void Start()
+        {
+            if (System.Threading.Interlocked.CompareExchange(ref _startInProgress, 1, 0) != 0)
+            {
+                DebugLogger.Log("[PhantomKeyService] Start already in progress, skipping re-entrant call.");
+                return;
+            }
+            try { StartCore(); }
+            finally { System.Threading.Interlocked.Exchange(ref _startInProgress, 0); }
+        }
+
+        private static void StartCore()
         {
             if (UseElevatedPath())
             {
@@ -84,11 +110,21 @@ namespace OmniConsole.Services
                         return;
                     }
 
+                    // 才剛啟動、ping window 還沒建好會回報 NoPingWindow——那是「正在起來」不是「壞掉」，
+                    // 這段寬限窗內不要重殺重啟，否則會把剛起的實例殺掉造成 churn / 卡頓。
+                    if (health.Responsiveness == AboutInfoService.PhantomKeyResponsiveness.NoPingWindow
+                        && RecentlyStarted())
+                    {
+                        DebugLogger.Log("[PhantomKeyService] Recently started, ping window not up yet; giving it time.");
+                        return;
+                    }
+
                     DebugLogger.Log($"[PhantomKeyService] Existing instance unhealthy ({health.Responsiveness}), self-healing: kill + restart.");
                     Kill();
                 }
 
                 Process.Start(new ProcessStartInfo(_targetExePath) { UseShellExecute = true });
+                _lastStartTicks = Environment.TickCount64;
                 DebugLogger.Log($"[PhantomKeyService] Started: {_targetExePath}");
             }
             catch (Exception ex)
@@ -104,6 +140,10 @@ namespace OmniConsole.Services
         /// </summary>
         private static bool UseElevatedPath() =>
             ElevatedInputService.IsInstalled() && !ElevatedInputService.NeedsUpdate();
+
+        /// <summary>本行程是否在寬限窗內剛啟動過 PhantomKey（用來避開殺掉還在起來的實例）。</summary>
+        private static bool RecentlyStarted() =>
+            _lastStartTicks != 0 && (Environment.TickCount64 - _lastStartTicks) < StartGraceMs;
 
         /// <summary>
         /// 提權路徑的啟動：執行檔由 PhantomWarden 放在 ProgramData（一般權限不可寫、也不由這裡複製），
@@ -127,6 +167,14 @@ namespace OmniConsole.Services
                             DebugLogger.Log("[PhantomKeyService] Elevated instance healthy, skipping start.");
                             return;
                         }
+                        // 才剛啟動、ping window 還沒建好會回報 NoPingWindow——那是「正在起來」不是「壞掉」，
+                        // 這段寬限窗內不重殺重啟，避免把剛起的實例殺掉造成 churn 與開機卡頓。
+                        if (health.Responsiveness == AboutInfoService.PhantomKeyResponsiveness.NoPingWindow
+                            && RecentlyStarted())
+                        {
+                            DebugLogger.Log("[PhantomKeyService] Recently started, ping window not up yet; giving it time.");
+                            return;
+                        }
                         DebugLogger.Log($"[PhantomKeyService] Elevated instance unhealthy ({health.Responsiveness}), self-healing: stop + restart.");
                     }
                     else
@@ -137,7 +185,9 @@ namespace OmniConsole.Services
                     Kill();
                 }
 
-                if (!ElevatedInputService.RunElevatedPhantomKey())
+                if (ElevatedInputService.RunElevatedPhantomKey())
+                    _lastStartTicks = Environment.TickCount64;
+                else
                     DebugLogger.Log("[PhantomKeyService] Elevated start failed; mappings will not reach administrator apps.");
             }
             catch (Exception ex)

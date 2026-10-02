@@ -530,7 +530,6 @@
 
                                     <ToggleSwitch x:Name="AutoUpdateCheckSwitch"
                                                   Toggled="AutoUpdateCheckSwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
                             </StackPanel>
@@ -568,7 +567,6 @@
                                     <!--
                                     <ToggleSwitch x:Name="UsePhantomKeySwitch"
                                                   Toggled="UsePhantomKeySwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                     -->
                                 </Grid>
@@ -594,7 +592,6 @@
 
                                     <ToggleSwitch x:Name="UsePhantomKeySteamInGameOverlaySwitch"
                                                   Toggled="UsePhantomKeySteamInGameOverlaySwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
 
@@ -643,10 +640,49 @@
                                     </StackPanel>
                                     <ToggleSwitch x:Name="MouseModeSwitch"
                                                   Toggled="MouseModeSwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
                                 -->
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 平台啟動分類標題 -->
+                        <TextBlock x:Uid="AdvancedSection_PlatformLaunch" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   Margin="2,0,0,0"/>
+
+                        <!-- 平台啟動群組卡片 -->
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                HorizontalAlignment="Stretch"
+                                MinWidth="700">
+                            <StackPanel>
+                                <!-- 以系統管理員身分啟動平台（Home App） -->
+                                <Grid Padding="16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <FontIcon Glyph="&#xE7EF;" FontSize="24" Margin="0,0,16,0" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Uid="ElevatedLaunchSetting_Title" FontWeight="SemiBold" FontSize="16" />
+                                        <TextBlock x:Uid="ElevatedLaunchSetting_Description" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="14" TextWrapping="Wrap"/>
+                                        <TextBlock x:Uid="ElevatedLaunchSetting_Note" Foreground="{ThemeResource SystemFillColorCautionBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        <TextBlock x:Name="ElevatedLaunchUnsupportedNote" x:Uid="ElevatedLaunchSetting_UnsupportedNote"
+                                                   Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                                   FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
+                                                   Visibility="Collapsed"/>
+                                    </StackPanel>
+
+                                    <ToggleSwitch x:Name="LaunchElevatedSwitch"
+                                                  Toggled="LaunchElevatedSwitch_Toggled"
+                                                  Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
+                                </Grid>
                             </StackPanel>
                         </Border>
 
@@ -680,7 +716,6 @@
 
                                     <ToggleSwitch x:Name="NavigationSoundsSwitch"
                                                   Toggled="NavigationSoundsSwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
                             </StackPanel>
@@ -716,7 +751,6 @@
 
                                     <ToggleSwitch x:Name="BootVideoSwitch"
                                                   Toggled="BootVideoSwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
 
@@ -764,7 +798,6 @@
 
                                     <ToggleSwitch x:Name="BootVideoSyncSwitch"
                                                   Toggled="BootVideoSyncSwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
 
@@ -786,7 +819,6 @@
 
                                     <ToggleSwitch x:Name="BootVideoMuteSwitch"
                                                   Toggled="BootVideoMuteSwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
                             </StackPanel>
@@ -829,7 +861,6 @@
 
                                     <ToggleSwitch x:Name="UseGameBarLibrarySwitch" x:Uid="UseGameBarLibrarySwitch"
                                                   Toggled="UseGameBarLibrarySwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
 
@@ -852,7 +883,6 @@
 
                                     <ToggleSwitch x:Name="EnablePassthroughSwitch" x:Uid="EnablePassthroughSwitch"
                                                   Toggled="EnablePassthroughSwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
                             </StackPanel>
@@ -939,7 +969,6 @@
 
                                     <ToggleSwitch x:Name="DebugLoggingSwitch"
                                                   Toggled="DebugLoggingSwitch_Toggled"
-                                                  FlowDirection="RightToLeft"
                                                   Grid.Column="2" VerticalAlignment="Center" Margin="0" MinWidth="0" />
                                 </Grid>
 
@@ -1342,6 +1371,21 @@
                                VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
+            <!-- LB/RB：手把映射編輯器的層索引標籤切換。純提示不可點選——
+                 滑鼠使用者直接按畫面上的索引標籤即可，這裡沒有第二個入口要提供。
+                 Visibility 由 code-behind 依「是否在編輯器頁 + 該 profile 是否啟用 Layered」控制。 -->
+            <StackPanel x:Name="GamepadHintLayerTabs" Visibility="Collapsed"
+                        Orientation="Horizontal" Spacing="8">
+                <FontIcon Glyph="&#xF10C;" FontSize="22"
+                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                          VerticalAlignment="Center"/>
+                <FontIcon Glyph="&#xF10D;" FontSize="22"
+                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                          VerticalAlignment="Center"/>
+                <TextBlock x:Uid="GamepadHint_SwitchLayer" FontSize="14"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
             <!-- B 鍵：編輯器頁的「儲存並返回」（取代一般退出提示） -->
             <Button x:Name="GamepadHintBSaveReturn" Visibility="Collapsed"
                     Click="SaveProfileHintButton_Click"

@@ -5,6 +5,82 @@
 
     <UserControl.Resources>
         <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#25282C"/>
+
+        <!-- 層指示標籤樣式：自帶完整 ControlTemplate 而非改寫預設 ToggleButton 樣式，
+             預設範本的 Checked 狀態直接吃 ToggleButton* 系列 ThemeResource，只覆寫
+             Background/Foreground 蓋不掉。標籤純顯示（不可聚焦/點擊），這裡只需要
+             選取態（強調色填滿）與未選取態能看出差別。 -->
+        <Style x:Key="LayerTabStyle" TargetType="ToggleButton">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="16,9"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="UseSystemFocusVisuals" Value="True"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid x:Name="TabRoot" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal"/>
+                                    <VisualState x:Name="PointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="TabRoot.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="TabRoot.Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="TabLabel.Foreground" Value="{ThemeResource TextFillColorDisabledBrush}"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Checked">
+                                        <VisualState.Setters>
+                                            <Setter Target="TabRoot.Background" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
+                                            <Setter Target="TabLabel.Foreground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                                            <Setter Target="TabLabel.FontWeight" Value="SemiBold"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedPointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="TabRoot.Background" Value="{ThemeResource AccentFillColorSecondaryBrush}"/>
+                                            <Setter Target="TabLabel.Foreground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                                            <Setter Target="TabLabel.FontWeight" Value="SemiBold"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedPressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="TabRoot.Background" Value="{ThemeResource AccentFillColorTertiaryBrush}"/>
+                                            <Setter Target="TabLabel.Foreground" Value="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                                            <Setter Target="TabLabel.FontWeight" Value="SemiBold"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="CheckedDisabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="TabRoot.Background" Value="{ThemeResource AccentFillColorDisabledBrush}"/>
+                                            <Setter Target="TabLabel.Foreground" Value="{ThemeResource TextOnAccentFillColorDisabledBrush}"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <ContentPresenter x:Name="TabLabel"
+                                              Content="{TemplateBinding Content}"
+                                              Padding="{TemplateBinding Padding}"
+                                              FontSize="{TemplateBinding FontSize}"
+                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <ScrollViewer Padding="0" VerticalScrollBarVisibility="Auto">
@@ -107,8 +183,36 @@
                 </Grid>
             </Border>
 
+            <!-- 層指示：僅在 Layered 啟用時出現。純顯示用，只有 LB/RB 能切換——
+                 兩顆標籤不可聚焦（IsTabStop=False）、不吃點擊（IsHitTestVisible=False），
+                 因此不會出現在 D-pad 導覽動線上、也不會有焦點外框。目前是哪一層另外標在
+                 下方各群組標題上（見 code-behind UpdateSectionTitles）。 -->
+            <StackPanel x:Name="LayerTabsPanel" Visibility="Collapsed"
+                        Orientation="Horizontal" Spacing="10"
+                        HorizontalAlignment="Center" Margin="0,4,0,0">
+                <FontIcon Glyph="&#xF10C;" FontFamily="{StaticResource SymbolThemeFontFamily}"
+                          FontSize="18" VerticalAlignment="Center"
+                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                <Border CornerRadius="9" Padding="3"
+                        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" Spacing="3">
+                        <ToggleButton x:Name="LayerTab1" x:Uid="GamepadProfileLayerTab1" MinWidth="112"
+                                      IsTabStop="False" IsHitTestVisible="False" UseSystemFocusVisuals="False"
+                                      Style="{StaticResource LayerTabStyle}"/>
+                        <ToggleButton x:Name="LayerTab2" x:Uid="GamepadProfileLayerTab2" MinWidth="112"
+                                      IsTabStop="False" IsHitTestVisible="False" UseSystemFocusVisuals="False"
+                                      Style="{StaticResource LayerTabStyle}"/>
+                    </StackPanel>
+                </Border>
+                <FontIcon Glyph="&#xF10D;" FontFamily="{StaticResource SymbolThemeFontFamily}"
+                          FontSize="18" VerticalAlignment="Center"
+                          Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            </StackPanel>
+
             <!-- 面鍵群組 -->
-            <TextBlock x:Uid="GamepadGroup_FaceButtons" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
+            <TextBlock x:Name="FaceButtonsHeader" x:Uid="GamepadGroup_FaceButtons" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -116,17 +220,6 @@
                     HorizontalAlignment="Stretch"
                     MinWidth="700">
                 <StackPanel Padding="16" Spacing="8">
-                    <!-- 層選擇器：僅在 Layered 啟用時出現。下方整份按鍵清單一次只顯示一層，
-                         切換後所有列都重新載入為該層的內容。 -->
-                    <StackPanel x:Name="LayerSelectorPanel" Visibility="Collapsed" Spacing="4" Margin="0,0,0,4">
-                        <TextBlock x:Uid="GamepadProfileLayerSelectorLabel" FontSize="13"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        <ComboBox x:Name="LayerSelector" HorizontalAlignment="Stretch"
-                                  SelectionChanged="LayerSelector_SelectionChanged">
-                            <ComboBoxItem x:Uid="GamepadProfileLayer1"/>
-                            <ComboBoxItem x:Uid="GamepadProfileLayer2"/>
-                        </ComboBox>
-                    </StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="160"/>
@@ -187,7 +280,7 @@
             </Border>
 
             <!-- 肩鍵 / 板機群組 -->
-            <TextBlock x:Uid="GamepadGroup_Shoulders" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
+            <TextBlock x:Name="ShouldersHeader" x:Uid="GamepadGroup_Shoulders" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -255,7 +348,7 @@
             </Border>
 
             <!-- 搖桿按下群組 -->
-            <TextBlock x:Uid="GamepadGroup_ThumbButtons" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
+            <TextBlock x:Name="ThumbButtonsHeader" x:Uid="GamepadGroup_ThumbButtons" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -295,7 +388,7 @@
             </Border>
 
             <!-- 搖桿 / 十字鍵群組 -->
-            <TextBlock x:Uid="GamepadGroup_Sticks" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
+            <TextBlock x:Name="SticksHeader" x:Uid="GamepadGroup_Sticks" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Margin="2,0,0,0"/>
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"

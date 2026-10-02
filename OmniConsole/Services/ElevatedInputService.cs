@@ -56,6 +56,14 @@ namespace OmniConsole.Services
         public static bool IsInstalled() => File.Exists(InstalledExePath);
 
         /// <summary>
+        /// 提權執行環境目前是否可用：系統管理員程式支援已安裝且版本相符。
+        /// 為 true 時 <see cref="PhantomKeyService"/> 會走排程工作以 High IL 啟動 PhantomKey，
+        /// 屆時它才代打得動免 UAC 提權啟動（見 <see cref="ElevatedLaunchService"/>）。
+        /// 與 PhantomKeyService 決定是否走提權路徑的條件一致。
+        /// </summary>
+        public static bool IsElevatedRuntimeAvailable() => IsInstalled() && !NeedsUpdate();
+
+        /// <summary>
         /// 已安裝、但 ProgramData 那份 PhantomKey 版本與套件內不一致。
         /// 一般權限改不動那個目錄，必須再跑一次 PhantomWarden（再跳一次 UAC）才能更新。
         /// </summary>

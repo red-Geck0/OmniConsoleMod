@@ -255,6 +255,9 @@
   <data name="AdvancedDescription.Text" xml:space="preserve">
     <value>Fine-tune system behavior and integration options.</value>
   </data>
+  <data name="AdvancedSection_PlatformLaunch.Text" xml:space="preserve">
+    <value>Platform launch</value>
+  </data>
   <data name="AdvancedSection_GamepadInput.Text" xml:space="preserve">
     <value>Gamepad Input</value>
   </data>
@@ -363,6 +366,20 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   <data name="ElevatedAppSupportInstalledDialog_Close" xml:space="preserve">
     <value>Got it</value>
   </data>
+  <data name="ElevatedLaunchSetting_Title.Text" xml:space="preserve">
+    <value>Run platform as administrator</value>
+  </data>
+  <data name="ElevatedLaunchSetting_Description.Text" xml:space="preserve">
+    <value>Start the platform OmniConsoleMod hands off to with administrator rights.</value>
+  </data>
+  <data name="ElevatedLaunchSetting_Note.Text" xml:space="preserve">
+    <value>Needs Administrator App Support (above) to skip the UAC prompt each launch.
+Store apps always qualify; a plain .exe only when it sits in a protected folder like Program Files.
+In a personal folder (e.g. C:\Games) it still prompts, and a prompt can't be answered with a gamepad.</value>
+  </data>
+  <data name="ElevatedLaunchSetting_UnsupportedNote.Text" xml:space="preserve">
+    <value>The platform you selected is started by Windows itself, so this switch has no effect on it.</value>
+  </data>
   <data name="MouseModeSetting_ElevatedBlockedNote.Text" xml:space="preserve">
     <value>The app on screen runs as administrator, so Windows is blocking your mappings from reaching it. Install Administrator App Support under Settings → Advanced to fix this.</value>
   </data>
@@ -411,6 +428,9 @@ Alternatively, change the shortcut to a non-modifier key in Steam Settings &gt; 
   </data>
   <data name="EnablePassthroughSwitch.OnContent" xml:space="preserve">
     <value>Direct</value>
+  </data>
+  <data name="GamepadHint_SwitchLayer.Text" xml:space="preserve">
+    <value>Switch layer</value>
   </data>
   <data name="GamepadHint_Select.Text" xml:space="preserve">
     <value>Select</value>
@@ -1142,14 +1162,11 @@ By clicking “I Understand and Accept”, you acknowledge these risks and agree
   <data name="GamepadInput_RStick.Text" xml:space="preserve">
     <value>Right stick</value>
   </data>
-  <data name="GamepadProfileLayerSelectorLabel.Text" xml:space="preserve">
-    <value>Editing layer</value>
+  <data name="GamepadProfileLayerTab1.Content" xml:space="preserve">
+    <value>Layer 1</value>
   </data>
-  <data name="GamepadProfileLayer1.Content" xml:space="preserve">
-    <value>Layer 1 — normal</value>
-  </data>
-  <data name="GamepadProfileLayer2.Content" xml:space="preserve">
-    <value>Layer 2 — while trigger is held</value>
+  <data name="GamepadProfileLayerTab2.Content" xml:space="preserve">
+    <value>Layer 2</value>
   </data>
   <data name="GamepadGroup_FaceButtons.Text" xml:space="preserve">
     <value>Face buttons</value>

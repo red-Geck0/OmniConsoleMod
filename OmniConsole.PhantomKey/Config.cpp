@@ -260,3 +260,32 @@ void WriteElevatedInputBlocked(bool blocked) {
         Log(L"[Config] Wrote ElevatedInputBlocked=%d to Shared.ini.", value);
     }
 }
+
+// ── 免 UAC 提權啟動請求（Route B；[Launch] 區段） ────────────────────────────
+
+LaunchRequest ReadLaunchRequest() {
+    LaunchRequest req;
+    req.seq = ReadString(L"Launch", L"Seq", L"");
+    req.exe = ReadString(L"Launch", L"Exe", L"");
+    req.args = ReadString(L"Launch", L"Args", L"");
+    return req;
+}
+
+std::wstring ReadLaunchAck() {
+    return ReadString(L"Launch", L"AckSeq", L"");
+}
+
+void WriteLaunchAck(const std::wstring& seq) {
+    auto path = GetSharedIniPath();
+    if (path.empty()) return;
+    if (WritePrivateProfileStringW(L"Launch", L"AckSeq", seq.c_str(), path.c_str()))
+        Log(L"[Config] Wrote Launch AckSeq=\"%s\" to Shared.ini.", seq.c_str());
+}
+
+void WriteLaunchPid(unsigned long pid) {
+    auto path = GetSharedIniPath();
+    if (path.empty()) return;
+    std::wstring val = std::to_wstring(pid);
+    if (WritePrivateProfileStringW(L"Launch", L"Pid", val.c_str(), path.c_str()))
+        Log(L"[Config] Wrote Launch Pid=%s to Shared.ini.", val.c_str());
+}

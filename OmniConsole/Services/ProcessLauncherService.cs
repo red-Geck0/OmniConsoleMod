@@ -2,6 +2,7 @@ using Microsoft.Win32;
 using Microsoft.Windows.ApplicationModel.Resources;
 using OmniConsole.Models;
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -18,29 +19,121 @@ namespace OmniConsole.Services
     {
         private static readonly ResourceLoader _resourceLoader = new();
 
+        /// <summary>單一啟動策略的執行結果。</summary>
+        private enum StrategyResult
+        {
+            /// <summary>平台已被叫起來。</summary>
+            Launched,
+
+            /// <summary>這個策略沒成功（目標不存在、登錄值缺漏、URI 未登錄…），可以再試下一個。</summary>
+            Failed,
+
+            /// <summary>使用者在 UAC 提示上按了取消。那是對這次啟動的明確表態，不該再往下試。</summary>
+            ElevationDeclined,
+        }
+
+        /// <summary>
+        /// 這個策略此刻能不能以系統管理員身分啟動。
+        ///   Registry / Executable：由本程式直接建立行程，用 runas 提權（每次一個 UAC）。
+        ///   PackagedApp：走不了 runas（AppModel 啟動的 IL 由系統決定），改由提權版 PhantomKey 代打
+        ///     （Route B，執行期免 UAC）。條件是「系統管理員程式支援」已安裝，且該套件解析得出
+        ///     full-trust exe（純 UWP 如 Xbox App 解析不到）。
+        ///   ProtocolUri：一律不行（純交給 Shell）。
+        /// </summary>
+        private static bool CanElevate(LaunchStrategy strategy) => strategy.Type switch
+        {
+            LaunchStrategyType.Registry or LaunchStrategyType.Executable => true,
+            LaunchStrategyType.PackagedApp =>
+                ElevatedInputService.IsElevatedRuntimeAvailable()
+                && ElevatedLaunchService.CanElevatePackaged(strategy.PackageFamilyName),
+            _ => false,
+        };
+
+        /// <summary>
+        /// 平台是否含「只要安裝了系統管理員程式支援就能提權」的封裝策略，而目前尚未安裝支援。
+        /// 供設定頁提示使用者：這個開關對此平台需要先裝支援才會生效（有別於「這個平台根本無法提權」）。
+        /// </summary>
+        public static bool NeedsAdminSupportToElevate(PlatformDefinition platform)
+        {
+            if (ElevatedInputService.IsElevatedRuntimeAvailable()) return false;
+            return platform.LaunchStrategies.Any(s =>
+                s.Type == LaunchStrategyType.PackagedApp
+                && ElevatedLaunchService.CanElevatePackaged(s.PackageFamilyName));
+        }
+
+        /// <summary>
+        /// 平台是否有任何「提權得了」的啟動策略，供設定頁判斷要不要提醒使用者
+        /// 這個開關對目前選的平台不會有作用。
+        /// </summary>
+        public static bool HasElevatableStrategy(PlatformDefinition platform) =>
+            platform.LaunchStrategies.Any(CanElevate);
+
         /// <summary>
         /// 依序嘗試平台定義中的啟動策略，第一個成功即停止。
+        ///
+        /// 開啟「以系統管理員身分啟動」時分成兩輪：先只跑提權得了的策略，
+        /// 全軍覆沒才退回完整清單以一般權限啟動。不分兩輪的話，像 Steam Big Picture 這種
+        /// 第一順位是 steam:// 的平台永遠會在 ProtocolUri 那一步就成功收工，
+        /// 後面那個真的能提權的 Registry 策略根本輪不到，開關等於沒有作用。
         /// </summary>
         public static async Task<bool> LaunchPlatformAsync(PlatformDefinition platform)
         {
-            DebugLogger.Log($"[ProcessLauncher] Launching platform: {platform.Id} ({platform.LaunchStrategies.Count} strategies defined)");
+            // 設定一次讀完再往下帶，避免每個策略各查一次 LocalSettings。
+            bool elevated = SettingsService.GetLaunchPlatformElevated();
+            DebugLogger.Log($"[ProcessLauncher] Launching platform: {platform.Id} ({platform.LaunchStrategies.Count} strategies defined, elevated={elevated})");
 
-            for (int i = 0; i < platform.LaunchStrategies.Count; i++)
+            if (elevated)
             {
-                var strategy = platform.LaunchStrategies[i];
-                DebugLogger.Log($"[ProcessLauncher] Strategy {i + 1}/{platform.LaunchStrategies.Count}: Attempting {strategy.Type}...");
+                var result = await RunStrategiesAsync(platform, elevated: true, onlyElevatable: true);
+                if (result == StrategyResult.Launched) return true;
 
-                if (await ExecuteStrategyAsync(strategy, platform.Id))
+                if (result == StrategyResult.ElevationDeclined)
                 {
-                    DebugLogger.Log($"[ProcessLauncher] Strategy {i + 1} ({strategy.Type}) succeeded.");
-                    return true;
+                    // 使用者按了取消就是不要。不要繞過去改用一般權限把平台開起來——
+                    // 那等於無視他剛剛的回答。
+                    DebugLogger.Log($"[ProcessLauncher] {platform.Id}: elevation declined by user, launch aborted.");
+                    return false;
                 }
 
-                DebugLogger.Log($"[ProcessLauncher] Strategy {i + 1} ({strategy.Type}) failed.");
+                DebugLogger.Log($"[ProcessLauncher] {platform.Id}: no elevatable strategy succeeded, falling back to a normal launch.");
             }
+
+            if (await RunStrategiesAsync(platform, elevated: false, onlyElevatable: false) == StrategyResult.Launched)
+                return true;
 
             DebugLogger.Log($"[ProcessLauncher] {platform.Id}: All launch strategies failed.");
             return false;
+        }
+
+        /// <summary>
+        /// 跑一輪啟動策略。<paramref name="onlyElevatable"/> 為 true 時略過提權不了的那些。
+        /// </summary>
+        private static async Task<StrategyResult> RunStrategiesAsync(
+            PlatformDefinition platform, bool elevated, bool onlyElevatable)
+        {
+            int total = platform.LaunchStrategies.Count;
+            for (int i = 0; i < total; i++)
+            {
+                var strategy = platform.LaunchStrategies[i];
+                if (onlyElevatable && !CanElevate(strategy))
+                {
+                    DebugLogger.Log($"[ProcessLauncher] Strategy {i + 1}/{total} ({strategy.Type}): skipped, cannot be elevated.");
+                    continue;
+                }
+
+                DebugLogger.Log($"[ProcessLauncher] Strategy {i + 1}/{total}: Attempting {strategy.Type}{(elevated ? " (elevated)" : "")}...");
+                var result = await ExecuteStrategyAsync(strategy, platform.Id, elevated);
+
+                if (result == StrategyResult.Launched)
+                {
+                    DebugLogger.Log($"[ProcessLauncher] Strategy {i + 1} ({strategy.Type}) succeeded.");
+                    return StrategyResult.Launched;
+                }
+                if (result == StrategyResult.ElevationDeclined) return result;
+
+                DebugLogger.Log($"[ProcessLauncher] Strategy {i + 1} ({strategy.Type}) failed.");
+            }
+            return StrategyResult.Failed;
         }
 
         /// <summary>
@@ -141,15 +234,40 @@ namespace OmniConsole.Services
 
         // ── 策略執行 ──────────────────────────────────────────────────────────
 
-        private static Task<bool> ExecuteStrategyAsync(LaunchStrategy strategy, string platformId) =>
-            strategy.Type switch
+        /// <param name="elevated">
+        /// 是否以系統管理員身分啟動（Settings ＞ 進階 的開關）。
+        /// 只有 <see cref="CanElevate"/> 認可的策略吃得到這個旗標；呼叫端會先篩過，
+        /// 這裡不再重複判斷。
+        /// </param>
+        private static async Task<StrategyResult> ExecuteStrategyAsync(LaunchStrategy strategy, string platformId, bool elevated)
+        {
+            switch (strategy.Type)
             {
-                LaunchStrategyType.ProtocolUri => TryLaunchUriAsync(strategy.Uri!, platformId),
-                LaunchStrategyType.Registry => Task.FromResult(TryLaunchFromRegistry(strategy, platformId)),
-                LaunchStrategyType.PackagedApp => TryLaunchPackagedAppAsync(strategy, platformId),
-                LaunchStrategyType.Executable => Task.FromResult(TryLaunchExecutable(strategy, platformId)),
-                _ => Task.FromResult(false),
-            };
+                case LaunchStrategyType.ProtocolUri:
+                    return ToResult(await TryLaunchUriAsync(strategy.Uri!, platformId));
+                case LaunchStrategyType.Registry:
+                    return TryLaunchFromRegistry(strategy, platformId, elevated);
+                case LaunchStrategyType.Executable:
+                    return TryLaunchExecutable(strategy, platformId, elevated);
+                case LaunchStrategyType.PackagedApp:
+                    // 提權 + 支援可用 + 解析得出 full-trust exe → 交給提權版 PhantomKey 代打（免 UAC）。
+                    // 委派成功即視為已啟動；解析失敗（純 UWP）或支援不可用時 TryLaunchElevated 回 false，
+                    // 退回一般權限的 AppModel 啟動，讓平台至少開得起來。
+                    if (elevated
+                        && !string.IsNullOrEmpty(strategy.PackageFamilyName)
+                        && ElevatedInputService.IsElevatedRuntimeAvailable()
+                        && ElevatedLaunchService.TryLaunchElevatedPackaged(strategy.PackageFamilyName!))
+                    {
+                        return StrategyResult.Launched;
+                    }
+                    return ToResult(await TryLaunchPackagedAppAsync(strategy, platformId));
+                default:
+                    return StrategyResult.Failed;
+            }
+        }
+
+        private static StrategyResult ToResult(bool launched) =>
+            launched ? StrategyResult.Launched : StrategyResult.Failed;
 
         /// <summary>
         /// 透過 Protocol URI 啟動，啟動前先確認 URI handler 已登錄。
@@ -187,7 +305,7 @@ namespace OmniConsole.Services
         /// 從登錄機碼讀取安裝路徑，直接啟動執行檔。
         /// ExecutableName 有值時視為目錄 + 檔名組合；為 null 時視登錄值本身為完整執行檔路徑。
         /// </summary>
-        private static bool TryLaunchFromRegistry(LaunchStrategy strategy, string platformId)
+        private static StrategyResult TryLaunchFromRegistry(LaunchStrategy strategy, string platformId, bool elevated)
         {
             try
             {
@@ -198,7 +316,7 @@ namespace OmniConsole.Services
                 if (string.IsNullOrEmpty(registryValue))
                 {
                     DebugLogger.Log("[ProcessLauncher]   Registry value is empty or missing.");
-                    return false;
+                    return StrategyResult.Failed;
                 }
 
                 string exePath;
@@ -211,7 +329,7 @@ namespace OmniConsole.Services
                     if (string.IsNullOrEmpty(dir))
                     {
                         DebugLogger.Log("[ProcessLauncher]   Failed to parse directory from command string.");
-                        return false;
+                        return StrategyResult.Failed;
                     }
                     exePath = strategy.ExecutableName is not null
                         ? Path.Combine(dir, strategy.ExecutableName)
@@ -225,12 +343,12 @@ namespace OmniConsole.Services
                 }
 
                 DebugLogger.Log($"[ProcessLauncher]   Resolved registry path: {exePath}");
-                return LaunchProcess(exePath, strategy.Arguments ?? "");
+                return StartProcess(exePath, strategy.Arguments ?? "", elevated);
             }
             catch (Exception ex)
             {
                 DebugLogger.Log($"[ProcessLauncher]   Registry launch exception: {ex.Message}");
-                return false;
+                return StrategyResult.Failed;
             }
         }
 
@@ -279,14 +397,14 @@ namespace OmniConsole.Services
         /// 支援絕對路徑；若僅指定檔名，會優先嘗試在定義的 SearchPaths 尋找，
         /// 若均未找到或未定義，則交由作業系統的 PATH 或 App Paths 機制尋找啟動。
         /// </summary>
-        private static bool TryLaunchExecutable(LaunchStrategy strategy, string platformId)
+        private static StrategyResult TryLaunchExecutable(LaunchStrategy strategy, string platformId, bool elevated)
         {
             try
             {
                 if (string.IsNullOrEmpty(strategy.ExecutableName))
                 {
                     DebugLogger.Log("[ProcessLauncher]   ExecutableName is empty.");
-                    return false;
+                    return StrategyResult.Failed;
                 }
 
                 string exeName = Environment.ExpandEnvironmentVariables(strategy.ExecutableName);
@@ -312,15 +430,15 @@ namespace OmniConsole.Services
                 if (Path.IsPathRooted(launchPath) && !File.Exists(launchPath))
                 {
                     DebugLogger.Log($"[ProcessLauncher]   Executable not found at rooted path: {launchPath}");
-                    return false;
+                    return StrategyResult.Failed;
                 }
 
-                return LaunchProcess(launchPath, strategy.Arguments ?? "");
+                return StartProcess(launchPath, strategy.Arguments ?? "", elevated);
             }
             catch (Exception ex)
             {
                 DebugLogger.Log($"[ProcessLauncher]   Executable launch exception: {ex.Message}");
-                return false;
+                return StrategyResult.Failed;
             }
         }
 
@@ -493,34 +611,66 @@ namespace OmniConsole.Services
             }
         }
 
+        /// <summary>取消 UAC 對話方塊時 ShellExecute 回報的錯誤碼（ERROR_CANCELLED）。</summary>
+        private const int ErrorCancelled = 1223;
+
         /// <summary>
         /// 通用的絕對路徑程式啟動輔助方法。
         /// 呼叫前會嚴格檢查（File.Exists）檔案是否存在，因此不支援依賴系統 PATH 或 App Paths 的純檔名啟動。
         /// </summary>
-        public static bool LaunchProcess(string filePath, string arguments = "")
+        /// <param name="elevated">
+        /// true 時以 runas 動詞啟動，也就是請 Shell 用系統管理員權杖建立行程。
+        /// 本程式自己是一般權限，所以這一定會跳出 UAC 提示（安全桌面，只吃實體輸入）。
+        /// 使用者在提示上按取消時回傳 false —— 這是他自己的決定，不是故障，
+        /// 呼叫端照常往下一個策略試即可。
+        /// </param>
+        public static bool LaunchProcess(string filePath, string arguments = "", bool elevated = false) =>
+            StartProcess(filePath, arguments, elevated) == StrategyResult.Launched;
+
+        /// <summary>
+        /// <see cref="LaunchProcess"/> 的內部版本，額外把「使用者取消 UAC」跟一般失敗分開回報。
+        /// </summary>
+        private static StrategyResult StartProcess(string filePath, string arguments, bool elevated)
         {
             try
             {
                 if (!File.Exists(filePath))
                 {
                     DebugLogger.Log($"[ProcessLauncher]   LaunchProcess: Executable not found: {filePath}");
-                    return false;
+                    return StrategyResult.Failed;
                 }
 
-                DebugLogger.Log($"[ProcessLauncher]   Process launched: {filePath} {arguments}");
+                // 提權啟動：exe 位在「僅系統管理員可寫」位置且系統管理員程式支援可用時，交給已提權的
+                // PhantomKey 代打（Route B，免 UAC）。使用者可寫位置（如 C:\Games、LocalAppData）的
+                // exe 不走這條——讓提權行程去啟動可被竄改的檔案等於開提權後門，故退回下方 runas（跳 UAC）。
+                if (elevated
+                    && ElevatedInputService.IsElevatedRuntimeAvailable()
+                    && ElevatedLaunchService.IsAdminOnlyLocation(filePath))
+                {
+                    ElevatedLaunchService.LaunchElevatedExe(filePath, arguments);
+                    return StrategyResult.Launched;
+                }
+
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = filePath,
                     Arguments = arguments,
                     UseShellExecute = true,
                 };
+                if (elevated) startInfo.Verb = "runas";
                 Process.Start(startInfo);
-                return true;
+                DebugLogger.Log($"[ProcessLauncher]   Process launched{(elevated ? " (elevated)" : "")}: {filePath} {arguments}");
+                return StrategyResult.Launched;
+            }
+            catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
+            {
+                DebugLogger.Log($"[ProcessLauncher]   Elevation declined by user: {filePath}");
+                return StrategyResult.ElevationDeclined;
             }
             catch (Exception ex)
             {
                 DebugLogger.Log($"[ProcessLauncher]   Process launch failed: {ex.Message}");
-                return false;
+                return StrategyResult.Failed;
             }
         }
     }

@@ -36,15 +36,6 @@ namespace OmniConsole.Services
         /// <summary>LocalAppData 部署目錄；ElevatedInputService 也用它暫存 PhantomWarden。</summary>
         public static string DeployedDir => _targetDir;
 
-        /// <summary>
-        /// 啟動 PhantomKey。
-        ///
-        /// 已安裝且版本相符的系統管理員程式支援 → 交給排程工作以 High IL 啟動；
-        /// 否則沿用一般權限路徑：若套件內版本較新則先覆蓋 LocalAppData 的副本再啟動。
-        ///
-        /// 兩條路徑都會先做健康檢查：已在執行且健康（ping 通且主迴圈正在推進）就不重複啟動；
-        /// 在執行但不健康（卡住、凍結、舊版無 ping window）則先終止再啟動（自癒）。
-        /// </summary>
         /// <summary>Start() 進行中旗標（0=閒置、1=進行中），避免並行呼叫各自跑一輪 Kill+重啟造成互相打架。</summary>
         private static int _startInProgress;
 
@@ -55,7 +46,15 @@ namespace OmniConsole.Services
         private const long StartGraceMs = 12000;
 
         /// <summary>
-        /// 啟動 PhantomKey。並行防護：同時只允許一個 Start 實際執行，其餘直接返回——
+        /// 啟動 PhantomKey。
+        ///
+        /// 已安裝且版本相符的系統管理員程式支援 → 交給排程工作以 High IL 啟動；
+        /// 否則沿用一般權限路徑：若套件內版本較新則先覆蓋 LocalAppData 的副本再啟動。
+        ///
+        /// 兩條路徑都會先做健康檢查：已在執行且健康（ping 通且主迴圈正在推進）就不重複啟動；
+        /// 在執行但不健康（卡住、凍結、舊版無 ping window）則先終止再啟動（自癒）。
+        ///
+        /// 並行防護：同時只允許一個 Start 實際執行，其餘直接返回——
         /// 開機當下 pre-warm 與委派路徑可能幾乎同時呼叫，若各自做健康檢查 + Kill + 重啟，會把剛起來、
         /// ping window 還沒建好的實例互相殺掉重啟，churn 掉 ProgramData\Steam.exe 造成啟動路徑上的
         /// FileVersionInfo / Shared.ini 存取被卡住（實測害開機影片全黑）。

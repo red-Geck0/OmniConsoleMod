@@ -70,6 +70,35 @@ Nama yang tampil di Installed Apps / Start / FSE diambil dari
 `OmniConsole/Services/UpdateCheckService.cs` — URL repo rilis. Sudah menunjuk ke
 `red-Geck0/OmniConsoleMod` (GitHub API + halaman rilis).
 
+### Nama file aset rilis (transisi ke nama baru)
+
+Mulai rilis **sesudah v2.6.9.0**, updater memilih aset MSIX **tanpa melihat
+prefix nama produk**. Aturannya:
+
+| Aset | Syarat nama file |
+|---|---|
+| Widget (PhantomLink) | mengandung `_{versi}_` **dan** berakhiran `_x64-widget.msix` |
+| Main app | mengandung `_{versi}_` **dan** berakhiran `_x64.msix` |
+
+`{versi}` = tag rilis tanpa `v` (tag `v2.7.0.0` → `_2.7.0.0_`). Tag dan nama file
+**harus pakai format versi yang sama** (4 angka); kalau tidak cocok, updater tidak
+menemukan aset dan jatuh ke membuka halaman rilis di browser.
+
+File unduhan sementara di LocalFolder selalu bernama `pending-update-main_*.msix` /
+`pending-update-widget_*.msix`, jadi tidak bergantung pada nama aset.
+
+**Urutan transisi:**
+1. **Rilis transisi** (rilis pertama yang berisi aturan di atas): aset **masih**
+   bernama `OmniConsole_{ver}_x64.msix` & `OmniConsole.PhantomLink_{ver}_x64-widget.msix`,
+   karena versi ≤ 2.6.9.0 hanya mengenali prefix itu.
+2. **Rilis sesudahnya**: aset boleh pakai nama baru, misalnya
+   `AnyXboxMode_{ver}_x64.msix` & `AnyXboxMode.Widget_{ver}_x64-widget.msix`.
+   Sesuaikan juga `Make-OmniConsoleMod-Release.ps1` (termasuk guard MSIX basi).
+3. Pengguna yang melompati rilis transisi: updater lama tidak menemukan aset lalu
+   membuka halaman rilis, dan mereka pasang manual dari zip (update in-place tetap
+   jalan karena Identity sama). Opsional: selama 1–2 rilis unggah aset dengan dua
+   nama (lama + baru).
+
 ---
 
 ## 3. Teks string in-app — `OmniConsole/Strings/{en-US,zh-CN,zh-TW}/Resources.resw`

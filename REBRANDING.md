@@ -72,7 +72,7 @@ Nama yang tampil di Installed Apps / Start / FSE diambil dari
 
 ### Nama file aset rilis (transisi ke nama baru)
 
-Mulai rilis **sesudah v2.6.9.0**, updater memilih aset MSIX **tanpa melihat
+Mulai **v2.6.9.0**, updater memilih aset MSIX **tanpa melihat
 prefix nama produk**. Aturannya:
 
 | Aset | Syarat nama file |
@@ -80,7 +80,7 @@ prefix nama produk**. Aturannya:
 | Widget (PhantomLink) | mengandung `_{versi}_` **dan** berakhiran `_x64-widget.msix` |
 | Main app | mengandung `_{versi}_` **dan** berakhiran `_x64.msix` |
 
-`{versi}` = tag rilis tanpa `v` (tag `v2.7.0.0` → `_2.7.0.0_`). Tag dan nama file
+`{versi}` = tag rilis tanpa `v` (tag `v2.6.9.0` → `_2.6.9.0_`). Tag dan nama file
 **harus pakai format versi yang sama** (4 angka); kalau tidak cocok, updater tidak
 menemukan aset dan jatuh ke membuka halaman rilis di browser.
 
@@ -88,9 +88,9 @@ File unduhan sementara di LocalFolder selalu bernama `pending-update-main_*.msix
 `pending-update-widget_*.msix`, jadi tidak bergantung pada nama aset.
 
 **Urutan transisi:**
-1. **Rilis transisi** (rilis pertama yang berisi aturan di atas): aset **masih**
+1. **Rilis transisi = v2.6.9.0** (rilis pertama yang berisi aturan di atas): aset **masih**
    bernama `OmniConsole_{ver}_x64.msix` & `OmniConsole.PhantomLink_{ver}_x64-widget.msix`,
-   karena versi ≤ 2.6.9.0 hanya mengenali prefix itu.
+   karena versi ≤ 2.6.7.0 (rilis publik sebelumnya) hanya mengenali prefix itu.
 2. **Rilis sesudahnya**: aset boleh pakai nama baru, misalnya
    `AnyXboxMode_{ver}_x64.msix` & `AnyXboxMode.Widget_{ver}_x64-widget.msix`.
    Sesuaikan juga `Make-OmniConsoleMod-Release.ps1` (termasuk guard MSIX basi).

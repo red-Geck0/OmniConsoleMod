@@ -287,6 +287,7 @@ namespace OmniConsole.Pages
                         {
                             if (FseService.IsIgnoredForegroundWindow(fg))
                                 continue;
+                            DebugLogger.Log($"[LaunchPage] Platform detected via foreground change after {elapsed}ms.");
                             platformToForeground = true;
                             break;
                         }
@@ -297,6 +298,7 @@ namespace OmniConsole.Pages
                         int launchedPid = SettingsService.GetElevatedLaunchPid();
                         if (launchedPid > 0 && ProcessHasVisibleTopLevelWindow(launchedPid))
                         {
+                            DebugLogger.Log($"[LaunchPage] Platform detected via elevated launch PID {launchedPid} after {elapsed}ms.");
                             platformToForeground = true;
                             break;
                         }

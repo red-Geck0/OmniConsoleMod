@@ -198,14 +198,15 @@ namespace OmniConsole.Services
                 string processName = Path.GetFileNameWithoutExtension(exePath);
                 try
                 {
+                    // 不用 Process.MainModule：一般權限讀不到提權行程的模組（拒絕存取），
+                    // 平台以系統管理員身分執行時會一律誤判為「沒在跑」。
                     foreach (var proc in Process.GetProcessesByName(processName))
                     {
-                        try
+                        using (proc)
                         {
-                            if (exePath.Equals(proc.MainModule?.FileName, StringComparison.OrdinalIgnoreCase))
+                            if (exePath.Equals(PhantomKeyService.GetProcessPath(proc.Id), StringComparison.OrdinalIgnoreCase))
                                 return true;
                         }
-                        catch { /* MainModule 存取偶爾因權限/行程剛結束而失敗，略過該候選繼續檢查其它行程 */ }
                     }
                 }
                 catch (Exception ex)

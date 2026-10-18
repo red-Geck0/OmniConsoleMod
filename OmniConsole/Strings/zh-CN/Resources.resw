@@ -255,6 +255,9 @@
   <data name="AdvancedDescription.Text" xml:space="preserve">
     <value>微调系统行为与集成选项。</value>
   </data>
+  <data name="AdvancedSection_PlatformLaunch.Text" xml:space="preserve">
+    <value>平台启动</value>
+  </data>
   <data name="AdvancedSection_GamepadInput.Text" xml:space="preserve">
     <value>手柄输入</value>
   </data>
@@ -306,6 +309,80 @@
   <data name="MouseModeSetting_BuiltInMappingNote.Text" xml:space="preserve">
     <value>已禁用 — 设备具备内置手柄映射。</value>
   </data>
+  <data name="MouseModeSetting_ExternalCursorNote.Text" xml:space="preserve">
+    <value>另一个应用也在用手柄控制指针 — 很可能是 Game Bar 的 Gamepad Cursor。请到 Game Bar → 设置 → Gamepad Cursor 将其关闭，以免两者互相干扰。</value>
+  </data>
+  <data name="ElevatedAppSupportSetting_Title.Text" xml:space="preserve">
+    <value>管理员应用支持</value>
+  </data>
+  <data name="ElevatedAppSupportSetting_Description.Text" xml:space="preserve">
+    <value>让手柄映射也能送进以管理员身份运行的程序；否则 Windows 会拦下这些输入。安装时需要一次管理员授权。</value>
+  </data>
+  <data name="ElevatedAppSupport_Install" xml:space="preserve">
+    <value>安装</value>
+  </data>
+  <data name="ElevatedAppSupport_Update" xml:space="preserve">
+    <value>更新</value>
+  </data>
+  <data name="ElevatedAppSupport_Remove" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="ElevatedAppSupport_NoteCannotElevate" xml:space="preserve">
+    <value>当前登录的 Windows 账户没有管理员权限，无法安装此功能。</value>
+  </data>
+  <data name="ElevatedAppSupport_NoteNeedsUpdate" xml:space="preserve">
+    <value>OmniConsoleMod 已更新，管理员应用支持也需跟着更新，过程会再次请求管理员授权。</value>
+  </data>
+  <data name="ElevatedAppSupport_NoteBlocked" xml:space="preserve">
+    <value>目前前台是以管理员身份运行的程序，映射送不进去。</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Title" xml:space="preserve">
+    <value>要移除管理员应用支持吗？</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Body" xml:space="preserve">
+    <value>手柄映射将不再对以管理员身份运行的程序生效。接下来会请求管理员授权。</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Confirm" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="ElevatedAppSupportRemoveDialog_Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="ElevatedAppSupportFailedDialog_Title" xml:space="preserve">
+    <value>安装未完成</value>
+  </data>
+  <data name="ElevatedAppSupportFailedDialog_Body" xml:space="preserve">
+    <value>无法完成管理员应用支持的安装。具体原因请查看 DebugTrace.log。</value>
+  </data>
+  <data name="ElevatedAppSupportFailedDialog_Close" xml:space="preserve">
+    <value>知道了</value>
+  </data>
+  <data name="ElevatedAppSupportInstalledDialog_Title" xml:space="preserve">
+    <value>管理员应用支持已开启</value>
+  </data>
+  <data name="ElevatedAppSupportInstalledDialog_Body" xml:space="preserve">
+    <value>手柄映射现在可以送进以管理员身份运行的程序。UAC 提示框本身仍无法用手柄操作 — Windows 的那一层不接受任何模拟输入。</value>
+  </data>
+  <data name="ElevatedAppSupportInstalledDialog_Close" xml:space="preserve">
+    <value>知道了</value>
+  </data>
+  <data name="ElevatedLaunchSetting_Title.Text" xml:space="preserve">
+    <value>以管理员身份启动平台</value>
+  </data>
+  <data name="ElevatedLaunchSetting_Description.Text" xml:space="preserve">
+    <value>让 OmniConsoleMod 交棒过去的平台带着管理员权限启动。</value>
+  </data>
+  <data name="ElevatedLaunchSetting_Note.Text" xml:space="preserve">
+    <value>需先安装上方的“管理员应用支持”才能免去每次启动的 UAC 提示。
+商店应用一律适用；普通 .exe 只有放在受保护文件夹（如 Program Files）时才适用。
+放在个人文件夹（如 C:\Games）仍会每次弹提示，而提示无法用手柄回应。</value>
+  </data>
+  <data name="ElevatedLaunchSetting_UnsupportedNote.Text" xml:space="preserve">
+    <value>你选的平台是交由 Windows 自己启动的，这个开关对它不会有作用。</value>
+  </data>
+  <data name="MouseModeSetting_ElevatedBlockedNote.Text" xml:space="preserve">
+    <value>前台程序以管理员身份运行，Windows 正在拦下你的映射。请到“设置 → 高级”安装“管理员应用支持”。</value>
+  </data>
   <!-- [UNUSED in this fork] MouseModeLayout* + CursorSpeedSetting_*: upstream global
        Controller Layout (OmniNav/Classic) and global Cursor Speed settings. This fork
        moved both to per-profile values in GamepadProfiles.json (managed in profile editor).
@@ -351,6 +428,9 @@
   </data>
   <data name="EnablePassthroughSwitch.OnContent" xml:space="preserve">
     <value>直接导向</value>
+  </data>
+  <data name="GamepadHint_SwitchLayer.Text" xml:space="preserve">
+    <value>切换层</value>
   </data>
   <data name="GamepadHint_Select.Text" xml:space="preserve">
     <value>选择</value>
@@ -1081,6 +1161,12 @@
   </data>
   <data name="GamepadInput_RStick.Text" xml:space="preserve">
     <value>右摇杆</value>
+  </data>
+  <data name="GamepadProfileLayerTab1.Content" xml:space="preserve">
+    <value>第 1 层</value>
+  </data>
+  <data name="GamepadProfileLayerTab2.Content" xml:space="preserve">
+    <value>第 2 层</value>
   </data>
   <data name="GamepadGroup_FaceButtons.Text" xml:space="preserve">
     <value>面键</value>

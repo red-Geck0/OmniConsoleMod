@@ -1,12 +1,20 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace OmniConsole.Services
 {
     /// <summary>
     /// 管理 PhantomKey 背景手把輸入服務的啟動、停止與狀態查詢。
     /// PhantomKey 會自動偵測前景程式，將手把 View 按鈕映射為對應的鍵盤快速鍵。
+    ///
+    /// 兩種執行型態：
+    ///   一般權限 — 從 %LOCALAPPDATA%\OmniConsole\Steam.exe 直接啟動（預設）。
+    ///   系統管理員權限 — 已安裝系統管理員程式支援時，改由排程工作啟動
+    ///     %ProgramData%\OmniConsoleMod\Steam.exe，這樣 SendInput 才送得進以系統管理員
+    ///     身分執行的前景程式（見 ElevatedInputService）。
     /// </summary>
     public static class PhantomKeyService
     {
@@ -25,14 +33,51 @@ namespace OmniConsole.Services
         /// <summary>使用者 LocalAppData 下實際執行的 PhantomKey 副本路徑，供 AboutInfoService 對比版本號使用。</summary>
         public static string DeployedExePath => _targetExePath;
 
+        /// <summary>LocalAppData 部署目錄；ElevatedInputService 也用它暫存 PhantomWarden。</summary>
+        public static string DeployedDir => _targetDir;
+
+        /// <summary>Start() 進行中旗標（0=閒置、1=進行中），避免並行呼叫各自跑一輪 Kill+重啟造成互相打架。</summary>
+        private static int _startInProgress;
+
+        /// <summary>最近一次由本行程實際啟動 PhantomKey 的時刻（Environment.TickCount64）。</summary>
+        private static long _lastStartTicks;
+
+        /// <summary>剛啟動後給 ping window 就緒的寬限時間；此窗內 NoPingWindow 視為「還在起來」，不重殺。</summary>
+        private const long StartGraceMs = 12000;
+
         /// <summary>
-        /// 從使用者目錄啟動 PhantomKey。
-        /// 若 MSIX 套件內的版本較新則先覆蓋，確保更新後自動部署新版。
-        /// 若已在執行中且健康（ping 通且主迴圈正在推進）則不重複啟動；
-        /// 若在執行中但不健康（卡住、凍結、舊版無 ping window）則先終止再啟動（自癒）。
+        /// 啟動 PhantomKey。
+        ///
+        /// 已安裝且版本相符的系統管理員程式支援 → 交給排程工作以 High IL 啟動；
+        /// 否則沿用一般權限路徑：若套件內版本較新則先覆蓋 LocalAppData 的副本再啟動。
+        ///
+        /// 兩條路徑都會先做健康檢查：已在執行且健康（ping 通且主迴圈正在推進）就不重複啟動；
+        /// 在執行但不健康（卡住、凍結、舊版無 ping window）則先終止再啟動（自癒）。
+        ///
+        /// 並行防護：同時只允許一個 Start 實際執行，其餘直接返回——
+        /// 開機當下 pre-warm 與委派路徑可能幾乎同時呼叫，若各自做健康檢查 + Kill + 重啟，會把剛起來、
+        /// ping window 還沒建好的實例互相殺掉重啟，churn 掉 ProgramData\Steam.exe 造成啟動路徑上的
+        /// FileVersionInfo / Shared.ini 存取被卡住（實測害開機影片全黑）。
         /// </summary>
         public static void Start()
         {
+            if (System.Threading.Interlocked.CompareExchange(ref _startInProgress, 1, 0) != 0)
+            {
+                DebugLogger.Log("[PhantomKeyService] Start already in progress, skipping re-entrant call.");
+                return;
+            }
+            try { StartCore(); }
+            finally { System.Threading.Interlocked.Exchange(ref _startInProgress, 0); }
+        }
+
+        private static void StartCore()
+        {
+            if (UseElevatedPath())
+            {
+                StartElevated();
+                return;
+            }
+
             if (!File.Exists(_sourceExePath))
             {
                 DebugLogger.Log($"[PhantomKeyService] .exe not found in package: {_sourceExePath}");
@@ -64,16 +109,89 @@ namespace OmniConsole.Services
                         return;
                     }
 
+                    // 才剛啟動、ping window 還沒建好會回報 NoPingWindow——那是「正在起來」不是「壞掉」，
+                    // 這段寬限窗內不要重殺重啟，否則會把剛起的實例殺掉造成 churn / 卡頓。
+                    if (health.Responsiveness == AboutInfoService.PhantomKeyResponsiveness.NoPingWindow
+                        && RecentlyStarted())
+                    {
+                        DebugLogger.Log("[PhantomKeyService] Recently started, ping window not up yet; giving it time.");
+                        return;
+                    }
+
                     DebugLogger.Log($"[PhantomKeyService] Existing instance unhealthy ({health.Responsiveness}), self-healing: kill + restart.");
                     Kill();
                 }
 
                 Process.Start(new ProcessStartInfo(_targetExePath) { UseShellExecute = true });
+                _lastStartTicks = Environment.TickCount64;
                 DebugLogger.Log($"[PhantomKeyService] Started: {_targetExePath}");
             }
             catch (Exception ex)
             {
                 DebugLogger.Log($"[PhantomKeyService] Start failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 系統管理員程式支援已安裝、且 ProgramData 那份版本與套件一致時走提權路徑。
+        /// 版本不一致代表主程式更新過但支援元件還沒跟著更新（更新需要另一次 UAC，由 UI 負責徵詢），
+        /// 此時先退回一般權限路徑，至少讓映射在非提權程式上照常運作。
+        /// </summary>
+        private static bool UseElevatedPath() =>
+            ElevatedInputService.IsInstalled() && !ElevatedInputService.NeedsUpdate();
+
+        /// <summary>本行程是否在寬限窗內剛啟動過 PhantomKey（用來避開殺掉還在起來的實例）。</summary>
+        private static bool RecentlyStarted() =>
+            _lastStartTicks != 0 && (Environment.TickCount64 - _lastStartTicks) < StartGraceMs;
+
+        /// <summary>
+        /// 提權路徑的啟動：執行檔由 PhantomWarden 放在 ProgramData（一般權限不可寫、也不由這裡複製），
+        /// 這裡只負責確保跑著的是那一份。
+        /// </summary>
+        private static void StartElevated()
+        {
+            try
+            {
+                string elevatedPath = ElevatedInputService.InstalledExePath;
+                string? running = GetRunningInstancePath();
+
+                if (running != null)
+                {
+                    if (elevatedPath.Equals(running, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var health = AboutInfoService.GetPhantomKeyHealth();
+                        DebugLogger.Log($"[PhantomKeyService] Elevated instance ping: responsiveness={health.Responsiveness}, lag={health.PingLagMs}ms");
+                        if (IsHealthyResponsiveness(health.Responsiveness))
+                        {
+                            DebugLogger.Log("[PhantomKeyService] Elevated instance healthy, skipping start.");
+                            return;
+                        }
+                        // 才剛啟動、ping window 還沒建好會回報 NoPingWindow——那是「正在起來」不是「壞掉」，
+                        // 這段寬限窗內不重殺重啟，避免把剛起的實例殺掉造成 churn 與開機卡頓。
+                        if (health.Responsiveness == AboutInfoService.PhantomKeyResponsiveness.NoPingWindow
+                            && RecentlyStarted())
+                        {
+                            DebugLogger.Log("[PhantomKeyService] Recently started, ping window not up yet; giving it time.");
+                            return;
+                        }
+                        DebugLogger.Log($"[PhantomKeyService] Elevated instance unhealthy ({health.Responsiveness}), self-healing: stop + restart.");
+                    }
+                    else
+                    {
+                        // 一般權限那份佔著單例 mutex，提權版起不來，先請它收工
+                        DebugLogger.Log($"[PhantomKeyService] Non-elevated instance running ({running}); stopping it first.");
+                    }
+                    Kill();
+                }
+
+                if (ElevatedInputService.RunElevatedPhantomKey())
+                    _lastStartTicks = Environment.TickCount64;
+                else
+                    DebugLogger.Log("[PhantomKeyService] Elevated start failed; mappings will not reach administrator apps.");
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.Log($"[PhantomKeyService] StartElevated failed: {ex.Message}");
             }
         }
 
@@ -88,17 +206,42 @@ namespace OmniConsole.Services
         }
 
         /// <summary>
-        /// 終止從使用者目錄執行的 .exe。
+        /// 終止 PhantomKey（兩種部署路徑都涵蓋）。
+        ///
+        /// 提權版無法用 Process.Kill 終止——一般權限開不了高完整性等級行程的 handle。
+        /// 因此先透過 Shared.ini 的 StopRequested 旗標請它自己收工，等它退出後再對殘存的
+        /// 一般權限行程（或不認得旗標的舊版）補上 Process.Kill。
         /// </summary>
         public static void Kill()
         {
+            try
+            {
+                // 只有提權版需要走旗標這條路（也只有它殺不掉）。一般權限那份直接 Process.Kill
+                // 即可，不必為了它在呼叫端多等——Start() 的複製路徑會在 UI 執行緒上呼叫本方法。
+                string? running = GetRunningInstancePath();
+                if (running != null &&
+                    ElevatedInputService.InstalledExePath.Equals(running, StringComparison.OrdinalIgnoreCase))
+                {
+                    SettingsService.RequestPhantomKeyStop();
+                    // PhantomKey 每 ~50ms 檢查一次設定檔變動，正常情況下 200ms 內就收工
+                    for (int i = 0; i < 30 && IsRunning(); i++) System.Threading.Thread.Sleep(100);
+                    SettingsService.ClearPhantomKeyStop();
+                    DebugLogger.Log($"[PhantomKeyService] Stop flag issued to elevated instance; still running={IsRunning()}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.Log($"[PhantomKeyService] Stop request failed: {ex.Message}");
+            }
+
             foreach (var proc in Process.GetProcessesByName("Steam"))
             {
                 try
                 {
-                    if (_targetExePath.Equals(proc.MainModule?.FileName, StringComparison.OrdinalIgnoreCase))
+                    string? path = GetProcessPath(proc.Id);
+                    if (path != null && IsKnownPhantomKeyPath(path))
                     {
-                        DebugLogger.Log($"[PhantomKeyService] Killing PID={proc.Id} Path={proc.MainModule.FileName}");
+                        DebugLogger.Log($"[PhantomKeyService] Killing PID={proc.Id} Path={path}");
                         proc.Kill();
                         proc.WaitForExit(5000);
                     }
@@ -132,17 +275,26 @@ namespace OmniConsole.Services
             return needsCopy;
         }
 
+        /// <summary>是否為我們認得的 PhantomKey 部署路徑（一般權限或提權）。</summary>
+        private static bool IsKnownPhantomKeyPath(string path) =>
+            _targetExePath.Equals(path, StringComparison.OrdinalIgnoreCase) ||
+            ElevatedInputService.InstalledExePath.Equals(path, StringComparison.OrdinalIgnoreCase);
+
         /// <summary>
-        /// 檢查是否有從使用者目錄執行的 .exe 正在執行。
+        /// 找出正在執行的 PhantomKey 並回傳其完整路徑；沒有則回 null。
+        ///
+        /// 刻意不用 Process.MainModule — 它需要 PROCESS_QUERY_INFORMATION | VM_READ，
+        /// 一般權限對提權行程會被拒。QueryFullProcessImageName 只需
+        /// PROCESS_QUERY_LIMITED_INFORMATION，同一使用者的提權行程也查得到。
         /// </summary>
-        public static bool IsRunning()
+        public static string? GetRunningInstancePath()
         {
             foreach (var proc in Process.GetProcessesByName("Steam"))
             {
                 try
                 {
-                    if (_targetExePath.Equals(proc.MainModule?.FileName, StringComparison.OrdinalIgnoreCase))
-                        return true;
+                    string? path = GetProcessPath(proc.Id);
+                    if (path != null && IsKnownPhantomKeyPath(path)) return path;
                 }
                 catch { }
                 finally
@@ -150,7 +302,47 @@ namespace OmniConsole.Services
                     proc.Dispose();
                 }
             }
-            return false;
+            return null;
+        }
+
+        /// <summary>
+        /// 檢查是否有 PhantomKey 正在執行（一般權限或提權皆算）。
+        /// </summary>
+        public static bool IsRunning() => GetRunningInstancePath() != null;
+
+        // ── 行程路徑查詢（跨完整性等級） ─────────────────────────────────────
+
+        private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr OpenProcess(uint access, bool inheritHandle, int pid);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool QueryFullProcessImageNameW(
+            IntPtr process, uint flags, StringBuilder buffer, ref uint size);
+
+        /// <summary>取行程的完整執行檔路徑；取不到回 null。</summary>
+        internal static string? GetProcessPath(int pid)
+        {
+            IntPtr handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+            if (handle == IntPtr.Zero) return null;
+            try
+            {
+                var buffer = new StringBuilder(1024);
+                uint size = (uint)buffer.Capacity;
+                return QueryFullProcessImageNameW(handle, 0, buffer, ref size)
+                    ? buffer.ToString()
+                    : null;
+            }
+            finally
+            {
+                CloseHandle(handle);
+            }
         }
     }
 }

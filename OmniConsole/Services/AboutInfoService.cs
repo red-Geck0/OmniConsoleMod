@@ -110,6 +110,13 @@ namespace OmniConsole.Services
         private static extern IntPtr GetSidSubAuthority(IntPtr pSid, uint nSubAuthority);
 
         private const uint TOKEN_QUERY = 0x0008;
+
+        // 只查詢用的行程存取權；PROCESS_QUERY_INFORMATION 對提權行程會被拒，這個不會。
+        private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+        [DllImport("kernel32.dll", EntryPoint = "OpenProcess", SetLastError = true)]
+        private static extern IntPtr OpenProcessLimited(uint dwDesiredAccess,
+            [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, int dwProcessId);
         private const int TokenIntegrityLevel = 25;
         private const uint SECURITY_MANDATORY_LOW_RID = 0x1000;
         private const uint SECURITY_MANDATORY_MEDIUM_RID = 0x2000;
@@ -385,20 +392,23 @@ namespace OmniConsole.Services
             int pid = -1;
             string exePath = string.Empty;
             DateTime startTime = default;
-            string expectedPath = PhantomKeyService.DeployedExePath;
             bool pathExpected = false;
 
+            // 一般權限與提權（%ProgramData%）兩種部署路徑都算數。
+            // 刻意不用 Process.MainModule — 一般權限對提權行程會被拒；
+            // PhantomKeyService.GetProcessPath 走 PROCESS_QUERY_LIMITED_INFORMATION，兩者都查得到。
             foreach (var proc in Process.GetProcessesByName("Steam"))
             {
                 try
                 {
-                    string? mainModule = proc.MainModule?.FileName;
-                    if (mainModule != null &&
-                        expectedPath.Equals(mainModule, StringComparison.OrdinalIgnoreCase))
+                    string? path = PhantomKeyService.GetProcessPath(proc.Id);
+                    if (path != null &&
+                        (PhantomKeyService.DeployedExePath.Equals(path, StringComparison.OrdinalIgnoreCase) ||
+                         ElevatedInputService.InstalledExePath.Equals(path, StringComparison.OrdinalIgnoreCase)))
                     {
                         pid = proc.Id;
-                        exePath = mainModule;
-                        startTime = proc.StartTime;
+                        exePath = path;
+                        try { startTime = proc.StartTime; } catch { }
                         pathExpected = true;
                         break;
                     }
@@ -498,11 +508,15 @@ namespace OmniConsole.Services
         private static IntegrityLevel GetProcessIntegrityLevel(int pid)
         {
             IntPtr hToken = IntPtr.Zero;
+            IntPtr hProc = IntPtr.Zero;
             IntPtr buf = IntPtr.Zero;
             try
             {
-                using var proc = Process.GetProcessById(pid);
-                if (!OpenProcessToken(proc.Handle, TOKEN_QUERY, out hToken))
+                // Process.Handle 會以 PROCESS_ALL_ACCESS 開啟，對提權行程必定失敗；
+                // 這裡只需要 PROCESS_QUERY_LIMITED_INFORMATION，同一使用者的提權行程也查得到。
+                hProc = OpenProcessLimited(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+                if (hProc == IntPtr.Zero) return IntegrityLevel.Unknown;
+                if (!OpenProcessToken(hProc, TOKEN_QUERY, out hToken))
                     return IntegrityLevel.Unknown;
 
                 GetTokenInformation(hToken, TokenIntegrityLevel, IntPtr.Zero, 0, out uint len);
@@ -533,6 +547,7 @@ namespace OmniConsole.Services
             {
                 if (buf != IntPtr.Zero) Marshal.FreeHGlobal(buf);
                 if (hToken != IntPtr.Zero) CloseHandle(hToken);
+                if (hProc != IntPtr.Zero) CloseHandle(hProc);
             }
         }
 

@@ -603,6 +603,62 @@ namespace OmniConsole.Services
             WriteShared("PhantomKey", "SteamInGameOverlayEnabled", enabled ? "1" : "0");
         }
 
+        // ─── 以系統管理員身分啟動平台 ──────────────────────────────────────
+
+        private const string LaunchPlatformElevatedKey = "LaunchPlatformElevated";
+
+        /// <summary>
+        /// 取得是否以系統管理員身分啟動預設平台（Home App）。預設為 false。
+        /// </summary>
+        public static bool GetLaunchPlatformElevated()
+        {
+            var settings = ApplicationData.Current.LocalSettings;
+            if (settings.Values.TryGetValue(LaunchPlatformElevatedKey, out object? value) && value is bool enabled)
+                return enabled;
+            return false;
+        }
+
+        /// <summary>
+        /// 儲存是否以系統管理員身分啟動預設平台。
+        /// 純 OmniConsole 端的啟動行為，PhantomKey / PhantomLink 用不到，因此不寫入 Shared.ini。
+        /// </summary>
+        public static void SetLaunchPlatformElevated(bool enabled)
+        {
+            ApplicationData.Current.LocalSettings.Values[LaunchPlatformElevatedKey] = enabled;
+        }
+
+        /// <summary>
+        /// 寫入一筆「免 UAC 提權啟動」請求到 Shared.ini [Launch]，交給提權版 PhantomKey 代打
+        /// （見 ElevatedLaunchService / PhantomKey ElevatedLaunch.cpp）。
+        ///
+        /// 去重：每次帶一個唯一遞增的 Seq（用 UTC ticks），PhantomKey 處理後回寫 AckSeq；
+        /// 只有 Seq 與 AckSeq 不同才會啟動一次。先寫 Exe 再寫 Seq —— PhantomKey 以 Seq 變動為
+        /// 觸發點，確保它讀到新 Seq 時 Exe 已經就位。
+        /// </summary>
+        public static void WriteElevatedLaunchRequest(string exePath, string arguments = "")
+        {
+            WriteShared("Launch", "Exe", exePath);
+            WriteShared("Launch", "Args", arguments ?? "");
+            WriteShared("Launch", "Seq", DateTime.UtcNow.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// 歸零 [Launch] Pid。每次啟動流程開始時呼叫，清掉上一輪殘留的 PID，之後只要讀到非 0
+        /// 就代表提權版 PhantomKey 這一輪確實啟動了平台，其 PID 即回報值。
+        /// </summary>
+        public static void ClearElevatedLaunchPid() => WriteShared("Launch", "Pid", "0");
+
+        /// <summary>
+        /// 讀取提權版 PhantomKey 回報的平台 PID（[Launch] Pid）；無 / 非數字 / 尚未啟動時回 0。
+        /// 主程式用它偵測平台視窗是否已出現（即使還在自己視窗後方），以便適時藏起自己讓平台浮到前景。
+        /// </summary>
+        public static int GetElevatedLaunchPid()
+        {
+            string s = ReadShared("Launch", "Pid", "0");
+            return int.TryParse(s, System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out int pid) && pid > 0 ? pid : 0;
+        }
+
         // ─── Gamepad Mouse Mode（3-way: Off/Auto/ForceOn） ─────────────────
 
         public const string MouseModeOff = "Off";
@@ -850,6 +906,7 @@ namespace OmniConsole.Services
         {
             ApplicationData.Current.LocalSettings.Values["EnableDebugLogging"] = enabled;
             WriteShared("Debug", "EnableLogging", enabled ? "1" : "0");
+            DebugLogger.SetEnabled(enabled);
         }
 
         /// <summary>
@@ -876,5 +933,36 @@ namespace OmniConsole.Services
             }
             catch { return false; }
         }
+
+        /// <summary>
+        /// PhantomKey 是否偵測到「別的軟體也在把手把搖桿轉成滑鼠游標」。
+        /// 來源多半是 Windows 11 Game Bar 的 Gamepad Cursor（Game Bar → 設定 → Gamepad Cursor），
+        /// 其次是 Steam Input 桌面配置、DS4Windows、Armoury Crate 桌面模式。
+        ///
+        /// 由 PhantomKey 以低階滑鼠掛鉤行為偵測後寫入 Shared.ini [Status] ExternalCursorConflict，
+        /// 讀設定值不可行（Game Bar 存在自家 settings.dat 的 GUID JSON blob，未公開）。
+        /// 偵測需要使用者實際推動搖桿才會成立，因此為「目前正在打架」而非「該功能已開啟」。
+        /// PhantomKey 未執行時旗標為 0。
+        /// </summary>
+        public static bool HasExternalCursorConflict() =>
+            ReadShared("Status", "ExternalCursorConflict", "0") == "1";
+
+        /// <summary>
+        /// PhantomKey 是否回報「前景是以系統管理員身分執行的程式，映射送不進去」。
+        /// UIPI 擋掉低完整性等級行程對高完整性等級視窗的輸入注入；解法是安裝系統管理員
+        /// 程式支援，讓 PhantomKey 本身也跑在 High IL（見 ElevatedInputService）。
+        /// PhantomKey 未執行、或已提權時旗標為 0。
+        /// </summary>
+        public static bool IsElevatedInputBlocked() =>
+            ReadShared("Status", "ElevatedInputBlocked", "0") == "1";
+
+        /// <summary>
+        /// 請 PhantomKey 自行收工。提權版無法用 Process.Kill 終止（一般權限開不了高完整性
+        /// 等級行程的 handle），只能透過這個旗標請它自己結束。
+        /// </summary>
+        public static void RequestPhantomKeyStop() => WriteShared("Status", "StopRequested", "1");
+
+        /// <summary>清除停止請求；PhantomKey 結束後（或放棄等待後）務必歸零，否則下次啟動會立刻自殺。</summary>
+        public static void ClearPhantomKeyStop() => WriteShared("Status", "StopRequested", "0");
     }
 }

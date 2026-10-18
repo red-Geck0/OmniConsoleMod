@@ -102,6 +102,7 @@ void SendKeyCombo(const std::wstring& combo) {
         inp.ki.wVk = vk;
         inp.ki.wScan = (WORD)MapVirtualKeyW(vk, MAPVK_VK_TO_VSC);
         inp.ki.dwFlags = 0;
+        inp.ki.dwExtraInfo = kPhantomKeyInputTag;
         inputs.push_back(inp);
     }
     SendInput((UINT)inputs.size(), inputs.data(), sizeof(INPUT));
@@ -117,6 +118,7 @@ void SendKeyCombo(const std::wstring& combo) {
         inp.ki.wVk = keys[i];
         inp.ki.wScan = (WORD)MapVirtualKeyW(keys[i], MAPVK_VK_TO_VSC);
         inp.ki.dwFlags = KEYEVENTF_KEYUP;
+        inp.ki.dwExtraInfo = kPhantomKeyInputTag;
         inputs.push_back(inp);
     }
     SendInput((UINT)inputs.size(), inputs.data(), sizeof(INPUT));

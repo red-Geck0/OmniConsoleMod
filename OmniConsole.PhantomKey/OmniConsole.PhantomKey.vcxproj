@@ -150,6 +150,8 @@
     <ClCompile Include="MouseMode.cpp" />
     <ClCompile Include="GamepadProfiles.cpp" />
     <ClCompile Include="PingService.cpp" />
+    <ClCompile Include="CursorConflict.cpp" />
+    <ClCompile Include="ElevatedLaunch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Log.h" />
@@ -162,6 +164,8 @@
     <ClInclude Include="Bindings.h" />
     <ClInclude Include="GamepadProfiles.h" />
     <ClInclude Include="PingService.h" />
+    <ClInclude Include="CursorConflict.h" />
+    <ClInclude Include="ElevatedLaunch.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resources.rc" />

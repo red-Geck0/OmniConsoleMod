@@ -74,6 +74,10 @@ namespace OmniConsole.Controls
             InitializeComponent();
             ProfileList.ItemsSource = _items;
             ProfileList.ContainerContentChanging += ProfileList_ContainerContentChanging;
+            Loaded += (_, _) => _conflictTimer.Start();
+            Unloaded += (_, _) => _conflictTimer.Stop();
+            _conflictTimer.Interval = TimeSpan.FromSeconds(2);
+            _conflictTimer.Tick += (_, _) => SyncExternalCursorConflictNote();
         }
 
         /// <summary>每次 ListViewItem 容器產生或重用時，掛上 GotFocus 同步 SelectedItem 到目前焦點 row。</summary>
@@ -112,6 +116,31 @@ namespace OmniConsole.Controls
                 MouseModeBuiltInNote.Visibility = builtIn ? Visibility.Visible : Visibility.Collapsed;
             }
             finally { _mmLoading = false; }
+
+            SyncExternalCursorConflictNote();
+        }
+
+        /// <summary>本頁顯示期間輪詢 PhantomKey 回報旗標的計時器（寫在 Shared.ini，隨時可能變動）。</summary>
+        private readonly DispatcherTimer _conflictTimer = new DispatcherTimer();
+
+        /// <summary>
+        /// 同步「別的軟體也在把搖桿轉成游標」提示。
+        /// Mouse Mode 關著時不顯示——那種情況下沒有東西可衝突，提示只會造成困惑。
+        /// </summary>
+        private void SyncExternalCursorConflictNote()
+        {
+            bool show = MouseModeSwitch.IsOn && SettingsService.HasExternalCursorConflict();
+            var target = show ? Visibility.Visible : Visibility.Collapsed;
+            if (ExternalCursorConflictNote.Visibility != target)
+                ExternalCursorConflictNote.Visibility = target;
+
+            // 前景是系統管理員程式、UIPI 把映射擋掉時提示解法。
+            // 已安裝系統管理員程式支援就不會再有這個狀況（PhantomKey 自己也在 High IL），
+            // 屆時 PhantomKey 根本不會升起這個旗標。
+            bool blocked = MouseModeSwitch.IsOn && SettingsService.IsElevatedInputBlocked();
+            var blockedTarget = blocked ? Visibility.Visible : Visibility.Collapsed;
+            if (ElevatedInputBlockedNote.Visibility != blockedTarget)
+                ElevatedInputBlockedNote.Visibility = blockedTarget;
         }
 
         /// <summary>Mouse Mode On/Off：寫入設定（On 以 Auto 值儲存，與舊模型相容）。</summary>
@@ -120,6 +149,7 @@ namespace OmniConsole.Controls
             if (_mmLoading) return;
             SettingsService.SetMouseMode(
                 MouseModeSwitch.IsOn ? SettingsService.MouseModeAuto : SettingsService.MouseModeOff);
+            SyncExternalCursorConflictNote();
         }
 
         /// <summary>從 GamepadProfileStore 重抓並重新整理清單。</summary>

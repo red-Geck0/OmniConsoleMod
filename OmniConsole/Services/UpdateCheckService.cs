@@ -24,6 +24,9 @@ namespace OmniConsole.Services
 
         public const string PhantomLinkFamilyName = "7e76dfc4-2f28-431a-adee-dc76fdef9b57_1dnwtebwr9ekg";
 
+        // 下載到 LocalFolder 的 .msix 一律用固定前綴命名，與發行檔名脫鉤
+        private const string LocalMsixPrefix = "pending-update-";
+
         public static string ReleaseNotesUrl => ReleasePageUrl;
 
         public enum UpdateKind
@@ -64,7 +67,7 @@ namespace OmniConsole.Services
                 if (!Version.TryParse(currentStr, out var current))
                     return (UpdateKind.None, "");
 
-                var (mainUrl, phantomLinkUrl) = ParseBundleDownloadUrls(json);
+                var (mainUrl, phantomLinkUrl) = ParseBundleDownloadUrls(json, versionStr);
 
                 bool phantomLinkUpToDate = IsPhantomLinkUpToDate(latest);
                 bool hasNewVersion = latest > current;
@@ -75,20 +78,14 @@ namespace OmniConsole.Services
                     // 主程式有新版 → MainAppUpdate（InstallBundleAsync 會連帶更新 PhantomLink）
                     kind = UpdateKind.MainAppUpdate;
                     SettingsService.SetCachedNewVersion(versionStr);
-                    if (!string.IsNullOrEmpty(mainUrl))
-                        SettingsService.SetCachedDownloadUrl(mainUrl);
-                    if (!string.IsNullOrEmpty(phantomLinkUrl))
-                        SettingsService.SetCachedPhantomLinkUrl(phantomLinkUrl);
+                    CacheDownloadUrls(mainUrl, phantomLinkUrl);
                 }
                 else if (!phantomLinkUpToDate)
                 {
                     // 同版本但 PhantomLink 缺件或版本過時
                     kind = UpdateKind.MissingPhantomLink;
                     SettingsService.SetCachedNewVersion(versionStr);
-                    if (!string.IsNullOrEmpty(mainUrl))
-                        SettingsService.SetCachedDownloadUrl(mainUrl);
-                    if (!string.IsNullOrEmpty(phantomLinkUrl))
-                        SettingsService.SetCachedPhantomLinkUrl(phantomLinkUrl);
+                    CacheDownloadUrls(mainUrl, phantomLinkUrl);
                 }
                 else
                 {
@@ -105,6 +102,23 @@ namespace OmniConsole.Services
             {
                 return (UpdateKind.None, "");
             }
+        }
+
+        /// <summary>
+        /// 以本次解析結果覆寫下載連結快取；找不到的資產一併清除，
+        /// 避免沿用上一次檢查留下、指向舊版本的 .msix 連結。
+        /// </summary>
+        private static void CacheDownloadUrls(string mainUrl, string phantomLinkUrl)
+        {
+            if (string.IsNullOrEmpty(mainUrl))
+                SettingsService.ClearCachedDownloadUrl();
+            else
+                SettingsService.SetCachedDownloadUrl(mainUrl);
+
+            if (string.IsNullOrEmpty(phantomLinkUrl))
+                SettingsService.ClearCachedPhantomLinkUrl();
+            else
+                SettingsService.SetCachedPhantomLinkUrl(phantomLinkUrl);
         }
 
         /// <summary>
@@ -230,13 +244,14 @@ namespace OmniConsole.Services
         }
 
         /// <summary>
-        /// 刪除指定目錄中所有 OmniConsole_*.msix 檔案。
+        /// 刪除指定目錄中先前更新留下的 .msix 檔案（新的固定檔名與舊版沿用發行檔名的兩種格式）。
         /// </summary>
         public static void CleanUpOldMsixFiles(string directory)
         {
             try
             {
-                foreach (var file in Directory.GetFiles(directory, "OmniConsole_*.msix")
+                foreach (var file in Directory.GetFiles(directory, LocalMsixPrefix + "*.msix")
+                    .Concat(Directory.GetFiles(directory, "OmniConsole_*.msix"))
                     .Concat(Directory.GetFiles(directory, "OmniConsole.PhantomLink_*-widget.msix")))
                 {
                     File.Delete(file);
@@ -286,9 +301,13 @@ namespace OmniConsole.Services
 
         /// <summary>
         /// 從 GitHub Release JSON 的 assets 陣列中同時取出主程式 OmniConsole 與 PhantomLink 的 .msix 下載連結。
+        /// 只依檔名結尾與版本號辨識，不比對產品名稱前綴，發行檔改名後舊版仍能找到：
+        ///   PhantomLink → 含 "_{version}_" 且以 "_x64-widget.msix" 結尾
+        ///   主程式      → 含 "_{version}_" 且以 "_x64.msix" 結尾
         /// </summary>
-        private static (string mainUrl, string phantomLinkUrl) ParseBundleDownloadUrls(string json)
+        private static (string mainUrl, string phantomLinkUrl) ParseBundleDownloadUrls(string json, string version)
         {
+            var versionToken = $"_{version}_";
             string mainUrl = "";
             string phantomLinkUrl = "";
 
@@ -305,11 +324,12 @@ namespace OmniConsole.Services
                     continue;
                 var url = urlElement.GetString() ?? "";
 
-                if (name.EndsWith("_x64-widget.msix", StringComparison.OrdinalIgnoreCase)
-                    && name.StartsWith("OmniConsole.PhantomLink_", StringComparison.OrdinalIgnoreCase))
+                if (!name.Contains(versionToken, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (name.EndsWith("_x64-widget.msix", StringComparison.OrdinalIgnoreCase))
                     phantomLinkUrl = url;
-                else if (name.EndsWith("_x64.msix", StringComparison.OrdinalIgnoreCase)
-                    && name.StartsWith("OmniConsole_", StringComparison.OrdinalIgnoreCase))
+                else if (name.EndsWith("_x64.msix", StringComparison.OrdinalIgnoreCase))
                     mainUrl = url;
             }
             return (mainUrl, phantomLinkUrl);
@@ -390,7 +410,7 @@ namespace OmniConsole.Services
             // ── Phase 1: PhantomLink ────────────────────────────────────────────
             if (!resumeFromPhase2 && !string.IsNullOrEmpty(phantomLinkUrl))
             {
-                var plFileName = $"OmniConsole.PhantomLink_{targetVersion}_x64-widget.msix";
+                var plFileName = $"{LocalMsixPrefix}widget_{targetVersion}.msix";
                 var plPath = Path.Combine(localFolder, plFileName);
 
                 DebugLogger.Log($"[InstallBundle] Phase 1: downloading PhantomLink to {plPath}");
@@ -430,7 +450,7 @@ namespace OmniConsole.Services
 
             if (!string.IsNullOrEmpty(mainUrl))
             {
-                var mainFileName = $"OmniConsole_{targetVersion}_x64.msix";
+                var mainFileName = $"{LocalMsixPrefix}main_{targetVersion}.msix";
                 var mainPath = Path.Combine(localFolder, mainFileName);
 
                 DebugLogger.Log($"[InstallBundle] Phase 2: downloading OmniConsole to {mainPath}");

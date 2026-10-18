@@ -429,16 +429,34 @@ namespace OmniConsole.Services
                     prof.Layered.ActivationMode = am;
             }
 
-            if (obj["bindings"] is JsonObject bindings)
+            ReadBindings(obj["bindings"] as JsonObject, prof.Bindings);
+            ReadBindings(obj["layerBindings"] as JsonObject, prof.LayerBindings);
+
+            // 舊格式遷移：Layered 過去只有一套映射，關閉狀態＝完全不送出任何鍵，
+            // 開啟狀態＝送出那唯一一套。改成兩層之後，若沿用「那套 = 第 1 層」，
+            // 遊戲中平時就會突然開始攔截按鍵——明顯的行為倒退。
+            // 因此把舊資料搬到第 2 層、第 1 層留空，維持與過去完全相同的手感。
+            // 判斷依據是「沒有 layerBindings 欄位」而非「內容為空」，
+            // 使用者刻意清空第 2 層時不會被誤判成舊檔而再次搬移。
+            if (prof.Layered.Enabled && obj["layerBindings"] is null && prof.Bindings.Count > 0)
             {
-                foreach (var kv in bindings)
-                {
-                    if (kv.Value is not JsonObject actionObj) continue;
-                    if (!Enum.TryParse<GamepadInputId>(kv.Key, ignoreCase: true, out var inputId)) continue;
-                    if (ParseAction(actionObj) is { } act) prof.Bindings[inputId] = act;
-                }
+                prof.LayerBindings = prof.Bindings;
+                prof.Bindings = new Dictionary<GamepadInputId, GamepadAction>();
             }
+
             return prof;
+        }
+
+        /// <summary>讀取一組 bindings JSON 物件到指定字典；來源為 null 時不做事。</summary>
+        private static void ReadBindings(JsonObject? source, Dictionary<GamepadInputId, GamepadAction> target)
+        {
+            if (source is null) return;
+            foreach (var kv in source)
+            {
+                if (kv.Value is not JsonObject actionObj) continue;
+                if (!Enum.TryParse<GamepadInputId>(kv.Key, ignoreCase: true, out var inputId)) continue;
+                if (ParseAction(actionObj) is { } act) target[inputId] = act;
+            }
         }
 
         private static GamepadAction ParseAction(JsonObject obj)
@@ -491,12 +509,10 @@ namespace OmniConsole.Services
 
         private static JsonObject SerializeProfile(GamepadProfile prof)
         {
-            var bindings = new JsonObject();
-            foreach (var kv in prof.Bindings)
-            {
-                if (kv.Value == null || kv.Value.Kind == GamepadActionKind.None) continue;
-                bindings[kv.Key.ToString()] = SerializeAction(kv.Value);
-            }
+            var bindings = WriteBindings(prof.Bindings);
+            // layerBindings 一律寫出（即使為空），這正是遷移判斷的依據：
+            // 存過一次之後，空的第 2 層就不會再被當成舊檔而重新搬移第 1 層。
+            var layerBindings = WriteBindings(prof.LayerBindings);
 
             return new JsonObject
             {
@@ -512,8 +528,21 @@ namespace OmniConsole.Services
                     ["triggerKey"] = prof.Layered.TriggerKey.ToString(),
                     ["activationMode"] = prof.Layered.ActivationMode.ToString()
                 },
-                ["bindings"] = bindings
+                ["bindings"] = bindings,
+                ["layerBindings"] = layerBindings
             };
+        }
+
+        /// <summary>將一組 bindings 序列化為 JSON 物件；Kind=None 的項目略過不寫。</summary>
+        private static JsonObject WriteBindings(Dictionary<GamepadInputId, GamepadAction> source)
+        {
+            var obj = new JsonObject();
+            foreach (var kv in source)
+            {
+                if (kv.Value == null || kv.Value.Kind == GamepadActionKind.None) continue;
+                obj[kv.Key.ToString()] = SerializeAction(kv.Value);
+            }
+            return obj;
         }
 
         private static JsonObject SerializeAction(GamepadAction a)

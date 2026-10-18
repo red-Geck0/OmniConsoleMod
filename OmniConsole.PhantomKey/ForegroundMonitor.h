@@ -45,3 +45,11 @@ void LogForegroundWindowDiagnostics();
 // 判定前景對 XInput D-pad 是否已有原生反應（送方向鍵會雙跳）
 // 目前已知：Windows 11 檔案總管（explorer + 非 FSE Task View）
 bool ForegroundHandlesDpadNatively(const std::wstring& processName);
+
+// 前景視窗所屬行程是否以系統管理員權限執行（token 完整性等級 >= High）。
+// 查不到（行程已結束、權限不足等）一律回 false，寧可不提示也不誤報。
+bool IsForegroundProcessElevated(HWND fgHwnd);
+
+// PhantomKey 自己是否跑在 High IL（由 PhantomWarden 註冊的排程工作啟動時為 true）。
+// 結果在行程存活期間不變，內部快取。
+bool IsSelfElevated();

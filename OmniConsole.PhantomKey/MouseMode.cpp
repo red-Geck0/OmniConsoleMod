@@ -1,4 +1,5 @@
 #include "MouseMode.h"
+#include "InputSender.h"
 #include <shellapi.h>
 #include <objbase.h>
 #include <thread>
@@ -93,6 +94,7 @@ namespace {
         in.mi.dx = dx;
         in.mi.dy = dy;
         in.mi.dwFlags = MOUSEEVENTF_MOVE;
+        in.mi.dwExtraInfo = kPhantomKeyInputTag;
         SendInput(1, &in, sizeof(INPUT));
     }
 
@@ -101,6 +103,7 @@ namespace {
         in.type = INPUT_MOUSE;
         in.mi.mouseData = (DWORD)delta;
         in.mi.dwFlags = horizontal ? MOUSEEVENTF_HWHEEL : MOUSEEVENTF_WHEEL;
+        in.mi.dwExtraInfo = kPhantomKeyInputTag;
         SendInput(1, &in, sizeof(INPUT));
     }
 
@@ -114,6 +117,7 @@ namespace {
         INPUT in = {};
         in.type = INPUT_MOUSE;
         in.mi.dwFlags = flag;
+        in.mi.dwExtraInfo = kPhantomKeyInputTag;
         SendInput(1, &in, sizeof(INPUT));
     }
 
@@ -122,13 +126,14 @@ namespace {
         in.type = INPUT_KEYBOARD;
         in.ki.wVk = vk;
         in.ki.dwFlags = down ? 0 : KEYEVENTF_KEYUP;
+        in.ki.dwExtraInfo = kPhantomKeyInputTag;
         SendInput(1, &in, sizeof(INPUT));
     }
 
     void SendVKTap(WORD vk) {
         INPUT in[2] = {};
-        in[0].type = INPUT_KEYBOARD;  in[0].ki.wVk = vk;
-        in[1].type = INPUT_KEYBOARD;  in[1].ki.wVk = vk;  in[1].ki.dwFlags = KEYEVENTF_KEYUP;
+        in[0].type = INPUT_KEYBOARD;  in[0].ki.wVk = vk;  in[0].ki.dwExtraInfo = kPhantomKeyInputTag;
+        in[1].type = INPUT_KEYBOARD;  in[1].ki.wVk = vk;  in[1].ki.dwFlags = KEYEVENTF_KEYUP;  in[1].ki.dwExtraInfo = kPhantomKeyInputTag;
         SendInput(2, in, sizeof(INPUT));
     }
 
@@ -145,6 +150,7 @@ namespace {
         for (size_t m = 0; m < n; ++m) {
             in[i].type = INPUT_KEYBOARD;  in[i].ki.wVk = mods[n - 1 - m];  in[i].ki.dwFlags = KEYEVENTF_KEYUP;  ++i;
         }
+        for (auto& e : in) e.ki.dwExtraInfo = kPhantomKeyInputTag;
         SendInput((UINT)in.size(), in.data(), sizeof(INPUT));
     }
 
@@ -661,17 +667,19 @@ namespace MouseMode {
                     PlayLayerSound(isToggle, layered.active);
             }
 
-            if (!layered.active) {
-                // layer 未作用：不送出映射。剛從作用切回未作用時釋放壓著狀態；
-                // 維持輸入基準（prevButtons 等）為現值，避免 layer 重新作用時誤判邊緣。
-                if (wasActive) ReleaseHeldInputs();
+            // 切換層的瞬間先釋放上一層壓著的鍵，否則例如第 1 層的 KeyHold 會在
+            // 換層後永遠收不到 keyup。同時重設輸入基準，避免新層誤判成「剛按下」
+            // 而把切換當下仍壓著的實體鍵重新觸發一次。
+            if (layered.active != wasActive) {
+                ReleaseHeldInputs();
                 prevButtons = pad.wButtons;
                 prevLT      = pad.bLeftTrigger;
                 prevRT      = pad.bRightTrigger;
-                return;
             }
-            // layer 作用中：套用映射，但 triggerKey 保留作切換用，其映射不送出
-            Bindings b = profile.bindings;
+
+            // 兩層各是一套完整映射：未作用時走第 1 層，作用中走第 2 層。
+            // triggerKey 兩層都保留作切換用，其映射一律不送出。
+            Bindings b = layered.active ? profile.layerBindings : profile.bindings;
             At(b, profile.layered.triggerKey) = ActNone();
             RunBindings(pad, b, profile.cursorSpeedPercent, skipDpad, profile.dpadAutoRepeat);
             return;

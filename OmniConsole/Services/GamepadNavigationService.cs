@@ -342,6 +342,7 @@ namespace OmniConsole.Services
         private readonly Action? _onMenuButtonPressed;
         private readonly Action? _onViewButtonPressed;
         private readonly Action? _onNoFocusDetected;
+        private readonly Func<FocusNavigationDirection, bool>? _onFocusBlocked;
 
         /// <summary>
         /// 初始化 <see cref="GamepadNavigationService"/> 類別的新執行個體。
@@ -361,7 +362,12 @@ namespace OmniConsole.Services
         /// 呼叫方應趁機把焦點補到目前頁面/控制項的第一個可用元件（例如編輯器頁尚未成功設定初始焦點時）；
         /// 這是自我修復用的最後防線，不管沒有焦點的確切成因為何都能救回，不需精準對症下藥。
         /// </param>
-        public GamepadNavigationService(UIElement searchRoot, DispatcherQueue dispatcherQueue, Action onAButtonPressed, Action? onBButtonPressed = null, Action? onLBPressed = null, Action? onRBPressed = null, Action? onXButtonPressed = null, Action? onYButtonPressed = null, Action? onMenuButtonPressed = null, Action? onViewButtonPressed = null, Action? onNoFocusDetected = null)
+        /// <param name="onFocusBlocked">
+        /// XY 焦點導覽在該方向找不到可聚焦目標（即將播放撞牆音）時呼叫（可選）。
+        /// 呼叫方可自行把焦點移到別處並回傳 true（改播移動音）；回傳 false 則照常撞牆。
+        /// 用於 XY 投影策略照顧不到的版面，例如卡片網格最後一列未填滿時的往下、行尾換列。
+        /// </param>
+        public GamepadNavigationService(UIElement searchRoot, DispatcherQueue dispatcherQueue, Action onAButtonPressed, Action? onBButtonPressed = null, Action? onLBPressed = null, Action? onRBPressed = null, Action? onXButtonPressed = null, Action? onYButtonPressed = null, Action? onMenuButtonPressed = null, Action? onViewButtonPressed = null, Action? onNoFocusDetected = null, Func<FocusNavigationDirection, bool>? onFocusBlocked = null)
         {
             _searchRoot = searchRoot;
             _onAButtonPressed = onAButtonPressed;
@@ -373,6 +379,7 @@ namespace OmniConsole.Services
             _onMenuButtonPressed = onMenuButtonPressed;
             _onViewButtonPressed = onViewButtonPressed;
             _onNoFocusDetected = onNoFocusDetected;
+            _onFocusBlocked = onFocusBlocked;
 
             _gamepadTimer = dispatcherQueue.CreateTimer();
             _gamepadTimer.Interval = TimeSpan.FromMilliseconds(33); // ~30 FPS（單按反應時間 ≤ 33ms 比 50ms 明顯靈敏）
@@ -817,9 +824,20 @@ namespace OmniConsole.Services
                     if (trace)
                         DebugLogger.Log($"[GamepadNav] focused is inside searchRoot, candidate={(candidate as FrameworkElement)?.Name ?? candidate?.GetType().Name ?? "null"}");
 
-                    // 撞牆防護：候選目標不是可互動控制項或無候選 → 播撞牆音、不移動焦點
-                    if (candidate is Control c && !c.IsTabStop) { DebugLogger.Log("[GamepadNav] candidate not IsTabStop, blocked"); PlaySound(ElementSoundKind.GoBack); return; }
-                    if (candidate == null) { DebugLogger.Log("[GamepadNav] candidate null, blocked"); PlaySound(ElementSoundKind.GoBack); return; }
+                    // 撞牆防護：候選目標不是可互動控制項或無候選 → 先讓呼叫方有機會自行處理，否則播撞牆音、不移動焦點
+                    bool notTabStop = candidate is Control c && !c.IsTabStop;
+                    if (notTabStop || candidate == null)
+                    {
+                        if (_onFocusBlocked?.Invoke(direction) == true)
+                        {
+                            DebugLogger.Log("[GamepadNav] blocked, handled by onFocusBlocked");
+                            PlaySound(ElementSoundKind.Focus);
+                            return;
+                        }
+                        DebugLogger.Log(notTabStop ? "[GamepadNav] candidate not IsTabStop, blocked" : "[GamepadNav] candidate null, blocked");
+                        PlaySound(ElementSoundKind.GoBack);
+                        return;
+                    }
 
                     _ = FocusManager.TryMoveFocusAsync(direction, options);
                     PlaySound(ElementSoundKind.Focus);

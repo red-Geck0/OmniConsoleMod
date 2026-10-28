@@ -489,7 +489,13 @@ namespace OmniConsole.Pages
         ///   * 上一輪未解除就再掛一輪 —— 連按方向鍵切頁時可累積數個迴圈，各自在整頁視覺樹上
         ///     做 FindFirstFocusableElement，成本隨切頁次數線性疊加。
         /// </summary>
-        private void StartFocusRetryLoop(string tag)
+        private void StartFocusRetryLoop(string tag) => StartFocusRetryLoop(() => FocusFirstElementForPage(tag));
+
+        /// <summary>
+        /// 同 <see cref="StartFocusRetryLoop(string)"/>，但由呼叫方指定每一影格要嘗試的聚焦動作。
+        /// 與切頁共用同一個重試槽位，新的一輪一律取代舊的，兩者不會同時搶焦點。
+        /// </summary>
+        private void StartFocusRetryLoop(Func<bool> tryFocus)
         {
             if (_pageFocusRetry != null)
             {
@@ -497,13 +503,13 @@ namespace OmniConsole.Pages
                 _pageFocusRetry = null;
             }
 
-            if (FocusFirstElementForPage(tag)) return;
+            if (tryFocus()) return;
 
             var deadline = DateTime.UtcNow.AddSeconds(1);
             EventHandler<object>? onRendering = null;
             onRendering = (s, e) =>
             {
-                if (!FocusFirstElementForPage(tag) && DateTime.UtcNow < deadline) return;
+                if (!tryFocus() && DateTime.UtcNow < deadline) return;
                 CompositionTarget.Rendering -= onRendering;
                 if (ReferenceEquals(_pageFocusRetry, onRendering)) _pageFocusRetry = null;
             };
@@ -836,8 +842,7 @@ namespace OmniConsole.Pages
             }
 
             // 重新指定 ItemsSource 讓 OneTime 繫結重新求值（CardOpacity 依最新 IsAvailable 更新）
-            PlatformGridView.ItemsSource = null;
-            PlatformGridView.ItemsSource = _cardItems;
+            ResetPlatformItemsSource();
 
             // 還原選取狀態（程式化，非使用者操作 → 不應觸發 Home App 改寫）
             var selectedCard = _cardItems.FirstOrDefault(c => c.Id == _selectedPlatformId);
@@ -984,7 +989,7 @@ namespace OmniConsole.Pages
             if (PlatformGridView.ItemsPanelRoot is ItemsWrapGrid wrapGrid)
             {
                 double availableWidth = e.NewSize.Width;
-                const int columns = 4;
+                const int columns = PlatformGridColumns;
                 double itemWidth = Math.Floor(availableWidth / columns);
                 double remainder = availableWidth - itemWidth * columns;
                 // 非整除且餘數極小時 ItemsWrapGrid 因精度問題換行，減 1 迴避
@@ -993,6 +998,68 @@ namespace OmniConsole.Pages
                 wrapGrid.ItemWidth = itemWidth;
                 wrapGrid.ItemHeight = Math.Floor(itemWidth * 0.7); // 維持約 7:10 的高寬比
             }
+        }
+
+        /// <summary>平台卡片網格的固定欄數（見 <see cref="PlatformGridView_SizeChanged"/>）。</summary>
+        private const int PlatformGridColumns = 4;
+
+        /// <summary>
+        /// 重新指定 PlatformGridView 的 ItemsSource。
+        /// 重設會讓舊的 GridViewItem 容器脫離網格；焦點若原本落在卡片上，就會卡在這個孤立容器上，
+        /// D-pad 從那裡出發找不到任何候選，而 GamepadNavigationService.EnsureFocus 也刻意不處理孤立的 GridViewItem。
+        /// 因此重設前先記下焦點所在的卡片，重設後再把焦點交還給新容器中的同一張卡片
+        /// （卡片已不存在時退回第一張）。焦點不在卡片上（例如對話方塊開著）時不搶焦點。
+        /// </summary>
+        private void ResetPlatformItemsSource()
+        {
+            string? focusedCardId = XamlRoot != null
+                && FocusManager.GetFocusedElement(XamlRoot) is GridViewItem { Content: PlatformCardItem focusedCard }
+                ? focusedCard.Id
+                : null;
+
+            PlatformGridView.ItemsSource = null;
+            PlatformGridView.ItemsSource = _cardItems;
+
+            if (focusedCardId != null && _currentNavTag == "General")
+                StartFocusRetryLoop(() => FocusPlatformCard(focusedCardId));
+        }
+
+        /// <summary>把焦點移到指定 Id 的平台卡片；找不到該卡片時移到第一張。容器尚未 realize 時回傳 false。</summary>
+        private bool FocusPlatformCard(string cardId)
+        {
+            var card = _cardItems.FirstOrDefault(c => c.Id == cardId);
+            var container = card != null
+                ? PlatformGridView.ContainerFromItem(card)
+                : PlatformGridView.ContainerFromIndex(0);
+            return (container as UIElement)?.Focus(FocusState.Programmatic) == true;
+        }
+
+        /// <summary>
+        /// GamepadNavigationService 的 XY 導覽撞牆時呼叫，補上平台卡片網格的換列移動。
+        /// XY 預設的投影策略只找正前方的元素，因此最後一列未填滿時，從右側欄往下會直接撞牆，
+        /// 行尾往右、行首往左也不會換列。這些卡片雖然繞路仍到得了，在掌機上卻像是「選不到」：
+        ///   * 往下：下一列存在但正下方沒有卡片 → 移到最後一張卡片；
+        ///   * 往右 / 往左：移到清單中的下一張 / 上一張（即換到下一列開頭 / 上一列結尾）。
+        /// </summary>
+        private bool OnGamepadFocusBlocked(FocusNavigationDirection direction)
+        {
+            if (_currentNavTag != "General" || XamlRoot == null) return false;
+            if (FocusManager.GetFocusedElement(XamlRoot) is not GridViewItem item) return false;
+
+            int index = PlatformGridView.IndexFromContainer(item);
+            int count = _cardItems.Count;
+            if (index < 0) return false;
+
+            int target = direction switch
+            {
+                FocusNavigationDirection.Down when (index / PlatformGridColumns + 1) * PlatformGridColumns < count => count - 1,
+                FocusNavigationDirection.Right => index + 1,
+                FocusNavigationDirection.Left => index - 1,
+                _ => -1,
+            };
+            if (target < 0 || target >= count || target == index) return false;
+
+            return (PlatformGridView.ContainerFromIndex(target) as UIElement)?.Focus(FocusState.Keyboard) == true;
         }
 
         // ── 設定控制項事件 ────────────────────────────────────────────────────
@@ -1433,7 +1500,7 @@ namespace OmniConsole.Pages
 
             _cardItems = systemCards.Concat(homeAppCards).Concat(userCards).Append(addNewCard).ToList();
 
-            PlatformGridView.ItemsSource = _cardItems;
+            ResetPlatformItemsSource();
 
             // 還原選取狀態並捲入可視範圍（合併清單可能超出單頁高度）。
             // 這是程式化還原、不是使用者操作，用旗標讓 SelectionChanged 略過改寫 Home App 的副作用。
@@ -1759,7 +1826,8 @@ namespace OmniConsole.Pages
                     OnGamepadYButtonPressed,
                     OnGamepadMenuButtonPressed,
                     OnGamepadViewButtonPressed,
-                    onNoFocusDetected: OnGamepadNoFocusDetected
+                    onNoFocusDetected: OnGamepadNoFocusDetected,
+                    onFocusBlocked: OnGamepadFocusBlocked
                 );
             }
             _gamepadNavigationService.Start();
@@ -1852,9 +1920,11 @@ namespace OmniConsole.Pages
 
             switch (focused)
             {
-                // 平台卡片：確認選取（不可用卡片不處理）。賦值 SelectedItem 會觸發
-                // PlatformGridView_SelectionChanged，由該處統一處理 _selectedPlatformId 與新增動作卡的分派。
-                case GridViewItem { Content: PlatformCardItem { IsAvailable: true } card }:
+                // 平台卡片：確認選取。不可用的系統平台不處理；不可用的自訂平台仍可選取
+                // （與滑鼠點選一致，SelectionChanged 允許選取它以便透過 X 編輯修正路徑，但不會存成預設）。
+                // 賦值 SelectedItem 會觸發 PlatformGridView_SelectionChanged，由該處統一處理
+                // _selectedPlatformId 與新增動作卡的分派。
+                case GridViewItem { Content: PlatformCardItem card } when card.IsAvailable || card.IsCustom:
                     PlatformGridView.SelectedItem = card;
                     break;
 
